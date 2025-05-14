@@ -29,8 +29,9 @@ const ImageCard: React.FC<ImageCardProps> = ({ photo, onClick }) => {
       className="image-container relative rounded-lg overflow-hidden shadow-lg transition-all duration-300 hover:shadow-xl cursor-pointer group"
       onClick={onClick}
     >
+      {/* Use thumbnail for grid display instead of full image */}
       <img
-        src={photo.url}
+        src={photo.thumbnailUrl}
         alt={photo.name}
         loading="lazy"
         className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"

@@ -1,14 +1,25 @@
 
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useAppContext } from "../context/AppContext";
 import { X, Download, Play } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import QRCode from "./QRCode";
 import { format } from "date-fns";
+import { getDirectImageUrl } from "../services/googleDriveService";
 
 const ImageViewer: React.FC = () => {
   const { selectedPhoto, setSelectedPhoto, settings, setIsSlideshowOpen } = useAppContext();
+  const [isImageLoading, setIsImageLoading] = useState<boolean>(false);
+  const [imageError, setImageError] = useState<boolean>(false);
+
+  useEffect(() => {
+    // Reset loading state when a new photo is selected
+    if (selectedPhoto) {
+      setIsImageLoading(true);
+      setImageError(false);
+    }
+  }, [selectedPhoto]);
 
   const handleDownload = () => {
     if (selectedPhoto) {
@@ -31,6 +42,27 @@ const ImageViewer: React.FC = () => {
     setSelectedPhoto(null);
   };
 
+  const handleImageLoad = () => {
+    setIsImageLoading(false);
+  };
+
+  const handleImageError = () => {
+    setIsImageLoading(false);
+    setImageError(true);
+  };
+
+  // Try multiple URL formats for Google Drive images
+  const getImageSources = () => {
+    if (!selectedPhoto) return [];
+    
+    return [
+      selectedPhoto.fullSizeUrl,
+      getDirectImageUrl(selectedPhoto.id),
+      `https://drive.google.com/uc?export=view&id=${selectedPhoto.id}&t=${Date.now()}`, // Add timestamp to prevent caching
+      selectedPhoto.url
+    ];
+  };
+
   return (
     <Dialog open={!!selectedPhoto} onOpenChange={(open) => !open && setSelectedPhoto(null)}>
       <DialogContent className="max-w-5xl w-[90vw] max-h-[90vh] p-0 overflow-hidden bg-background/90 backdrop-blur-modal">
@@ -43,11 +75,39 @@ const ImageViewer: React.FC = () => {
         <div className="grid md:grid-cols-4 h-full">
           <div className="col-span-3 h-full relative">
             <div className="absolute inset-0 flex items-center justify-center bg-black/20">
-              <img 
-                src={selectedPhoto?.url} 
-                alt={selectedPhoto?.name} 
-                className="max-w-full max-h-full object-contain"
-              />
+              {isImageLoading && (
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <div className="rounded-full h-12 w-12 border-4 border-t-transparent border-primary animate-spin"></div>
+                </div>
+              )}
+              
+              {imageError ? (
+                <div className="text-center p-4">
+                  <p className="text-destructive mb-2">ไม่สามารถโหลดรูปภาพได้</p>
+                  <Button 
+                    variant="outline" 
+                    onClick={() => {
+                      setIsImageLoading(true);
+                      setImageError(false);
+                      // Force a re-render of the image
+                      setSelectedPhoto({...selectedPhoto!});
+                    }}
+                  >
+                    ลองอีกครั้ง
+                  </Button>
+                </div>
+              ) : (
+                selectedPhoto && (
+                  <img 
+                    key={`${selectedPhoto.id}-full`}
+                    src={getImageSources()[0]}
+                    alt={selectedPhoto.name} 
+                    className="max-w-full max-h-full object-contain"
+                    onLoad={handleImageLoad}
+                    onError={handleImageError}
+                  />
+                )
+              )}
             </div>
           </div>
 

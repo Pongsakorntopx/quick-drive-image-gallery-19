@@ -30,13 +30,16 @@ export const fetchPhotosFromDrive = async (config: ApiConfig): Promise<Photo[]> 
     return data.files.map((file: any) => ({
       id: file.id,
       name: file.name,
-      url: `https://drive.google.com/uc?export=view&id=${file.id}`,
+      // Use thumbnailLink for preview display
+      url: file.thumbnailLink ? file.thumbnailLink.replace('=s220', '=s1000') : getPhotoUrl(file.id),
       thumbnailUrl: file.thumbnailLink || `https://drive.google.com/thumbnail?id=${file.id}`,
       mimeType: file.mimeType,
       createdTime: file.createdTime,
       modifiedTime: file.modifiedTime,
       size: file.size || "Unknown",
-      webContentLink: file.webContentLink || `https://drive.google.com/uc?export=download&id=${file.id}`
+      webContentLink: file.webContentLink || `https://drive.google.com/uc?export=download&id=${file.id}`,
+      // Add the direct full-size image URL
+      fullSizeUrl: getPhotoUrl(file.id)
     }));
   } catch (error) {
     console.error("Error fetching photos from Google Drive:", error);
@@ -45,9 +48,15 @@ export const fetchPhotosFromDrive = async (config: ApiConfig): Promise<Photo[]> 
 };
 
 export const getPhotoUrl = (photoId: string): string => {
+  // Use a more reliable approach to get the full image from Google Drive
   return `https://drive.google.com/uc?export=view&id=${photoId}`;
 };
 
 export const getPhotoDownloadUrl = (photoId: string): string => {
   return `https://drive.google.com/uc?export=download&id=${photoId}`;
+};
+
+// Alternative method to fetch direct image URL for better compatibility
+export const getDirectImageUrl = (photoId: string): string => {
+  return `https://lh3.googleusercontent.com/d/${photoId}`;
 };

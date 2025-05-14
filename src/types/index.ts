@@ -14,6 +14,7 @@ export interface Photo {
   modifiedTime: string;
   size: string;
   webContentLink: string;
+  fullSizeUrl: string; // New field for full-size image
 }
 
 export interface Theme {
