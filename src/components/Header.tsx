@@ -7,6 +7,9 @@ import QRCode from "./QRCode";
 
 const Header: React.FC = () => {
   const { settings, setIsSettingsOpen, setIsSlideshowOpen, photos } = useAppContext();
+  
+  // Create a viewer mode URL by adding '/view' to the current URL
+  const viewerModeUrl = `${window.location.origin}/view`;
 
   return (
     <header className={`sticky top-0 z-50 w-full px-4 md:px-6 py-3 backdrop-blur-lg bg-background/75 border-b ${settings.font.class}`}>
@@ -28,7 +31,7 @@ const Header: React.FC = () => {
               <QrCode className="h-4 w-4" />
             </Button>
             <div className="absolute right-0 top-full mt-1 hidden group-hover:block">
-              <QRCode url={window.location.href} size={settings.qrCodeSize * 1.5} />
+              <QRCode url={viewerModeUrl} size={settings.qrCodeSize * 1.5} />
             </div>
           </div>
           
