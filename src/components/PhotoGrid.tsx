@@ -3,7 +3,7 @@ import React, { useEffect, useRef } from "react";
 import { useAppContext } from "../context/AppContext";
 import ImageCard from "./ImageCard";
 import { Skeleton } from "@/components/ui/skeleton";
-import { ReloadIcon } from "@radix-ui/react-icons";
+import { RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 const PhotoGrid: React.FC = () => {
@@ -59,7 +59,7 @@ const PhotoGrid: React.FC = () => {
       <div className="flex flex-col items-center justify-center p-8 min-h-[400px]">
         <div className="text-lg mb-4 text-destructive">{error}</div>
         <Button onClick={() => refreshPhotos()}>
-          <ReloadIcon className="mr-2 h-4 w-4" />
+          <RefreshCw className="mr-2 h-4 w-4" />
           ลองอีกครั้ง
         </Button>
       </div>
