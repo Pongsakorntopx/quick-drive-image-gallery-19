@@ -1,0 +1,230 @@
+
+import React, { useState } from "react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Button } from "@/components/ui/button";
+import { Slider } from "@/components/ui/slider";
+import { useAppContext } from "../context/AppContext";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+
+const SettingsDialog: React.FC = () => {
+  const {
+    isSettingsOpen,
+    setIsSettingsOpen,
+    settings,
+    setSettings,
+    themes,
+    fonts,
+    apiConfig,
+    setApiConfig,
+    refreshPhotos
+  } = useAppContext();
+
+  const [apiKey, setApiKey] = useState(apiConfig.apiKey);
+  const [folderId, setFolderId] = useState(apiConfig.folderId);
+  const [title, setTitle] = useState(settings.title);
+  const [qrCodeSize, setQrCodeSize] = useState(settings.qrCodeSize);
+  const [refreshInterval, setRefreshInterval] = useState(settings.refreshInterval);
+  const [titleFont, setTitleFont] = useState(settings.font.id);
+  const [titleSize, setTitleSize] = useState(settings.fontSize.title);
+  const [subtitleSize, setSubtitleSize] = useState(settings.fontSize.subtitle);
+  const [bodySize, setBodySize] = useState(settings.fontSize.body);
+  const [themeId, setThemeId] = useState(settings.theme.id);
+
+  const handleSaveApiSettings = () => {
+    setApiConfig({
+      apiKey,
+      folderId,
+    });
+    refreshPhotos();
+  };
+
+  const handleSaveAppSettings = () => {
+    const selectedTheme = themes.find((t) => t.id === themeId) || themes[0];
+    const selectedFont = fonts.find((f) => f.id === titleFont) || fonts[0];
+
+    setSettings({
+      ...settings,
+      title,
+      theme: selectedTheme,
+      font: selectedFont,
+      fontSize: {
+        title: titleSize,
+        subtitle: subtitleSize,
+        body: bodySize,
+      },
+      qrCodeSize,
+      refreshInterval,
+    });
+    
+    setIsSettingsOpen(false);
+  };
+
+  return (
+    <Dialog open={isSettingsOpen} onOpenChange={setIsSettingsOpen}>
+      <DialogContent className="sm:max-w-[600px]">
+        <DialogHeader>
+          <DialogTitle>ตั้งค่า</DialogTitle>
+        </DialogHeader>
+        
+        <Tabs defaultValue="api">
+          <TabsList className="grid grid-cols-3 mb-4">
+            <TabsTrigger value="api">การเชื่อมต่อ</TabsTrigger>
+            <TabsTrigger value="appearance">การแสดงผล</TabsTrigger>
+            <TabsTrigger value="advanced">ขั้นสูง</TabsTrigger>
+          </TabsList>
+          
+          <TabsContent value="api" className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="apiKey">Google Drive API Key</Label>
+              <Input
+                id="apiKey"
+                value={apiKey}
+                onChange={(e) => setApiKey(e.target.value)}
+                placeholder="ใส่ API Key ของ Google Drive"
+              />
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="folderId">Folder ID</Label>
+              <Input
+                id="folderId"
+                value={folderId}
+                onChange={(e) => setFolderId(e.target.value)}
+                placeholder="ใส่ ID ของโฟลเดอร์ที่มีรูปภาพ"
+              />
+              <p className="text-sm text-muted-foreground">
+                สามารถดู Folder ID ได้จาก URL ของโฟลเดอร์ใน Google Drive
+              </p>
+            </div>
+            
+            <div className="flex justify-end mt-4">
+              <Button onClick={handleSaveApiSettings}>บันทึกการเชื่อมต่อ</Button>
+            </div>
+          </TabsContent>
+          
+          <TabsContent value="appearance" className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="title">ชื่อแกลเลอรี่</Label>
+              <Input
+                id="title"
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                placeholder="ชื่อแกลเลอรี่"
+              />
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="theme">ธีมสี</Label>
+              <div className="grid grid-cols-5 gap-2">
+                {themes.map((theme) => (
+                  <Button
+                    key={theme.id}
+                    type="button"
+                    variant={themeId === theme.id ? "default" : "outline"}
+                    onClick={() => setThemeId(theme.id)}
+                    className={`h-12 w-full ${themeId === theme.id ? `bg-${theme.colorClass}` : ''}`}
+                    style={{ backgroundColor: themeId === theme.id ? theme.color : '' }}
+                  >
+                    {theme.name}
+                  </Button>
+                ))}
+              </div>
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="font">รูปแบบตัวอักษร</Label>
+              <Select value={titleFont} onValueChange={setTitleFont}>
+                <SelectTrigger>
+                  <SelectValue placeholder="เลือกรูปแบบตัวอักษร" />
+                </SelectTrigger>
+                <SelectContent>
+                  {fonts.map((font) => (
+                    <SelectItem key={font.id} value={font.id} className={font.class}>
+                      {font.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="title-size">ขนาดตัวอักษรหัวข้อ: {titleSize}px</Label>
+              <Slider
+                id="title-size"
+                value={[titleSize]}
+                min={16}
+                max={48}
+                step={1}
+                onValueChange={(value) => setTitleSize(value[0])}
+              />
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="subtitle-size">ขนาดตัวอักษรหัวข้อย่อย: {subtitleSize}px</Label>
+              <Slider
+                id="subtitle-size"
+                value={[subtitleSize]}
+                min={12}
+                max={24}
+                step={1}
+                onValueChange={(value) => setSubtitleSize(value[0])}
+              />
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="body-size">ขนาดตัวอักษรเนื้อหา: {bodySize}px</Label>
+              <Slider
+                id="body-size"
+                value={[bodySize]}
+                min={12}
+                max={20}
+                step={1}
+                onValueChange={(value) => setBodySize(value[0])}
+              />
+            </div>
+          </TabsContent>
+          
+          <TabsContent value="advanced" className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="qr-size">ขนาด QR Code: {qrCodeSize}px</Label>
+              <Slider
+                id="qr-size"
+                value={[qrCodeSize]}
+                min={32}
+                max={128}
+                step={8}
+                onValueChange={(value) => setQrCodeSize(value[0])}
+              />
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="refresh-interval">ระยะเวลาในการรีเฟรช: {refreshInterval} วินาที</Label>
+              <Slider
+                id="refresh-interval"
+                value={[refreshInterval]}
+                min={5}
+                max={60}
+                step={5}
+                onValueChange={(value) => setRefreshInterval(value[0])}
+              />
+            </div>
+          </TabsContent>
+        </Tabs>
+        
+        <div className="flex justify-end gap-2 mt-4">
+          <Button variant="outline" onClick={() => setIsSettingsOpen(false)}>
+            ยกเลิก
+          </Button>
+          <Button onClick={handleSaveAppSettings}>
+            บันทึกการตั้งค่า
+          </Button>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+};
+
+export default SettingsDialog;
