@@ -5,6 +5,8 @@ import { useAppContext } from "../context/AppContext";
 import QRCode from "./QRCode";
 import { Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { toast } from "@/components/ui/use-toast";
+import { getPhotoDownloadUrl } from "../services/googleDriveService";
 
 interface ImageCardProps {
   photo: Photo;
@@ -16,12 +18,30 @@ const ImageCard: React.FC<ImageCardProps> = ({ photo, onClick }) => {
 
   const handleDownload = (e: React.MouseEvent) => {
     e.stopPropagation();
-    const link = document.createElement("a");
-    link.href = photo.webContentLink;
-    link.download = photo.name;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+    try {
+      const link = document.createElement("a");
+      // Use webContentLink from photo or create a download URL
+      const downloadUrl = photo.webContentLink || getPhotoDownloadUrl(photo.id);
+      
+      link.href = downloadUrl;
+      link.download = photo.name;
+      link.target = "_blank"; // Opens in a new tab if direct download isn't supported
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      
+      toast({
+        title: "ดาวน์โหลดเริ่มต้นแล้ว",
+        description: `กำลังดาวน์โหลด ${photo.name}`
+      });
+    } catch (error) {
+      console.error("Download error:", error);
+      toast({
+        title: "เกิดข้อผิดพลาด",
+        description: "ไม่สามารถดาวน์โหลดรูปภาพได้",
+        variant: "destructive"
+      });
+    }
   };
 
   return (
@@ -43,8 +63,12 @@ const ImageCard: React.FC<ImageCardProps> = ({ photo, onClick }) => {
         </div>
       </div>
 
-      <div className="absolute top-2 right-2 z-10 qr-hover">
-        <QRCode url={photo.webContentLink} size={settings.qrCodeSize} className="shadow-lg" />
+      <div className="absolute top-2 right-2 z-10 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+        <QRCode 
+          url={photo.webContentLink} 
+          size={settings.qrCodeSize} 
+          className="shadow-lg bg-white/90 backdrop-blur-sm"
+        />
       </div>
 
       <Button 

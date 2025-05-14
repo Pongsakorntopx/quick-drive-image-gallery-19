@@ -6,29 +6,61 @@ import { X, Download, Play } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import QRCode from "./QRCode";
 import { format } from "date-fns";
-import { getDirectImageUrl } from "../services/googleDriveService";
+import { getDirectImageUrl, getPhotoDownloadUrl } from "../services/googleDriveService";
+import { toast } from "@/components/ui/use-toast";
 
 const ImageViewer: React.FC = () => {
   const { selectedPhoto, setSelectedPhoto, settings, setIsSlideshowOpen } = useAppContext();
   const [isImageLoading, setIsImageLoading] = useState<boolean>(false);
   const [imageError, setImageError] = useState<boolean>(false);
+  const [currentImageUrl, setCurrentImageUrl] = useState<string>("");
+  const [currentUrlIndex, setCurrentUrlIndex] = useState<number>(0);
+
+  // Sources to try for the full image, in order of preference
+  const getImageSources = (photoId: string) => [
+    getDirectImageUrl(photoId),
+    `https://drive.google.com/uc?export=view&id=${photoId}&t=${Date.now()}`,
+    `https://lh3.googleusercontent.com/d/${photoId}?t=${Date.now()}`,
+    `https://drive.google.com/thumbnail?id=${photoId}&sz=w2000`,
+  ];
 
   useEffect(() => {
-    // Reset loading state when a new photo is selected
+    // Reset states when a new photo is selected
     if (selectedPhoto) {
       setIsImageLoading(true);
       setImageError(false);
+      setCurrentUrlIndex(0);
+      const sources = getImageSources(selectedPhoto.id);
+      setCurrentImageUrl(sources[0]);
     }
   }, [selectedPhoto]);
 
   const handleDownload = () => {
     if (selectedPhoto) {
-      const link = document.createElement("a");
-      link.href = selectedPhoto.webContentLink;
-      link.download = selectedPhoto.name;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
+      try {
+        const link = document.createElement("a");
+        // Use the webContentLink from the photo object or create a download link
+        const downloadUrl = selectedPhoto.webContentLink || getPhotoDownloadUrl(selectedPhoto.id);
+        
+        link.href = downloadUrl;
+        link.download = selectedPhoto.name;
+        link.target = "_blank"; // Opens in a new tab if direct download isn't supported
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        
+        toast({
+          title: "ดาวน์โหลดเริ่มต้นแล้ว",
+          description: `กำลังดาวน์โหลด ${selectedPhoto.name}`
+        });
+      } catch (error) {
+        console.error("Download error:", error);
+        toast({
+          title: "เกิดข้อผิดพลาด",
+          description: "ไม่สามารถดาวน์โหลดรูปภาพได้",
+          variant: "destructive"
+        });
+      }
     }
   };
 
@@ -47,20 +79,21 @@ const ImageViewer: React.FC = () => {
   };
 
   const handleImageError = () => {
-    setIsImageLoading(false);
-    setImageError(true);
-  };
-
-  // Try multiple URL formats for Google Drive images
-  const getImageSources = () => {
-    if (!selectedPhoto) return [];
-    
-    return [
-      selectedPhoto.fullSizeUrl,
-      getDirectImageUrl(selectedPhoto.id),
-      `https://drive.google.com/uc?export=view&id=${selectedPhoto.id}&t=${Date.now()}`, // Add timestamp to prevent caching
-      selectedPhoto.url
-    ];
+    if (selectedPhoto) {
+      const sources = getImageSources(selectedPhoto.id);
+      const nextIndex = currentUrlIndex + 1;
+      
+      if (nextIndex < sources.length) {
+        // Try the next URL in the list
+        setCurrentUrlIndex(nextIndex);
+        setCurrentImageUrl(sources[nextIndex]);
+        console.log(`Trying next image URL: ${sources[nextIndex]}`);
+      } else {
+        setIsImageLoading(false);
+        setImageError(true);
+        console.error("All image URLs failed to load");
+      }
+    }
   };
 
   return (
@@ -87,10 +120,13 @@ const ImageViewer: React.FC = () => {
                   <Button 
                     variant="outline" 
                     onClick={() => {
-                      setIsImageLoading(true);
-                      setImageError(false);
-                      // Force a re-render of the image
-                      setSelectedPhoto({...selectedPhoto!});
+                      if (selectedPhoto) {
+                        setIsImageLoading(true);
+                        setImageError(false);
+                        setCurrentUrlIndex(0);
+                        const sources = getImageSources(selectedPhoto.id);
+                        setCurrentImageUrl(sources[0]);
+                      }
                     }}
                   >
                     ลองอีกครั้ง
@@ -99,8 +135,8 @@ const ImageViewer: React.FC = () => {
               ) : (
                 selectedPhoto && (
                   <img 
-                    key={`${selectedPhoto.id}-full`}
-                    src={getImageSources()[0]}
+                    key={`${currentImageUrl}`}
+                    src={currentImageUrl}
                     alt={selectedPhoto.name} 
                     className="max-w-full max-h-full object-contain"
                     onLoad={handleImageLoad}
@@ -111,7 +147,7 @@ const ImageViewer: React.FC = () => {
             </div>
           </div>
 
-          <div className="p-6 flex flex-col h-full bg-background">
+          <div className="p-6 flex flex-col h-full bg-background overflow-y-auto">
             <DialogTitle className={`mb-2 ${settings.font.class}`} style={{fontSize: `${settings.fontSize.subtitle}px`}}>
               {selectedPhoto?.name}
             </DialogTitle>
@@ -126,7 +162,10 @@ const ImageViewer: React.FC = () => {
             </div>
             
             <div className="flex justify-center mt-6">
-              <QRCode url={selectedPhoto?.webContentLink || ''} size={180} />
+              <QRCode 
+                url={selectedPhoto?.webContentLink || ''} 
+                size={180} 
+              />
             </div>
             
             <div className="mt-6 space-y-2">

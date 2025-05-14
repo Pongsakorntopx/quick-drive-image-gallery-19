@@ -37,9 +37,9 @@ export const fetchPhotosFromDrive = async (config: ApiConfig): Promise<Photo[]> 
       createdTime: file.createdTime,
       modifiedTime: file.modifiedTime,
       size: file.size || "Unknown",
-      webContentLink: file.webContentLink || `https://drive.google.com/uc?export=download&id=${file.id}`,
-      // Add the direct full-size image URL
-      fullSizeUrl: getPhotoUrl(file.id)
+      webContentLink: file.webContentLink || getPhotoDownloadUrl(file.id),
+      // Add multiple direct URLs for better compatibility
+      fullSizeUrl: getDirectImageUrl(file.id)
     }));
   } catch (error) {
     console.error("Error fetching photos from Google Drive:", error);
@@ -48,15 +48,15 @@ export const fetchPhotosFromDrive = async (config: ApiConfig): Promise<Photo[]> 
 };
 
 export const getPhotoUrl = (photoId: string): string => {
-  // Use a more reliable approach to get the full image from Google Drive
-  return `https://drive.google.com/uc?export=view&id=${photoId}`;
+  // Direct link with caching prevention
+  return `https://drive.google.com/uc?export=view&id=${photoId}&t=${Date.now()}`;
 };
 
 export const getPhotoDownloadUrl = (photoId: string): string => {
   return `https://drive.google.com/uc?export=download&id=${photoId}`;
 };
 
-// Alternative method to fetch direct image URL for better compatibility
+// More reliable direct image URL for viewing
 export const getDirectImageUrl = (photoId: string): string => {
-  return `https://lh3.googleusercontent.com/d/${photoId}`;
+  return `https://lh3.googleusercontent.com/d/${photoId}?t=${Date.now()}`;
 };
