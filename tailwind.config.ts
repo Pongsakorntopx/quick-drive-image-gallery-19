@@ -1,3 +1,4 @@
+
 import type { Config } from "tailwindcss";
 
 export default {
@@ -136,6 +137,32 @@ export default {
           light: "#fcd34d",
           dark: "#b45309",
         },
+        // Adding new theme colors
+        theme6: {
+          DEFAULT: "#0ea5e9", // Sky Blue
+          light: "#7dd3fc",
+          dark: "#0369a1",
+        },
+        theme7: {
+          DEFAULT: "#ec4899", // Pink
+          light: "#f9a8d4",
+          dark: "#be185d",
+        },
+        theme8: {
+          DEFAULT: "#14b8a6", // Teal
+          light: "#5eead4",
+          dark: "#0f766e",
+        },
+        theme9: {
+          DEFAULT: "#9333ea", // Purple
+          light: "#d8b4fe",
+          dark: "#6b21a8",
+        },
+        theme10: {
+          DEFAULT: "#ca8a04", // Yellow
+          light: "#fde68a",
+          dark: "#854d0e",
+        },
       },
       borderRadius: {
         lg: "var(--radius)",
@@ -172,6 +199,18 @@ export default {
         "slideshow": "slideshow 5s ease-in-out",
         "pulse-slow": "pulse-slow 3s ease-in-out infinite",
         "float": "float 6s ease-in-out infinite",
+      },
+      backgroundImage: {
+        'gradient-blue-pink': 'linear-gradient(90deg, #3b82f6 0%, #ec4899 100%)',
+        'gradient-green-blue': 'linear-gradient(90deg, #10b981 0%, #3b82f6 100%)',
+        'gradient-purple-pink': 'linear-gradient(90deg, #8b5cf6 0%, #ec4899 100%)',
+        'gradient-amber-red': 'linear-gradient(90deg, #f59e0b 0%, #ef4444 100%)',
+        'gradient-teal-green': 'linear-gradient(90deg, #14b8a6 0%, #10b981 100%)',
+        'gradient-blue-purple': 'linear-gradient(90deg, #3b82f6 0%, #8b5cf6 100%)',
+        'gradient-red-amber': 'linear-gradient(90deg, #ef4444 0%, #f59e0b 100%)',
+        'gradient-sky-blue': 'linear-gradient(90deg, #0ea5e9 0%, #3b82f6 100%)',
+        'gradient-pink-purple': 'linear-gradient(90deg, #ec4899 0%, #8b5cf6 100%)',
+        'gradient-yellow-amber': 'linear-gradient(90deg, #ca8a04 0%, #f59e0b 100%)',
       },
     },
   },

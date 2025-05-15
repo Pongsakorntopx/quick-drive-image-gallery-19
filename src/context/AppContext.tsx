@@ -3,13 +3,63 @@ import { ApiConfig, Photo, AppSettings, Theme, Font } from "../types";
 import { fetchPhotosFromDrive } from "../services/googleDriveService";
 import { useToast } from "@/components/ui/use-toast";
 
-// Default themes
+// Default themes with solid colors and gradients
 const themes: Theme[] = [
+  // Original solid color themes
   { id: "theme1", name: "Blue", color: "#3b82f6", colorClass: "theme1" },
   { id: "theme2", name: "Red", color: "#ef4444", colorClass: "theme2" },
   { id: "theme3", name: "Green", color: "#10b981", colorClass: "theme3" },
   { id: "theme4", name: "Purple", color: "#8b5cf6", colorClass: "theme4" },
   { id: "theme5", name: "Amber", color: "#f59e0b", colorClass: "theme5" },
+  
+  // Additional solid color themes
+  { id: "theme6", name: "Sky", color: "#0ea5e9", colorClass: "theme6" },
+  { id: "theme7", name: "Pink", color: "#ec4899", colorClass: "theme7" },
+  { id: "theme8", name: "Teal", color: "#14b8a6", colorClass: "theme8" },
+  { id: "theme9", name: "Violet", color: "#9333ea", colorClass: "theme9" },
+  { id: "theme10", name: "Yellow", color: "#ca8a04", colorClass: "theme10" },
+  
+  // Gradient themes
+  { 
+    id: "gradient1", 
+    name: "Blue to Pink", 
+    color: "#3b82f6", 
+    colorClass: "theme1",
+    gradient: "bg-gradient-blue-pink",
+    isGradient: true
+  },
+  { 
+    id: "gradient2", 
+    name: "Green to Blue", 
+    color: "#10b981", 
+    colorClass: "theme3",
+    gradient: "bg-gradient-green-blue",
+    isGradient: true
+  },
+  { 
+    id: "gradient3", 
+    name: "Purple to Pink", 
+    color: "#8b5cf6", 
+    colorClass: "theme4",
+    gradient: "bg-gradient-purple-pink",
+    isGradient: true
+  },
+  { 
+    id: "gradient4", 
+    name: "Amber to Red", 
+    color: "#f59e0b", 
+    colorClass: "theme5",
+    gradient: "bg-gradient-amber-red",
+    isGradient: true
+  },
+  { 
+    id: "gradient5", 
+    name: "Teal to Green", 
+    color: "#14b8a6", 
+    colorClass: "theme8",
+    gradient: "bg-gradient-teal-green",
+    isGradient: true
+  },
 ];
 
 // Extended font collection with 50 fonts including handwriting fonts
@@ -193,6 +243,67 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     } finally {
       setIsLoading(false);
     }
+  };
+
+  // Modify CSS variables based on the selected theme
+  useEffect(() => {
+    const root = document.documentElement;
+    const color = settings.theme.color;
+    
+    // Convert hex to RGB
+    const hexToRgb = (hex: string) => {
+      const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+      return result ? {
+        r: parseInt(result[1], 16),
+        g: parseInt(result[2], 16),
+        b: parseInt(result[3], 16)
+      } : null;
+    };
+    
+    const rgb = hexToRgb(color);
+    if (rgb) {
+      // Set primary color to the selected theme color
+      const hsl = rgbToHsl(rgb.r, rgb.g, rgb.b);
+      root.style.setProperty('--primary', `${hsl.h} ${hsl.s}% ${hsl.l}%`);
+      
+      // Adjust other colors based on the theme
+      root.style.setProperty('--primary-foreground', '210 40% 98%');
+      root.style.setProperty('--ring', `${hsl.h} ${Math.max(hsl.s - 10, 0)}% ${hsl.l}%`);
+    }
+  }, [settings.theme]);
+  
+  // Convert RGB to HSL
+  const rgbToHsl = (r: number, g: number, b: number) => {
+    r /= 255;
+    g /= 255;
+    b /= 255;
+    
+    const max = Math.max(r, g, b);
+    const min = Math.min(r, g, b);
+    let h = 0;
+    let s = 0;
+    const l = (max + min) / 2;
+    
+    if (max !== min) {
+      const d = max - min;
+      s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+      
+      switch (max) {
+        case r:
+          h = (g - b) / d + (g < b ? 6 : 0);
+          break;
+        case g:
+          h = (b - r) / d + 2;
+          break;
+        case b:
+          h = (r - g) / d + 4;
+          break;
+      }
+      
+      h *= 60;
+    }
+    
+    return { h: Math.round(h), s: Math.round(s * 100), l: Math.round(l * 100) };
   };
 
   return (

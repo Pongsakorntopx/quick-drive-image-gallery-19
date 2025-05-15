@@ -10,6 +10,7 @@ import { useAppContext } from "../context/AppContext";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { RotateCw } from "lucide-react";
 import { toast } from "@/components/ui/use-toast";
+import { Separator } from "@/components/ui/separator";
 
 const SettingsDialog: React.FC = () => {
   const {
@@ -34,6 +35,10 @@ const SettingsDialog: React.FC = () => {
   const [subtitleSize, setSubtitleSize] = useState(settings.fontSize.subtitle);
   const [bodySize, setBodySize] = useState(settings.fontSize.body);
   const [themeId, setThemeId] = useState(settings.theme.id);
+
+  // Filter themes by type
+  const solidThemes = themes.filter(theme => !theme.isGradient);
+  const gradientThemes = themes.filter(theme => theme.isGradient);
 
   const handleSaveApiSettings = () => {
     setApiConfig({
@@ -136,23 +141,52 @@ const SettingsDialog: React.FC = () => {
               />
             </div>
             
-            <div className="space-y-2">
-              <Label htmlFor="theme">ธีมสี</Label>
-              <div className="grid grid-cols-5 gap-2">
-                {themes.map((theme) => (
-                  <Button
-                    key={theme.id}
-                    type="button"
-                    variant={themeId === theme.id ? "default" : "outline"}
-                    onClick={() => setThemeId(theme.id)}
-                    className={`h-12 w-full ${themeId === theme.id ? `bg-${theme.colorClass}` : ''}`}
-                    style={{ backgroundColor: themeId === theme.id ? theme.color : '' }}
-                  >
-                    {theme.name}
-                  </Button>
-                ))}
+            <Separator className="my-4" />
+            
+            <div className="space-y-4">
+              <Label className="text-lg font-medium">ธีมสี</Label>
+              
+              <div className="space-y-2">
+                <Label className="text-sm">สีพื้นฐาน</Label>
+                <div className="grid grid-cols-5 gap-2">
+                  {solidThemes.map((theme) => (
+                    <button
+                      key={theme.id}
+                      type="button"
+                      onClick={() => setThemeId(theme.id)}
+                      className={`h-12 w-full rounded-md border-2 transition-all ${
+                        themeId === theme.id ? 'border-ring scale-105' : 'border-transparent'
+                      }`}
+                      style={{ backgroundColor: theme.color }}
+                    >
+                      <span className="sr-only">{theme.name}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+              
+              <div className="space-y-2">
+                <Label className="text-sm">ไล่ระดับสี (Gradients)</Label>
+                <div className="grid grid-cols-2 gap-3">
+                  {gradientThemes.map((theme) => (
+                    <button
+                      key={theme.id}
+                      type="button"
+                      onClick={() => setThemeId(theme.id)}
+                      className={`h-16 w-full rounded-md border-2 transition-all ${theme.gradient} ${
+                        themeId === theme.id ? 'border-ring scale-105' : 'border-transparent'
+                      }`}
+                    >
+                      <span className="font-medium text-white drop-shadow-md">
+                        {theme.name}
+                      </span>
+                    </button>
+                  ))}
+                </div>
               </div>
             </div>
+            
+            <Separator className="my-4" />
             
             <div className="space-y-2">
               <Label htmlFor="font">รูปแบบตัวอักษร</Label>

@@ -14,8 +14,8 @@ export interface Photo {
   modifiedTime: string;
   size: string;
   webContentLink: string;
-  fullSizeUrl: string; // For full-size image
-  directDownloadUrl: string; // Add this property for direct downloads without login
+  fullSizeUrl: string;
+  directDownloadUrl: string;
 }
 
 export interface Theme {
@@ -23,6 +23,8 @@ export interface Theme {
   name: string;
   color: string;
   colorClass: string;
+  gradient?: string; // Add gradient option
+  isGradient?: boolean; // Flag to identify if it's a gradient theme
 }
 
 export interface Font {
