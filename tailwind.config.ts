@@ -1,4 +1,3 @@
-
 import type { Config } from "tailwindcss";
 
 export default {
@@ -23,6 +22,60 @@ export default {
         'sans': ['Kanit', 'Inter', 'sans-serif'],
         'display': ['Noto Sans Thai', 'system-ui', 'sans-serif'],
         'body': ['Sarabun', 'system-ui', 'sans-serif'],
+        // Standard fonts
+        'roboto': ['Roboto', 'sans-serif'],
+        'opensans': ['Open Sans', 'sans-serif'],
+        'lato': ['Lato', 'sans-serif'],
+        'montserrat': ['Montserrat', 'sans-serif'],
+        'poppins': ['Poppins', 'sans-serif'],
+        'raleway': ['Raleway', 'sans-serif'],
+        'ubuntu': ['Ubuntu', 'sans-serif'],
+        // Serif fonts
+        'playfair': ['Playfair Display', 'serif'],
+        'merriweather': ['Merriweather', 'serif'],
+        'crimson': ['Crimson Text', 'serif'],
+        'lora': ['Lora', 'serif'],
+        'roboto-slab': ['Roboto Slab', 'serif'],
+        'noto-serif': ['Noto Serif', 'serif'],
+        'cormorant': ['Cormorant Garamond', 'serif'],
+        // Display fonts
+        'bebas': ['Bebas Neue', 'cursive'],
+        'archivo-black': ['Archivo Black', 'sans-serif'],
+        'anton': ['Anton', 'sans-serif'],
+        'passion-one': ['Passion One', 'cursive'],
+        'righteous': ['Righteous', 'cursive'],
+        // Monospace fonts
+        'roboto-mono': ['Roboto Mono', 'monospace'],
+        'source-code': ['Source Code Pro', 'monospace'],
+        'fira-code': ['Fira Code', 'monospace'],
+        // Handwriting fonts
+        'caveat': ['Caveat', 'cursive'],
+        'pacifico': ['Pacifico', 'cursive'],
+        'dancing-script': ['Dancing Script', 'cursive'],
+        'indie-flower': ['Indie Flower', 'cursive'],
+        'kalam': ['Kalam', 'cursive'],
+        'satisfy': ['Satisfy', 'cursive'],
+        'great-vibes': ['Great Vibes', 'cursive'],
+        'sacramento': ['Sacramento', 'cursive'],
+        'shadows-into-light': ['Shadows Into Light', 'cursive'],
+        'amatic-sc': ['Amatic SC', 'cursive'],
+        'architects-daughter': ['Architects Daughter', 'cursive'],
+        'homemade-apple': ['Homemade Apple', 'cursive'],
+        'reenie-beanie': ['Reenie Beanie', 'cursive'],
+        'rock-salt': ['Rock Salt', 'cursive'],
+        'covered-by-your-grace': ['Covered By Your Grace', 'cursive'],
+        // Thai fonts
+        'prompt': ['Prompt', 'sans-serif'],
+        'mitr': ['Mitr', 'sans-serif'],
+        'taviraj': ['Taviraj', 'serif'],
+        'athiti': ['Athiti', 'sans-serif'],
+        'sriracha': ['Sriracha', 'cursive'],
+        // Additional modern fonts
+        'lexend': ['Lexend', 'sans-serif'],
+        'outfit': ['Outfit', 'sans-serif'],
+        'dm-sans': ['DM Sans', 'sans-serif'],
+        'space-grotesk': ['Space Grotesk', 'sans-serif'],
+        'plus-jakarta-sans': ['Plus Jakarta Sans', 'sans-serif'],
       },
       colors: {
         border: "hsl(var(--border))",

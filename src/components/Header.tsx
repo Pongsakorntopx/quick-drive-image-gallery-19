@@ -14,15 +14,19 @@ const Header: React.FC = () => {
 
   return (
     <header className={`sticky top-0 z-50 w-full px-4 md:px-6 py-3 backdrop-blur-lg bg-background/75 border-b ${settings.font.class}`}>
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col md:flex-row items-center justify-between">
+        <div className="hidden md:block w-36">
+          {/* Empty div for layout balancing on desktop */}
+        </div>
+        
         <h1 
-          className="text-center font-bold"
+          className="text-center font-bold mx-auto md:mx-0"
           style={{ fontSize: `${settings.fontSize.title}px`, color: `var(--${settings.theme.colorClass})` }}
         >
           {settings.title}
         </h1>
         
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 mt-2 md:mt-0 w-full md:w-auto justify-center md:justify-end">
           <Button variant="outline" size="icon" onClick={() => setIsSlideshowOpen(true)} disabled={photos.length === 0}>
             <Play className="h-4 w-4" />
           </Button>

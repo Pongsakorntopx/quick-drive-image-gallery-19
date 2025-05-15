@@ -45,7 +45,11 @@ const Slideshow: React.FC = () => {
     if (isSlideshowOpen && photos.length > 0) {
       setCurrentIndex(0);
       setPlayedIndices([0]);
+      
+      // Always start playing when opened
+      setIsPlaying(true);
       startSlideshow();
+      
       toast({
         title: "สไลด์โชว์เริ่มต้นแล้ว",
         description: `กำลังแสดงรูปภาพทั้งหมด ${photos.length} รูป`
@@ -56,6 +60,17 @@ const Slideshow: React.FC = () => {
       stopAllTimers();
     };
   }, [isSlideshowOpen, photos.length]);
+
+  // Effect for handling play/pause state changes
+  useEffect(() => {
+    if (isSlideshowOpen) {
+      if (isPlaying) {
+        startSlideshow();
+      } else {
+        pauseSlideshow();
+      }
+    }
+  }, [isPlaying, isSlideshowOpen]);
 
   // Handle audio file change
   useEffect(() => {
@@ -77,21 +92,35 @@ const Slideshow: React.FC = () => {
   // Set up audio context for visual effects
   useEffect(() => {
     if (audioRef.current && visualMode === 'beat' && isPlaying) {
-      const audioContext = new AudioContext();
-      const analyser = audioContext.createAnalyser();
-      analyser.fftSize = 256;
-      
-      const source = audioContext.createMediaElementSource(audioRef.current);
-      source.connect(analyser);
-      analyser.connect(audioContext.destination);
-      
-      const bufferLength = analyser.frequencyBinCount;
-      const dataArray = new Uint8Array(bufferLength);
-      
-      analyserRef.current = analyser;
-      dataArrayRef.current = dataArray;
-      
-      startVisualAnalysis();
+      // Create AudioContext only if we're actually using it
+      try {
+        const audioContext = new AudioContext();
+        const analyser = audioContext.createAnalyser();
+        analyser.fftSize = 256;
+        
+        const source = audioContext.createMediaElementSource(audioRef.current);
+        source.connect(analyser);
+        analyser.connect(audioContext.destination);
+        
+        const bufferLength = analyser.frequencyBinCount;
+        const dataArray = new Uint8Array(bufferLength);
+        
+        analyserRef.current = analyser;
+        dataArrayRef.current = dataArray;
+        
+        startVisualAnalysis();
+      } catch (error) {
+        console.error("Error setting up audio analysis:", error);
+        // Fallback to normal mode if audio analysis fails
+        setVisualMode('normal');
+        scheduleNextSlide();
+        startProgressTimer();
+      }
+    } else if (visualMode === 'normal' && isPlaying) {
+      // In normal mode, make sure we have timers running
+      stopAllTimers();
+      scheduleNextSlide();
+      startProgressTimer();
     }
     
     return () => {
@@ -104,12 +133,15 @@ const Slideshow: React.FC = () => {
   const stopAllTimers = () => {
     if (timerRef.current) {
       clearTimeout(timerRef.current);
+      timerRef.current = null;
     }
     if (progressTimerRef.current) {
-      clearTimeout(progressTimerRef.current);
+      clearInterval(progressTimerRef.current);
+      progressTimerRef.current = null;
     }
     if (animationFrameRef.current) {
       cancelAnimationFrame(animationFrameRef.current);
+      animationFrameRef.current = null;
     }
   };
 
@@ -128,7 +160,9 @@ const Slideshow: React.FC = () => {
         }
       }
       
-      animationFrameRef.current = requestAnimationFrame(analyzeAudio);
+      if (isPlaying) {
+        animationFrameRef.current = requestAnimationFrame(analyzeAudio);
+      }
     };
     
     animationFrameRef.current = requestAnimationFrame(analyzeAudio);
@@ -139,14 +173,20 @@ const Slideshow: React.FC = () => {
     setIsPlaying(true);
     setRemainingTime(slideSpeed);
     
+    // If we have audio, play it
     if (audioRef.current && audioUrl) {
-      audioRef.current.play();
+      audioRef.current.play().catch(error => {
+        console.error("Error playing audio:", error);
+      });
       setCurrentAudio(audioRef.current);
     }
     
+    // Only schedule slides if we're in normal mode
     if (visualMode === 'normal') {
       scheduleNextSlide();
       startProgressTimer();
+    } else if (visualMode === 'beat') {
+      startVisualAnalysis();
     }
   };
 
@@ -210,6 +250,9 @@ const Slideshow: React.FC = () => {
   };
 
   const goToNext = () => {
+    // Ensure we have photos to display
+    if (photos.length === 0) return;
+    
     let nextIndex;
     
     if (shuffleMode) {
@@ -223,6 +266,9 @@ const Slideshow: React.FC = () => {
   };
 
   const goToPrev = () => {
+    // Ensure we have photos to display
+    if (photos.length === 0) return;
+    
     if (shuffleMode) {
       // In shuffle mode, go to the last played photo if available
       const prevIndex = playedIndices.length > 1 
@@ -293,15 +339,20 @@ const Slideshow: React.FC = () => {
           <div className="absolute inset-0 flex items-center justify-center">
             {photos.length > 0 && (
               <div className="relative w-full h-full">
-                <img 
-                  src={photos[currentIndex].url} 
-                  alt={photos[currentIndex].name} 
-                  className="w-full h-full object-contain"
-                />
+                {photos[currentIndex] && (
+                  <img 
+                    src={photos[currentIndex].url} 
+                    alt={photos[currentIndex].name || `Image ${currentIndex + 1}`} 
+                    className="w-full h-full object-contain"
+                  />
+                )}
                 
-                {showQR && (
+                {showQR && photos[currentIndex] && (
                   <div className="absolute bottom-8 right-8">
-                    <QRCode url={photos[currentIndex].directDownloadUrl || photos[currentIndex].webContentLink} size={180} />
+                    <QRCode 
+                      url={photos[currentIndex].directDownloadUrl || photos[currentIndex].webContentLink || ''} 
+                      size={180} 
+                    />
                   </div>
                 )}
                 
@@ -316,7 +367,13 @@ const Slideshow: React.FC = () => {
           {/* Progress bar */}
           {visualMode === 'normal' && isPlaying && (
             <div className="absolute top-0 left-0 right-0">
-              <div className="h-1 bg-primary" style={{ width: `${(1 - remainingTime / slideSpeed) * 100}%`, transition: 'width 0.1s linear' }}></div>
+              <div 
+                className="h-1 bg-primary" 
+                style={{ 
+                  width: `${(1 - remainingTime / slideSpeed) * 100}%`, 
+                  transition: 'width 0.1s linear' 
+                }}
+              ></div>
             </div>
           )}
           
@@ -414,11 +471,11 @@ const Slideshow: React.FC = () => {
                 </Button>
                 
                 {isPlaying ? (
-                  <Button variant="ghost" size="icon" onClick={pauseSlideshow} className="text-white hover:bg-white/20">
+                  <Button variant="ghost" size="icon" onClick={() => setIsPlaying(false)} className="text-white hover:bg-white/20">
                     <Pause className="h-6 w-6" />
                   </Button>
                 ) : (
-                  <Button variant="ghost" size="icon" onClick={startSlideshow} className="text-white hover:bg-white/20">
+                  <Button variant="ghost" size="icon" onClick={() => setIsPlaying(true)} className="text-white hover:bg-white/20">
                     <Play className="h-6 w-6" />
                   </Button>
                 )}

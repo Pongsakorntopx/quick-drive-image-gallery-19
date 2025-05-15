@@ -4,8 +4,9 @@ import { useAppContext } from "../context/AppContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { ArrowRight } from "lucide-react";
+import { ArrowRight, HelpCircle } from "lucide-react";
 import { toast } from "@/components/ui/use-toast";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 const ApiSetup: React.FC = () => {
   const { apiConfig, setApiConfig, refreshPhotos } = useAppContext();
@@ -16,17 +17,48 @@ const ApiSetup: React.FC = () => {
 
   const validateFolderId = (id: string) => {
     // Basic validation for Google Drive Folder ID format
-    return id.trim().length > 10;
+    // Google Drive IDs are typically 33 characters with letters, numbers, hyphens, and underscores
+    const folderIdPattern = /^[a-zA-Z0-9_-]{25,33}$/;
+    return folderIdPattern.test(id.trim());
   };
 
   const validateApiKey = (key: string) => {
     // Basic validation for Google API key format
-    return key.trim().length > 20;
+    // Google API keys typically start with "AIza" and are about 39 characters
+    return key.trim().startsWith("AIza") && key.trim().length >= 39;
+  };
+
+  const extractFolderIdFromUrl = (url: string): string | null => {
+    // Try to extract folder ID from various Google Drive URL formats
+    const patterns = [
+      /\/folders\/([a-zA-Z0-9_-]{25,33})/,  // /folders/FOLDERID format
+      /id=([a-zA-Z0-9_-]{25,33})/,          // id=FOLDERID format
+      /^([a-zA-Z0-9_-]{25,33})$/            // Just the ID itself
+    ];
+    
+    for (const pattern of patterns) {
+      const match = url.match(pattern);
+      if (match && match[1]) {
+        return match[1];
+      }
+    }
+    
+    return null;
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
+    
+    // Check if the folder ID might be a URL and try to extract the ID
+    let processedFolderId = folderId.trim();
+    if (processedFolderId.includes('drive.google.com')) {
+      const extractedId = extractFolderIdFromUrl(processedFolderId);
+      if (extractedId) {
+        processedFolderId = extractedId;
+        setFolderId(extractedId);
+      }
+    }
     
     // Validate inputs
     if (!validateApiKey(apiKey)) {
@@ -39,7 +71,7 @@ const ApiSetup: React.FC = () => {
       return;
     }
 
-    if (!validateFolderId(folderId)) {
+    if (!validateFolderId(processedFolderId)) {
       setError("Folder ID ไม่ถูกต้อง กรุณาตรวจสอบอีกครั้ง");
       toast({
         title: "ข้อมูลไม่ถูกต้อง",
@@ -53,7 +85,7 @@ const ApiSetup: React.FC = () => {
     
     try {
       // Update the API configuration
-      const newConfig = { apiKey: apiKey.trim(), folderId: folderId.trim() };
+      const newConfig = { apiKey: apiKey.trim(), folderId: processedFolderId };
       setApiConfig(newConfig);
       
       // Force refresh photos with the new configuration
@@ -94,8 +126,8 @@ const ApiSetup: React.FC = () => {
     <div className="flex items-center justify-center min-h-[calc(100vh-80px)] p-4">
       <Card className="w-full max-w-md">
         <CardHeader>
-          <CardTitle className="text-2xl">เริ่มต้นการใช้งาน</CardTitle>
-          <CardDescription>
+          <CardTitle className="text-2xl text-center">เริ่มต้นการใช้งาน</CardTitle>
+          <CardDescription className="text-center">
             เชื่อมต่อกับ Google Drive เพื่อแสดงรูปภาพบนแกลเลอรี่
           </CardDescription>
         </CardHeader>
@@ -103,14 +135,31 @@ const ApiSetup: React.FC = () => {
         <form onSubmit={handleSubmit}>
           <CardContent className="space-y-4">
             <div className="space-y-2">
-              <label htmlFor="apiKey" className="text-sm font-medium">
-                Google Drive API Key
-              </label>
+              <div className="flex items-center justify-between">
+                <label htmlFor="apiKey" className="text-sm font-medium">
+                  Google Drive API Key
+                </label>
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button variant="ghost" size="icon" className="h-5 w-5 rounded-full p-0">
+                        <HelpCircle className="h-3 w-3" />
+                        <span className="sr-only">คำอธิบาย</span>
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p className="w-[200px] text-xs">
+                        API Key จะขึ้นต้นด้วย AIza และมีความยาวประมาณ 39 ตัวอักษร
+                      </p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              </div>
               <Input
                 id="apiKey"
                 value={apiKey}
                 onChange={handleApiKeyChange}
-                placeholder="เช่น AIzaSyBnGk9euYZMBM1234"
+                placeholder="เช่น AIzaSyBnGk9euYZMBM1234..."
                 required
               />
               <p className="text-xs text-muted-foreground">
@@ -119,18 +168,35 @@ const ApiSetup: React.FC = () => {
             </div>
             
             <div className="space-y-2">
-              <label htmlFor="folderId" className="text-sm font-medium">
-                Folder ID ใน Google Drive
-              </label>
+              <div className="flex items-center justify-between">
+                <label htmlFor="folderId" className="text-sm font-medium">
+                  Folder ID ใน Google Drive
+                </label>
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button variant="ghost" size="icon" className="h-5 w-5 rounded-full p-0">
+                        <HelpCircle className="h-3 w-3" />
+                        <span className="sr-only">คำอธิบาย</span>
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p className="w-[200px] text-xs">
+                        สามารถใส่ URL ของโฟลเดอร์ได้เลย ระบบจะแยก ID ให้อัตโนมัติ หรือใส่เฉพาะ ID ที่มีความยาวประมาณ 33 ตัวอักษร
+                      </p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              </div>
               <Input
                 id="folderId"
                 value={folderId}
                 onChange={handleFolderIdChange}
-                placeholder="เช่น 1a2b3c4d5e6f7g8h9i0j"
+                placeholder="URL โฟลเดอร์ หรือ ID เช่น 1a2b3c4d5e6f7g8h9i0j"
                 required
               />
               <p className="text-xs text-muted-foreground">
-                ID ของโฟลเดอร์ที่มีรูปภาพที่ต้องการแสดง (หาได้จาก URL ของโฟลเดอร์ใน Google Drive)
+                คุณสามารถใส่ URL ของโฟลเดอร์ได้โดยตรง หรือใส่เฉพาะ ID ก็ได้
               </p>
             </div>
             

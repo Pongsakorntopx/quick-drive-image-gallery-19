@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useState, useEffect } from "react";
 import { ApiConfig, Photo, AppSettings, Theme, Font } from "../types";
 import { fetchPhotosFromDrive } from "../services/googleDriveService";
@@ -13,12 +12,73 @@ const themes: Theme[] = [
   { id: "theme5", name: "Amber", color: "#f59e0b", colorClass: "theme5" },
 ];
 
-// Default fonts
+// Extended font collection with 50 fonts including handwriting fonts
 const fonts: Font[] = [
+  // Original fonts
   { id: "font1", name: "Kanit", family: "Kanit, sans-serif", class: "font-sans" },
   { id: "font2", name: "Noto Sans Thai", family: "Noto Sans Thai, sans-serif", class: "font-display" },
   { id: "font3", name: "Sarabun", family: "Sarabun, sans-serif", class: "font-body" },
-  // More fonts will be added
+  
+  // Standard fonts
+  { id: "font4", name: "Roboto", family: "Roboto, sans-serif", class: "font-roboto" },
+  { id: "font5", name: "Open Sans", family: "Open Sans, sans-serif", class: "font-opensans" },
+  { id: "font6", name: "Lato", family: "Lato, sans-serif", class: "font-lato" },
+  { id: "font7", name: "Montserrat", family: "Montserrat, sans-serif", class: "font-montserrat" },
+  { id: "font8", name: "Poppins", family: "Poppins, sans-serif", class: "font-poppins" },
+  { id: "font9", name: "Raleway", family: "Raleway, sans-serif", class: "font-raleway" },
+  { id: "font10", name: "Ubuntu", family: "Ubuntu, sans-serif", class: "font-ubuntu" },
+  
+  // Serif fonts
+  { id: "font11", name: "Playfair Display", family: "Playfair Display, serif", class: "font-playfair" },
+  { id: "font12", name: "Merriweather", family: "Merriweather, serif", class: "font-merriweather" },
+  { id: "font13", name: "Crimson Text", family: "Crimson Text, serif", class: "font-crimson" },
+  { id: "font14", name: "Lora", family: "Lora, serif", class: "font-lora" },
+  { id: "font15", name: "Roboto Slab", family: "Roboto Slab, serif", class: "font-roboto-slab" },
+  { id: "font16", name: "Noto Serif", family: "Noto Serif, serif", class: "font-noto-serif" },
+  { id: "font17", name: "Cormorant Garamond", family: "Cormorant Garamond, serif", class: "font-cormorant" },
+  
+  // Display fonts
+  { id: "font18", name: "Bebas Neue", family: "Bebas Neue, cursive", class: "font-bebas" },
+  { id: "font19", name: "Archivo Black", family: "Archivo Black, sans-serif", class: "font-archivo-black" },
+  { id: "font20", name: "Anton", family: "Anton, sans-serif", class: "font-anton" },
+  { id: "font21", name: "Passion One", family: "Passion One, cursive", class: "font-passion-one" },
+  { id: "font22", name: "Righteous", family: "Righteous, cursive", class: "font-righteous" },
+  
+  // Monospace fonts
+  { id: "font23", name: "Roboto Mono", family: "Roboto Mono, monospace", class: "font-roboto-mono" },
+  { id: "font24", name: "Source Code Pro", family: "Source Code Pro, monospace", class: "font-source-code" },
+  { id: "font25", name: "Fira Code", family: "Fira Code, monospace", class: "font-fira-code" },
+  
+  // Handwriting fonts
+  { id: "font26", name: "Caveat", family: "Caveat, cursive", class: "font-caveat" },
+  { id: "font27", name: "Pacifico", family: "Pacifico, cursive", class: "font-pacifico" },
+  { id: "font28", name: "Dancing Script", family: "Dancing Script, cursive", class: "font-dancing-script" },
+  { id: "font29", name: "Indie Flower", family: "Indie Flower, cursive", class: "font-indie-flower" },
+  { id: "font30", name: "Kalam", family: "Kalam, cursive", class: "font-kalam" },
+  { id: "font31", name: "Satisfy", family: "Satisfy, cursive", class: "font-satisfy" },
+  { id: "font32", name: "Great Vibes", family: "Great Vibes, cursive", class: "font-great-vibes" },
+  { id: "font33", name: "Sacramento", family: "Sacramento, cursive", class: "font-sacramento" },
+  { id: "font34", name: "Shadows Into Light", family: "Shadows Into Light, cursive", class: "font-shadows-into-light" },
+  { id: "font35", name: "Amatic SC", family: "Amatic SC, cursive", class: "font-amatic-sc" },
+  { id: "font36", name: "Architects Daughter", family: "Architects Daughter, cursive", class: "font-architects-daughter" },
+  { id: "font37", name: "Homemade Apple", family: "Homemade Apple, cursive", class: "font-homemade-apple" },
+  { id: "font38", name: "Reenie Beanie", family: "Reenie Beanie, cursive", class: "font-reenie-beanie" },
+  { id: "font39", name: "Rock Salt", family: "Rock Salt, cursive", class: "font-rock-salt" },
+  { id: "font40", name: "Covered By Your Grace", family: "Covered By Your Grace, cursive", class: "font-covered-by-your-grace" },
+  
+  // Thai fonts
+  { id: "font41", name: "Prompt", family: "Prompt, sans-serif", class: "font-prompt" },
+  { id: "font42", name: "Mitr", family: "Mitr, sans-serif", class: "font-mitr" },
+  { id: "font43", name: "Taviraj", family: "Taviraj, serif", class: "font-taviraj" },
+  { id: "font44", name: "Athiti", family: "Athiti, sans-serif", class: "font-athiti" },
+  { id: "font45", name: "Sriracha", family: "Sriracha, cursive", class: "font-sriracha" },
+  
+  // Additional modern fonts
+  { id: "font46", name: "Lexend", family: "Lexend, sans-serif", class: "font-lexend" },
+  { id: "font47", name: "Outfit", family: "Outfit, sans-serif", class: "font-outfit" },
+  { id: "font48", name: "DM Sans", family: "DM Sans, sans-serif", class: "font-dm-sans" },
+  { id: "font49", name: "Space Grotesk", family: "Space Grotesk, sans-serif", class: "font-space-grotesk" },
+  { id: "font50", name: "Plus Jakarta Sans", family: "Plus Jakarta Sans, sans-serif", class: "font-plus-jakarta-sans" },
 ];
 
 const defaultSettings: AppSettings = {
