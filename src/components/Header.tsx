@@ -4,12 +4,13 @@ import { useAppContext } from "../context/AppContext";
 import { Button } from "@/components/ui/button";
 import { Settings, Play, QrCode } from "lucide-react";
 import QRCode from "./QRCode";
+import { getFolderUrl } from "../services/googleDriveService";
 
 const Header: React.FC = () => {
-  const { settings, setIsSettingsOpen, setIsSlideshowOpen, photos } = useAppContext();
+  const { settings, setIsSettingsOpen, setIsSlideshowOpen, photos, apiConfig } = useAppContext();
   
-  // Create a viewer mode URL by adding '/view' to the current URL
-  const viewerModeUrl = `${window.location.origin}/view`;
+  // Generate the Google Drive folder URL
+  const folderUrl = apiConfig.folderId ? getFolderUrl(apiConfig.folderId) : "";
 
   return (
     <header className={`sticky top-0 z-50 w-full px-4 md:px-6 py-3 backdrop-blur-lg bg-background/75 border-b ${settings.font.class}`}>
@@ -31,7 +32,7 @@ const Header: React.FC = () => {
               <QrCode className="h-4 w-4" />
             </Button>
             <div className="absolute right-0 top-full mt-1 hidden group-hover:block">
-              <QRCode url={viewerModeUrl} size={settings.qrCodeSize * 1.5} />
+              <QRCode url={folderUrl} size={settings.qrCodeSize * 1.5} />
             </div>
           </div>
           

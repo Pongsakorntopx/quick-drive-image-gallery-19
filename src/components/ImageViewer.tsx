@@ -6,7 +6,6 @@ import { X, Download, Play } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import QRCode from "./QRCode";
 import { format } from "date-fns";
-import { getDirectImageUrl, getPhotoDownloadUrl } from "../services/googleDriveService";
 import { toast } from "@/components/ui/use-toast";
 
 const ImageViewer: React.FC = () => {
@@ -18,9 +17,8 @@ const ImageViewer: React.FC = () => {
 
   // Sources to try for the full image, in order of preference
   const getImageSources = (photoId: string) => [
-    getDirectImageUrl(photoId),
-    `https://drive.google.com/uc?export=view&id=${photoId}&t=${Date.now()}`,
     `https://lh3.googleusercontent.com/d/${photoId}?t=${Date.now()}`,
+    `https://drive.google.com/uc?export=view&id=${photoId}&t=${Date.now()}`,
     `https://drive.google.com/thumbnail?id=${photoId}&sz=w2000`,
   ];
 
@@ -39,8 +37,8 @@ const ImageViewer: React.FC = () => {
     if (selectedPhoto) {
       try {
         const link = document.createElement("a");
-        // Use the webContentLink from the photo object or create a download link
-        const downloadUrl = selectedPhoto.webContentLink || getPhotoDownloadUrl(selectedPhoto.id);
+        // Use the direct download URL for better experience
+        const downloadUrl = selectedPhoto.directDownloadUrl || selectedPhoto.webContentLink;
         
         link.href = downloadUrl;
         link.download = selectedPhoto.name;
@@ -163,7 +161,7 @@ const ImageViewer: React.FC = () => {
             
             <div className="flex justify-center mt-6">
               <QRCode 
-                url={selectedPhoto?.webContentLink || ''} 
+                url={selectedPhoto?.directDownloadUrl || selectedPhoto?.webContentLink || ''} 
                 size={180} 
               />
             </div>

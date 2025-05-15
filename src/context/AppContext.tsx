@@ -41,7 +41,7 @@ interface AppContextProps {
   photos: Photo[];
   isLoading: boolean;
   error: string | null;
-  refreshPhotos: () => Promise<void>;
+  refreshPhotos: () => Promise<boolean>;
   selectedPhoto: Photo | null;
   setSelectedPhoto: React.Dispatch<React.SetStateAction<Photo | null>>;
   settings: AppSettings;
@@ -103,10 +103,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }
   }, [apiConfig, settings.refreshInterval]);
 
-  const refreshPhotos = async (): Promise<void> => {
+  const refreshPhotos = async (): Promise<boolean> => {
     if (!apiConfig.apiKey || !apiConfig.folderId) {
       setError("API Key และ Folder ID จำเป็นต้องระบุ");
-      return;
+      return false;
     }
 
     try {
@@ -116,8 +116,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       
       if (fetchedPhotos.length === 0) {
         setError("ไม่พบรูปภาพในโฟลเดอร์ที่ระบุ");
+        return false;
       } else {
         setPhotos(fetchedPhotos);
+        return true;
       }
     } catch (err) {
       console.error("Error refreshing photos:", err);
@@ -127,6 +129,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         description: "ไม่สามารถดึงข้อมูลรูปภาพได้",
         variant: "destructive",
       });
+      return false;
     } finally {
       setIsLoading(false);
     }

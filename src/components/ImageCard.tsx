@@ -6,7 +6,6 @@ import QRCode from "./QRCode";
 import { Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "@/components/ui/use-toast";
-import { getPhotoDownloadUrl } from "../services/googleDriveService";
 
 interface ImageCardProps {
   photo: Photo;
@@ -20,8 +19,8 @@ const ImageCard: React.FC<ImageCardProps> = ({ photo, onClick }) => {
     e.stopPropagation();
     try {
       const link = document.createElement("a");
-      // Use webContentLink from photo or create a download URL
-      const downloadUrl = photo.webContentLink || getPhotoDownloadUrl(photo.id);
+      // Use directDownloadUrl for better download experience without login
+      const downloadUrl = photo.directDownloadUrl || photo.webContentLink;
       
       link.href = downloadUrl;
       link.download = photo.name;
@@ -65,7 +64,7 @@ const ImageCard: React.FC<ImageCardProps> = ({ photo, onClick }) => {
 
       <div className="absolute top-2 right-2 z-10 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
         <QRCode 
-          url={photo.webContentLink} 
+          url={photo.directDownloadUrl || photo.webContentLink} 
           size={settings.qrCodeSize} 
           className="shadow-lg bg-white/90 backdrop-blur-sm"
         />

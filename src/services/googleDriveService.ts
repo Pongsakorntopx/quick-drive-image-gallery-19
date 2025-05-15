@@ -39,7 +39,9 @@ export const fetchPhotosFromDrive = async (config: ApiConfig): Promise<Photo[]> 
       size: file.size || "Unknown",
       webContentLink: file.webContentLink || getPhotoDownloadUrl(file.id),
       // Add multiple direct URLs for better compatibility
-      fullSizeUrl: getDirectImageUrl(file.id)
+      fullSizeUrl: getDirectImageUrl(file.id),
+      // Add direct download link that doesn't require login
+      directDownloadUrl: getDirectDownloadUrl(file.id)
     }));
   } catch (error) {
     console.error("Error fetching photos from Google Drive:", error);
@@ -53,10 +55,21 @@ export const getPhotoUrl = (photoId: string): string => {
 };
 
 export const getPhotoDownloadUrl = (photoId: string): string => {
-  return `https://drive.google.com/uc?export=download&id=${photoId}`;
+  // Add parameters to bypass login
+  return `https://drive.google.com/uc?export=download&id=${photoId}&confirm=t&uuid=${Date.now()}`;
 };
 
 // More reliable direct image URL for viewing
 export const getDirectImageUrl = (photoId: string): string => {
   return `https://lh3.googleusercontent.com/d/${photoId}?t=${Date.now()}`;
+};
+
+// Direct download URL that doesn't require login
+export const getDirectDownloadUrl = (photoId: string): string => {
+  return `https://drive.usercontent.google.com/download?id=${photoId}&export=download&authuser=0&confirm=t&uuid=${Date.now()}`;
+};
+
+// Get the folder URL from folder ID
+export const getFolderUrl = (folderId: string): string => {
+  return `https://drive.google.com/drive/folders/${folderId}`;
 };
