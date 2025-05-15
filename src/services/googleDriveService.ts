@@ -1,8 +1,8 @@
-
 import { ApiConfig, Photo } from "../types";
 
 const DRIVE_API_BASE_URL = "https://www.googleapis.com/drive/v3";
 const DEFAULT_FIELDS = "files(id,name,mimeType,thumbnailLink,webContentLink,createdTime,modifiedTime,size)";
+const MAX_RESULTS = 1000; // Increase max results
 
 export const fetchPhotosFromDrive = async (config: ApiConfig): Promise<Photo[]> => {
   try {
@@ -11,23 +11,43 @@ export const fetchPhotosFromDrive = async (config: ApiConfig): Promise<Photo[]> 
       return [];
     }
 
-    const params = new URLSearchParams({
-      q: `'${config.folderId}' in parents and mimeType contains 'image/' and trashed = false`,
-      fields: DEFAULT_FIELDS,
-      key: config.apiKey,
-      orderBy: "modifiedTime desc",
-      pageSize: "100"
-    });
-
-    const response = await fetch(`${DRIVE_API_BASE_URL}/files?${params}`);
+    let allPhotos: any[] = [];
+    let pageToken: string | null = null;
     
-    if (!response.ok) {
-      throw new Error(`Failed to fetch photos: ${response.status} ${response.statusText}`);
-    }
+    // Use pagination to get all photos
+    do {
+      const params = new URLSearchParams({
+        q: `'${config.folderId}' in parents and mimeType contains 'image/' and trashed = false`,
+        fields: `${DEFAULT_FIELDS}, nextPageToken`,
+        key: config.apiKey,
+        orderBy: "modifiedTime desc",
+        pageSize: "100"
+      });
+      
+      if (pageToken) {
+        params.append("pageToken", pageToken);
+      }
 
-    const data = await response.json();
+      const response = await fetch(`${DRIVE_API_BASE_URL}/files?${params}`);
+      
+      if (!response.ok) {
+        throw new Error(`Failed to fetch photos: ${response.status} ${response.statusText}`);
+      }
+
+      const data = await response.json();
+      allPhotos = [...allPhotos, ...(data.files || [])];
+      pageToken = data.nextPageToken || null;
+      
+      // Safety check to prevent infinite loops and excessive API calls
+      if (allPhotos.length >= MAX_RESULTS) {
+        console.log(`Reached maximum of ${MAX_RESULTS} photos. Stopping pagination.`);
+        break;
+      }
+    } while (pageToken);
     
-    return data.files.map((file: any) => ({
+    console.log(`Fetched ${allPhotos.length} photos from Google Drive`);
+    
+    return allPhotos.map((file: any) => ({
       id: file.id,
       name: file.name,
       // Use thumbnailLink for preview display

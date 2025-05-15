@@ -8,6 +8,8 @@ import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
 import { useAppContext } from "../context/AppContext";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { RotateCw } from "lucide-react";
+import { toast } from "@/components/ui/use-toast";
 
 const SettingsDialog: React.FC = () => {
   const {
@@ -60,6 +62,24 @@ const SettingsDialog: React.FC = () => {
     });
     
     setIsSettingsOpen(false);
+  };
+
+  // Reset all settings to default values
+  const handleResetSettings = () => {
+    // Reset the form values
+    setTitle("แกลเลอรี่รูปภาพ Google Drive");
+    setThemeId(themes[0].id);
+    setTitleFont(fonts[0].id);
+    setTitleSize(24);
+    setSubtitleSize(16);
+    setBodySize(14);
+    setQrCodeSize(64);
+    setRefreshInterval(5);
+    
+    toast({
+      title: "รีเซ็ตการตั้งค่า",
+      description: "การตั้งค่าทั้งหมดถูกรีเซ็ตเป็นค่าเริ่มต้น"
+    });
   };
 
   return (
@@ -214,13 +234,24 @@ const SettingsDialog: React.FC = () => {
           </TabsContent>
         </Tabs>
         
-        <div className="flex justify-end gap-2 mt-4">
-          <Button variant="outline" onClick={() => setIsSettingsOpen(false)}>
-            ยกเลิก
+        <div className="flex justify-between items-center gap-2 mt-4">
+          <Button 
+            variant="outline" 
+            onClick={handleResetSettings}
+            className="flex items-center gap-2 border-destructive text-destructive hover:bg-destructive/10"
+          >
+            <RotateCw className="h-4 w-4" />
+            รีเซ็ตการตั้งค่าทั้งหมด
           </Button>
-          <Button onClick={handleSaveAppSettings}>
-            บันทึกการตั้งค่า
-          </Button>
+          
+          <div className="flex gap-2">
+            <Button variant="outline" onClick={() => setIsSettingsOpen(false)}>
+              ยกเลิก
+            </Button>
+            <Button onClick={handleSaveAppSettings}>
+              บันทึกการตั้งค่า
+            </Button>
+          </div>
         </div>
       </DialogContent>
     </Dialog>
