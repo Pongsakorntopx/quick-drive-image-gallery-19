@@ -14,7 +14,8 @@ export interface Photo {
   modifiedTime: string;
   size: string;
   webContentLink: string;
-  fullSizeUrl: string; // New field for full-size image
+  fullSizeUrl: string; // For full-size image
+  directDownloadUrl: string; // Add this property for direct downloads without login
 }
 
 export interface Theme {
