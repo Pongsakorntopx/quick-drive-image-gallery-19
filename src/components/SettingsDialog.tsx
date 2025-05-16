@@ -1,3 +1,4 @@
+
 import React, { useState, useRef } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -39,10 +40,13 @@ const SettingsDialog: React.FC = () => {
   const [themeId, setThemeId] = useState(settings.theme.id);
   const [previewDevice, setPreviewDevice] = useState<'desktop' | 'tablet' | 'mobile'>('desktop');
   
-  // New settings
+  // Settings for QR code and logo
   const [qrCodePosition, setQrCodePosition] = useState(settings.qrCodePosition);
   const [showHeaderQR, setShowHeaderQR] = useState(settings.showHeaderQR);
   const [slideShowEffect, setSlideShowEffect] = useState(settings.slideShowEffect);
+  const [logoSize, setLogoSize] = useState<number>(100); // Default logo size
+  
+  // Banner settings
   const [bannerSize, setBannerSize] = useState(settings.bannerSize);
   const [bannerPosition, setBannerPosition] = useState(settings.bannerPosition);
   
@@ -83,6 +87,7 @@ const SettingsDialog: React.FC = () => {
       qrCodePosition,
       showHeaderQR,
       logoUrl: logoPreview,
+      logoSize: logoSize,
       slideShowEffect,
       bannerUrl: bannerPreview,
       bannerSize,
@@ -111,6 +116,7 @@ const SettingsDialog: React.FC = () => {
     setQrCodePosition("bottomRight");
     setShowHeaderQR(false);
     setLogoPreview(null);
+    setLogoSize(100);
     setSlideShowEffect("fade");
     setBannerPreview(null);
     setBannerSize("medium");
@@ -262,6 +268,14 @@ const SettingsDialog: React.FC = () => {
                     onChange={(e) => setApiKey(e.target.value)}
                     placeholder="ใส่ API Key ของ Google Drive"
                   />
+                  <div className="text-sm text-muted-foreground">
+                    <p>API Key สามารถสร้างได้จาก <a href="https://console.cloud.google.com/apis/credentials" className="text-primary hover:underline" target="_blank" rel="noopener noreferrer">Google Cloud Console</a></p>
+                    <ol className="list-decimal pl-5 mt-2 space-y-1">
+                      <li>สร้าง Project ใหม่</li>
+                      <li>เปิดใช้งาน Google Drive API</li>
+                      <li>สร้าง API Key ใหม่จากเมนู Credentials</li>
+                    </ol>
+                  </div>
                 </div>
                 
                 <div className="space-y-2">
@@ -272,9 +286,16 @@ const SettingsDialog: React.FC = () => {
                     onChange={(e) => setFolderId(e.target.value)}
                     placeholder="ใส่ ID ของโฟลเดอร์ที่มีรูปภาพ"
                   />
-                  <p className="text-sm text-muted-foreground">
-                    สามารถดู Folder ID ได้จาก URL ของโฟลเดอร์ใน Google Drive
-                  </p>
+                  <div className="text-sm text-muted-foreground">
+                    <p>สามารถดู Folder ID ได้จาก URL ของโฟลเดอร์ใน Google Drive</p>
+                    <p className="mt-2">ตัวอย่าง URL: <code className="bg-muted p-1 rounded">https://drive.google.com/drive/folders/<span className="text-primary">1a2b3c4d5e6f7g8h9i0j</span></code></p>
+                    <p className="mt-1">ส่วนที่ไฮไลท์คือ Folder ID ที่ต้องนำมาใส่</p>
+                    <p className="mt-2">
+                      <a href="https://developers.google.com/drive/api/guides/folder" className="text-primary hover:underline" target="_blank" rel="noopener noreferrer">
+                        อ่านเพิ่มเติมเกี่ยวกับ Google Drive Folder ID
+                      </a>
+                    </p>
+                  </div>
                 </div>
                 
                 <div className="flex justify-end mt-4">
@@ -440,6 +461,18 @@ const SettingsDialog: React.FC = () => {
                         </div>
                       </div>
                     )}
+                    
+                    <div className="mt-3">
+                      <Label htmlFor="logo-size">ขนาดโลโก้: {logoSize}px</Label>
+                      <Slider
+                        id="logo-size"
+                        value={[logoSize]}
+                        min={32}
+                        max={200}
+                        step={4}
+                        onValueChange={(value) => setLogoSize(value[0])}
+                      />
+                    </div>
                   </div>
                 </div>
                 
@@ -545,7 +578,7 @@ const SettingsDialog: React.FC = () => {
                     />
                     
                     <div className="mt-4">
-                      <Label>ตำแหน่ง QR Code ในสไลด์โชว์</Label>
+                      <Label>ตำแหน่ง QR Code บนรูปภาพ</Label>
                       <RadioGroup 
                         value={qrCodePosition} 
                         onValueChange={(value: "bottomRight" | "bottomLeft" | "topRight" | "topLeft" | "center") => setQrCodePosition(value)} 

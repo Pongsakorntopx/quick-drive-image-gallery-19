@@ -9,7 +9,7 @@ import { toast } from "@/components/ui/use-toast";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 const ApiSetup: React.FC = () => {
-  const { apiConfig, setApiConfig, refreshPhotos } = useAppContext();
+  const { apiConfig, setApiConfig, refreshPhotos, setIsSettingsOpen } = useAppContext();
   const [apiKey, setApiKey] = useState(apiConfig.apiKey || "");
   const [folderId, setFolderId] = useState(apiConfig.folderId || "");
   const [isLoading, setIsLoading] = useState(false);
@@ -99,6 +99,9 @@ const ApiSetup: React.FC = () => {
         title: "เชื่อมต่อสำเร็จ",
         description: "เชื่อมต่อกับ Google Drive สำเร็จแล้ว",
       });
+      
+      // Open settings after successful connection
+      setIsSettingsOpen(true);
     } catch (err) {
       console.error("Connection error:", err);
       setError("ไม่สามารถเชื่อมต่อกับ Google Drive ได้ กรุณาตรวจสอบ API Key และ Folder ID");
@@ -162,9 +165,21 @@ const ApiSetup: React.FC = () => {
                 placeholder="เช่น AIzaSyBnGk9euYZMBM1234..."
                 required
               />
-              <p className="text-xs text-muted-foreground">
-                สร้าง API Key ได้จาก Google Cloud Console
-              </p>
+              <div className="text-xs text-muted-foreground space-y-2">
+                <p>
+                  สร้าง API Key ได้จาก <a href="https://console.cloud.google.com/apis/credentials" className="text-primary hover:underline" target="_blank" rel="noopener noreferrer">Google Cloud Console</a>
+                </p>
+                <ol className="list-decimal pl-5 space-y-1">
+                  <li>สร้าง Project ใหม่</li>
+                  <li>เปิดใช้งาน Google Drive API</li>
+                  <li>สร้าง API Key ใหม่จากเมนู Credentials</li>
+                </ol>
+                <p>
+                  <a href="https://developers.google.com/drive/api/quickstart/js" className="text-primary hover:underline" target="_blank" rel="noopener noreferrer">
+                    ดูคำแนะนำฉบับละเอียด
+                  </a>
+                </p>
+              </div>
             </div>
             
             <div className="space-y-2">
@@ -195,9 +210,16 @@ const ApiSetup: React.FC = () => {
                 placeholder="URL โฟลเดอร์ หรือ ID เช่น 1a2b3c4d5e6f7g8h9i0j"
                 required
               />
-              <p className="text-xs text-muted-foreground">
-                คุณสามารถใส่ URL ของโฟลเดอร์ได้โดยตรง หรือใส่เฉพาะ ID ก็ได้
-              </p>
+              <div className="text-xs text-muted-foreground space-y-2">
+                <p>คุณสามารถใส่ URL ของโฟลเดอร์ได้โดยตรง หรือใส่เฉพาะ ID ก็ได้</p>
+                <p>ตัวอย่าง URL: <code className="bg-muted p-1 rounded text-xs">https://drive.google.com/drive/folders/<span className="text-primary">1a2b3c4d5e6f7g8h9i0j</span></code></p>
+                <p>ส่วนที่ไฮไลท์คือ Folder ID ที่ต้องนำมาใส่</p>
+                <p>
+                  <a href="https://developers.google.com/drive/api/guides/search-files" className="text-primary hover:underline" target="_blank" rel="noopener noreferrer">
+                    อ่านเพิ่มเติมเกี่ยวกับการใช้ Folder ID
+                  </a>
+                </p>
+              </div>
             </div>
             
             {error && (
@@ -209,7 +231,7 @@ const ApiSetup: React.FC = () => {
           
           <CardFooter>
             <Button type="submit" className="w-full" disabled={isLoading}>
-              {isLoading ? "กำลังเชื่อมต่อ..." : "เชื่อมต่อ"} <ArrowRight className="ml-2 h-4 w-4" />
+              {isLoading ? "กำลังเชื่อมต่อ..." : "เริ่มต้นใช้งาน"} <ArrowRight className="ml-2 h-4 w-4" />
             </Button>
           </CardFooter>
         </form>

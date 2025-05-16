@@ -43,6 +43,24 @@ const ImageCard: React.FC<ImageCardProps> = ({ photo, onClick }) => {
     }
   };
 
+  // Function to position QR code based on settings
+  const getQrCodePosition = () => {
+    switch (settings.qrCodePosition) {
+      case "bottomRight":
+        return "bottom-2 right-2";
+      case "bottomLeft":
+        return "bottom-2 left-2";
+      case "topRight":
+        return "top-2 right-2";
+      case "topLeft":
+        return "top-2 left-2";
+      case "center":
+        return "top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2";
+      default:
+        return "bottom-2 right-2";
+    }
+  };
+
   return (
     <div 
       className="image-container relative rounded-lg overflow-hidden shadow-lg transition-all duration-300 hover:shadow-xl cursor-pointer group"
@@ -62,7 +80,7 @@ const ImageCard: React.FC<ImageCardProps> = ({ photo, onClick }) => {
         </div>
       </div>
 
-      <div className="absolute top-2 right-2 z-10 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+      <div className={`absolute ${getQrCodePosition()} z-10 opacity-0 group-hover:opacity-100 transition-opacity duration-300`}>
         <QRCode 
           url={photo.directDownloadUrl || photo.webContentLink} 
           size={settings.qrCodeSize} 

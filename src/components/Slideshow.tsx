@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef } from "react";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { useAppContext } from "../context/AppContext";
@@ -345,6 +344,7 @@ const Slideshow: React.FC = () => {
     }
   };
 
+  // Update the layout to have images on left and QR on right
   return (
     <Dialog open={isSlideshowOpen} onOpenChange={(open) => !open && handleClose()}>
       <DialogContent className="max-w-7xl w-screen h-screen p-0 max-h-screen overflow-hidden bg-black">
@@ -352,37 +352,52 @@ const Slideshow: React.FC = () => {
           {/* Main slideshow view */}
           <div className="absolute inset-0 flex items-center justify-center">
             {photos.length > 0 && (
-              <Carousel
-                opts={{ 
-                  loop: true, 
-                  skipSnaps: true 
-                }}
-                className="w-full h-full"
-                setApi={setCarouselApi}
-              >
-                <CarouselContent className="h-full">
-                  {photos.map((photo, index) => (
-                    <CarouselItem key={photo.id} className="h-full">
-                      <div className="w-full h-full flex items-center justify-center">
-                        <img 
-                          src={photo.url} 
-                          alt={photo.name}
-                          className={`max-w-full max-h-full object-contain ${getTransitionClass()} ${getEnterClass(index === currentIndex)} ${getExitClass(index === currentIndex)}`}
-                        />
-                        
-                        {showQR && (
-                          <div className={`absolute ${getQrCodePosition()}`}>
-                            <QRCode 
-                              url={photo.directDownloadUrl || photo.webContentLink || ''} 
-                              size={settings.qrCodeSize} 
+              <div className="flex w-full h-full">
+                {/* Image display on the left side */}
+                <div className="flex-1 h-full flex items-center justify-center">
+                  <Carousel
+                    opts={{ 
+                      loop: true, 
+                      skipSnaps: true 
+                    }}
+                    className="w-full h-full"
+                    setApi={setCarouselApi}
+                  >
+                    <CarouselContent className="h-full">
+                      {photos.map((photo, index) => (
+                        <CarouselItem key={photo.id} className="h-full">
+                          <div className="w-full h-full flex items-center justify-center">
+                            <img 
+                              src={photo.url} 
+                              alt={photo.name}
+                              className={`max-w-full max-h-full object-contain ${getTransitionClass()} ${getEnterClass(index === currentIndex)} ${getExitClass(index === currentIndex)}`}
                             />
                           </div>
-                        )}
-                      </div>
-                    </CarouselItem>
-                  ))}
-                </CarouselContent>
-              </Carousel>
+                        </CarouselItem>
+                      ))}
+                    </CarouselContent>
+                  </Carousel>
+                </div>
+                
+                {/* QR Code display on the right side */}
+                {showQR && photos.length > 0 && currentIndex >= 0 && (
+                  <div className="w-1/4 h-full flex flex-col items-center justify-center p-4 border-l border-white/10">
+                    <div className="text-white mb-4 text-center">
+                      <h3 className="text-lg font-medium mb-1 truncate max-w-xs">
+                        {photos[currentIndex]?.name}
+                      </h3>
+                      <p className="text-sm text-white/70">
+                        สแกนเพื่อดาวน์โหลด
+                      </p>
+                    </div>
+                    <QRCode 
+                      url={photos[currentIndex]?.directDownloadUrl || photos[currentIndex]?.webContentLink || ''} 
+                      size={settings.qrCodeSize} 
+                      className="shadow-lg"
+                    />
+                  </div>
+                )}
+              </div>
             )}
             
             {/* Image counter */}
@@ -477,7 +492,7 @@ const Slideshow: React.FC = () => {
                   </SheetContent>
                 </Sheet>
                 
-                <Button variant="ghost" size="icon" onClick={handleClose} className="text-white hover:bg-white/20">
+                <Button variant="ghost" size="icon" onClick={handleClose} className="text-white hover:bg-white/20 ml-2">
                   <X className="h-5 w-5" />
                 </Button>
               </div>

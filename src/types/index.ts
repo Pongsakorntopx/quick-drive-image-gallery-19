@@ -1,4 +1,5 @@
 
+
 export interface Photo {
   id: string;
   name: string;
@@ -50,9 +51,11 @@ export interface AppSettings {
   qrCodePosition: "bottomRight" | "bottomLeft" | "topRight" | "topLeft" | "center";
   showHeaderQR: boolean;
   logoUrl: string | null;
+  logoSize: number; // Added new field for logo size
   slideShowSpeed: number;
   slideShowEffect: "fade" | "slide" | "zoom" | "none";
   bannerUrl: string | null;
   bannerSize: "small" | "medium" | "large";
   bannerPosition: "bottomLeft" | "bottomRight" | "topLeft" | "topRight";
 }
+
