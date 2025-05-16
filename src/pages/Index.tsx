@@ -9,19 +9,38 @@ import SettingsDialog from "../components/SettingsDialog";
 import Slideshow from "../components/Slideshow";
 
 const Index = () => {
-  const { apiConfig, refreshPhotos, isLoading, error } = useAppContext();
+  const { apiConfig, refreshPhotos, settings } = useAppContext();
 
   useEffect(() => {
     if (apiConfig.apiKey && apiConfig.folderId) {
       refreshPhotos();
     }
-  }, []);
+    
+    // Apply theme class to body
+    document.body.className = settings.theme.isGradient 
+      ? settings.theme.gradient 
+      : `bg-${settings.theme.colorClass}-50`;
+      
+    // Set meta viewport for better mobile experience
+    const viewport = document.querySelector("meta[name=viewport]");
+    if (!viewport) {
+      const meta = document.createElement("meta");
+      meta.name = "viewport";
+      meta.content = "width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no";
+      document.head.appendChild(meta);
+    }
+    
+    return () => {
+      // Clean up any theme classes
+      document.body.className = "";
+    };
+  }, [apiConfig.apiKey, apiConfig.folderId, settings.theme]);
 
   return (
-    <div className="min-h-screen flex flex-col bg-background">
+    <div className={`min-h-screen flex flex-col bg-background ${settings.theme.isGradient ? 'bg-opacity-90' : ''}`}>
       <Header />
       
-      <main className="flex-1">
+      <main className="flex-1 w-full">
         {apiConfig.apiKey && apiConfig.folderId ? (
           <PhotoGrid />
         ) : (

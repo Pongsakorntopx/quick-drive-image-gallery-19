@@ -14,6 +14,8 @@ const ImageViewer: React.FC = () => {
   const [imageError, setImageError] = useState<boolean>(false);
   const [currentImageUrl, setCurrentImageUrl] = useState<string>("");
   const [currentUrlIndex, setCurrentUrlIndex] = useState<number>(0);
+  const [touchStart, setTouchStart] = useState<number | null>(null);
+  const [touchEnd, setTouchEnd] = useState<number | null>(null);
 
   // Sources to try for the full image, in order of preference
   const getImageSources = (photoId: string) => [
@@ -136,17 +138,52 @@ const ImageViewer: React.FC = () => {
     };
   }, [selectedPhoto, photos]);
 
+  // Touch gesture handling for swiping
+  const handleTouchStart = (e: React.TouchEvent) => {
+    setTouchEnd(null);
+    setTouchStart(e.targetTouches[0].clientX);
+  };
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    setTouchEnd(e.targetTouches[0].clientX);
+  };
+
+  const handleTouchEnd = () => {
+    if (!touchStart || !touchEnd) return;
+    
+    const distance = touchStart - touchEnd;
+    const isSwipe = Math.abs(distance) > 50; // Min distance for a swipe
+    
+    if (isSwipe) {
+      if (distance > 0) {
+        // Swiped left -> next photo
+        navigateNext();
+      } else {
+        // Swiped right -> previous photo
+        navigatePrevious();
+      }
+    }
+    
+    // Reset values
+    setTouchStart(null);
+    setTouchEnd(null);
+  };
+
   return (
     <Dialog open={!!selectedPhoto} onOpenChange={(open) => !open && setSelectedPhoto(null)}>
-      <DialogContent className="max-w-5xl w-[90vw] max-h-[90vh] p-0 overflow-hidden bg-background/90 backdrop-blur-modal">
-        <DialogHeader className="absolute top-4 right-4 z-50">
+      <DialogContent className="max-w-5xl w-[95vw] max-h-[95vh] p-0 overflow-hidden bg-background/90 backdrop-blur-modal">
+        <DialogHeader className="absolute top-2 right-2 z-50">
           <Button variant="outline" size="icon" onClick={() => setSelectedPhoto(null)}>
             <X className="h-4 w-4" />
           </Button>
         </DialogHeader>
 
         <div className="grid md:grid-cols-4 h-full">
-          <div className="col-span-3 h-full relative">
+          <div className="col-span-3 h-full relative"
+               onTouchStart={handleTouchStart}
+               onTouchMove={handleTouchMove}
+               onTouchEnd={handleTouchEnd}>
+               
             <div className="absolute inset-0 flex items-center justify-center bg-black/20">
               {isImageLoading && (
                 <div className="absolute inset-0 flex items-center justify-center">
@@ -181,11 +218,12 @@ const ImageViewer: React.FC = () => {
                     className="max-w-full max-h-full object-contain"
                     onLoad={handleImageLoad}
                     onError={handleImageError}
+                    loading="lazy" // Lazy load for performance
                   />
                 )
               )}
               
-              {/* Navigation arrows */}
+              {/* Navigation arrows - visible on all screen sizes */}
               {photos.length > 1 && (
                 <>
                   <Button 
@@ -194,7 +232,7 @@ const ImageViewer: React.FC = () => {
                     className="absolute left-2 top-1/2 transform -translate-y-1/2 bg-black/30 text-white hover:bg-black/50 z-10"
                     onClick={navigatePrevious}
                   >
-                    <ChevronLeft className="h-8 w-8" />
+                    <ChevronLeft className="h-6 w-6" />
                   </Button>
                   <Button 
                     variant="ghost" 
@@ -202,15 +240,15 @@ const ImageViewer: React.FC = () => {
                     className="absolute right-2 top-1/2 transform -translate-y-1/2 bg-black/30 text-white hover:bg-black/50 z-10"
                     onClick={navigateNext}
                   >
-                    <ChevronRight className="h-8 w-8" />
+                    <ChevronRight className="h-6 w-6" />
                   </Button>
                 </>
               )}
             </div>
           </div>
 
-          <div className="p-6 flex flex-col h-full bg-background overflow-y-auto">
-            <DialogTitle className={`mb-2 ${settings.font.class}`} style={{fontSize: `${settings.fontSize.subtitle}px`}}>
+          <div className="p-4 md:p-6 flex flex-col h-full bg-background overflow-y-auto">
+            <DialogTitle className={`mb-2 ${settings.font.class} text-lg md:text-xl`} style={{fontSize: `${settings.fontSize.subtitle}px`}}>
               {selectedPhoto?.name}
             </DialogTitle>
             
@@ -223,14 +261,14 @@ const ImageViewer: React.FC = () => {
               </div>
             </div>
             
-            <div className="flex justify-center mt-6">
+            <div className="flex justify-center mt-4 md:mt-6">
               <QRCode 
                 url={selectedPhoto?.directDownloadUrl || selectedPhoto?.webContentLink || ''} 
-                size={180} 
+                size={Math.min(settings.qrCodeSize * 2, 180)} 
               />
             </div>
             
-            <div className="mt-6 space-y-2">
+            <div className="mt-4 md:mt-6 space-y-2">
               <Button onClick={handleDownload} className="w-full">
                 <Download className="mr-2 h-4 w-4" /> ดาวน์โหลด
               </Button>
