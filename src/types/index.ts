@@ -1,3 +1,4 @@
+
 export interface Photo {
   id: string;
   name: string;
@@ -7,6 +8,7 @@ export interface Photo {
   webViewLink?: string;
   thumbnailLink?: string;
   iconLink?: string;
+  thumbnailUrl?: string;
   mimeType?: string;
   size?: number;
   modifiedTime?: string;

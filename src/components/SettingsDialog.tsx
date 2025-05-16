@@ -1,4 +1,3 @@
-
 import React, { useState, useRef } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -489,7 +488,10 @@ const SettingsDialog: React.FC = () => {
                     
                     <div className="mt-2">
                       <Label>ขนาด</Label>
-                      <Select value={bannerSize} onValueChange={setBannerSize}>
+                      <Select 
+                        value={bannerSize} 
+                        onValueChange={(value: "small" | "medium" | "large") => setBannerSize(value)}
+                      >
                         <SelectTrigger>
                           <SelectValue placeholder="เลือกขนาด" />
                         </SelectTrigger>
@@ -503,7 +505,11 @@ const SettingsDialog: React.FC = () => {
                     
                     <div className="mt-2">
                       <Label>ตำแหน่ง</Label>
-                      <RadioGroup value={bannerPosition} onValueChange={setBannerPosition} className="grid grid-cols-2 gap-2 mt-2">
+                      <RadioGroup 
+                        value={bannerPosition} 
+                        onValueChange={(value: "bottomLeft" | "bottomRight" | "topLeft" | "topRight") => setBannerPosition(value)} 
+                        className="grid grid-cols-2 gap-2 mt-2"
+                      >
                         <div className="flex items-center space-x-2">
                           <RadioGroupItem value="bottomLeft" id="banner-bl" />
                           <Label htmlFor="banner-bl">ล่างซ้าย</Label>
@@ -540,7 +546,11 @@ const SettingsDialog: React.FC = () => {
                     
                     <div className="mt-4">
                       <Label>ตำแหน่ง QR Code ในสไลด์โชว์</Label>
-                      <RadioGroup value={qrCodePosition} onValueChange={setQrCodePosition} className="grid grid-cols-2 gap-2 mt-2">
+                      <RadioGroup 
+                        value={qrCodePosition} 
+                        onValueChange={(value: "bottomRight" | "bottomLeft" | "topRight" | "topLeft" | "center") => setQrCodePosition(value)} 
+                        className="grid grid-cols-2 gap-2 mt-2"
+                      >
                         <div className="flex items-center space-x-2">
                           <RadioGroupItem value="bottomRight" id="qr-br" />
                           <Label htmlFor="qr-br">ล่างขวา</Label>
@@ -590,7 +600,10 @@ const SettingsDialog: React.FC = () => {
                     
                     <div className="mt-4">
                       <Label>เอฟเฟกต์การเปลี่ยนสไลด์</Label>
-                      <Select value={slideShowEffect} onValueChange={setSlideShowEffect}>
+                      <Select 
+                        value={slideShowEffect} 
+                        onValueChange={(value: "none" | "fade" | "slide" | "zoom") => setSlideShowEffect(value)}
+                      >
                         <SelectTrigger>
                           <SelectValue placeholder="เลือกเอฟเฟกต์" />
                         </SelectTrigger>
