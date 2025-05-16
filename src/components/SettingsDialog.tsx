@@ -1,5 +1,5 @@
 
-import React, { useState } from "react";
+import React, { useState, useRef } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
@@ -8,10 +8,12 @@ import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
 import { useAppContext } from "../context/AppContext";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { RotateCw, Monitor, Smartphone, Tablet } from "lucide-react";
+import { RotateCw, Monitor, Smartphone, Tablet, Image, QrCode, LayoutGrid } from "lucide-react";
 import { toast } from "@/components/ui/use-toast";
 import { Separator } from "@/components/ui/separator";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Switch } from "@/components/ui/switch";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 
 const SettingsDialog: React.FC = () => {
   const {
@@ -37,6 +39,19 @@ const SettingsDialog: React.FC = () => {
   const [bodySize, setBodySize] = useState(settings.fontSize.body);
   const [themeId, setThemeId] = useState(settings.theme.id);
   const [previewDevice, setPreviewDevice] = useState<'desktop' | 'tablet' | 'mobile'>('desktop');
+  
+  // New settings
+  const [qrCodePosition, setQrCodePosition] = useState(settings.qrCodePosition);
+  const [showHeaderQR, setShowHeaderQR] = useState(settings.showHeaderQR);
+  const [slideShowEffect, setSlideShowEffect] = useState(settings.slideShowEffect);
+  const [bannerSize, setBannerSize] = useState(settings.bannerSize);
+  const [bannerPosition, setBannerPosition] = useState(settings.bannerPosition);
+  
+  // File upload references
+  const logoFileRef = useRef<HTMLInputElement>(null);
+  const bannerFileRef = useRef<HTMLInputElement>(null);
+  const [logoPreview, setLogoPreview] = useState<string | null>(settings.logoUrl);
+  const [bannerPreview, setBannerPreview] = useState<string | null>(settings.bannerUrl);
 
   // Filter themes by type
   const solidThemes = themes.filter(theme => !theme.isGradient);
@@ -66,6 +81,13 @@ const SettingsDialog: React.FC = () => {
       },
       qrCodeSize,
       refreshInterval,
+      qrCodePosition,
+      showHeaderQR,
+      logoUrl: logoPreview,
+      slideShowEffect,
+      bannerUrl: bannerPreview,
+      bannerSize,
+      bannerPosition,
     });
     
     setIsSettingsOpen(false);
@@ -87,11 +109,42 @@ const SettingsDialog: React.FC = () => {
     setBodySize(14);
     setQrCodeSize(64);
     setRefreshInterval(5);
+    setQrCodePosition("bottomRight");
+    setShowHeaderQR(false);
+    setLogoPreview(null);
+    setSlideShowEffect("fade");
+    setBannerPreview(null);
+    setBannerSize("medium");
+    setBannerPosition("bottomLeft");
     
     toast({
       title: "รีเซ็ตการตั้งค่า",
       description: "การตั้งค่าทั้งหมดถูกรีเซ็ตเป็นค่าเริ่มต้น"
     });
+  };
+
+  // Handle logo upload
+  const handleLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        setLogoPreview(event.target?.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  // Handle banner upload
+  const handleBannerUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        setBannerPreview(event.target?.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
   };
 
   // Preview component to show theme applied
@@ -346,28 +399,210 @@ const SettingsDialog: React.FC = () => {
               </TabsContent>
               
               <TabsContent value="advanced" className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="qr-size">ขนาด QR Code: {qrCodeSize}px</Label>
-                  <Slider
-                    id="qr-size"
-                    value={[qrCodeSize]}
-                    min={32}
-                    max={128}
-                    step={8}
-                    onValueChange={(value) => setQrCodeSize(value[0])}
-                  />
+                <div className="space-y-4 border p-4 rounded-md bg-muted/10">
+                  <h3 className="text-lg font-medium">โลโก้</h3>
+                  <div className="space-y-2">
+                    <Label>อัพโหลดโลโก้</Label>
+                    <div className="flex items-center gap-2">
+                      <input
+                        ref={logoFileRef}
+                        type="file"
+                        accept="image/*"
+                        className="hidden"
+                        onChange={handleLogoUpload}
+                      />
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={() => logoFileRef.current?.click()}
+                      >
+                        <Image className="h-4 w-4 mr-2" /> เลือกไฟล์
+                      </Button>
+                      {logoPreview && (
+                        <Button
+                          type="button"
+                          variant="outline"
+                          className="border-destructive text-destructive"
+                          onClick={() => setLogoPreview(null)}
+                        >
+                          ลบ
+                        </Button>
+                      )}
+                    </div>
+                    
+                    {logoPreview && (
+                      <div className="mt-2">
+                        <div className="bg-background/30 backdrop-blur-sm p-2 rounded">
+                          <img
+                            src={logoPreview}
+                            alt="Logo Preview"
+                            className="max-h-16 mx-auto"
+                          />
+                        </div>
+                      </div>
+                    )}
+                  </div>
                 </div>
                 
-                <div className="space-y-2">
-                  <Label htmlFor="refresh-interval">ระยะเวลาในการรีเฟรช: {refreshInterval} วินาที</Label>
-                  <Slider
-                    id="refresh-interval"
-                    value={[refreshInterval]}
-                    min={5}
-                    max={60}
-                    step={5}
-                    onValueChange={(value) => setRefreshInterval(value[0])}
-                  />
+                <div className="space-y-4 border p-4 rounded-md bg-muted/10">
+                  <h3 className="text-lg font-medium">แบนเนอร์</h3>
+                  <div className="space-y-2">
+                    <Label>อัพโหลดรูปแบนเนอร์</Label>
+                    <div className="flex items-center gap-2">
+                      <input
+                        ref={bannerFileRef}
+                        type="file"
+                        accept="image/*"
+                        className="hidden"
+                        onChange={handleBannerUpload}
+                      />
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={() => bannerFileRef.current?.click()}
+                      >
+                        <Image className="h-4 w-4 mr-2" /> เลือกไฟล์
+                      </Button>
+                      {bannerPreview && (
+                        <Button
+                          type="button"
+                          variant="outline"
+                          className="border-destructive text-destructive"
+                          onClick={() => setBannerPreview(null)}
+                        >
+                          ลบ
+                        </Button>
+                      )}
+                    </div>
+                    
+                    {bannerPreview && (
+                      <div className="mt-2">
+                        <div className="bg-background/30 backdrop-blur-sm p-2 rounded">
+                          <img
+                            src={bannerPreview}
+                            alt="Banner Preview"
+                            className="max-h-24 mx-auto"
+                          />
+                        </div>
+                      </div>
+                    )}
+                    
+                    <div className="mt-2">
+                      <Label>ขนาด</Label>
+                      <Select value={bannerSize} onValueChange={setBannerSize}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="เลือกขนาด" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="small">เล็ก</SelectItem>
+                          <SelectItem value="medium">กลาง</SelectItem>
+                          <SelectItem value="large">ใหญ่</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    
+                    <div className="mt-2">
+                      <Label>ตำแหน่ง</Label>
+                      <RadioGroup value={bannerPosition} onValueChange={setBannerPosition} className="grid grid-cols-2 gap-2 mt-2">
+                        <div className="flex items-center space-x-2">
+                          <RadioGroupItem value="bottomLeft" id="banner-bl" />
+                          <Label htmlFor="banner-bl">ล่างซ้าย</Label>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <RadioGroupItem value="bottomRight" id="banner-br" />
+                          <Label htmlFor="banner-br">ล่างขวา</Label>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <RadioGroupItem value="topLeft" id="banner-tl" />
+                          <Label htmlFor="banner-tl">บนซ้าย</Label>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <RadioGroupItem value="topRight" id="banner-tr" />
+                          <Label htmlFor="banner-tr">บนขวา</Label>
+                        </div>
+                      </RadioGroup>
+                    </div>
+                  </div>
+                </div>
+                
+                <div className="space-y-4 border p-4 rounded-md bg-muted/10">
+                  <h3 className="text-lg font-medium">QR Code</h3>
+                  <div className="space-y-2">
+                    <Label htmlFor="qr-size">ขนาด QR Code: {qrCodeSize}px</Label>
+                    <Slider
+                      id="qr-size"
+                      value={[qrCodeSize]}
+                      min={32}
+                      max={180}
+                      step={8}
+                      onValueChange={(value) => setQrCodeSize(value[0])}
+                    />
+                    
+                    <div className="mt-4">
+                      <Label>ตำแหน่ง QR Code ในสไลด์โชว์</Label>
+                      <RadioGroup value={qrCodePosition} onValueChange={setQrCodePosition} className="grid grid-cols-2 gap-2 mt-2">
+                        <div className="flex items-center space-x-2">
+                          <RadioGroupItem value="bottomRight" id="qr-br" />
+                          <Label htmlFor="qr-br">ล่างขวา</Label>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <RadioGroupItem value="bottomLeft" id="qr-bl" />
+                          <Label htmlFor="qr-bl">ล่างซ้าย</Label>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <RadioGroupItem value="topRight" id="qr-tr" />
+                          <Label htmlFor="qr-tr">บนขวา</Label>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <RadioGroupItem value="topLeft" id="qr-tl" />
+                          <Label htmlFor="qr-tl">บนซ้าย</Label>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <RadioGroupItem value="center" id="qr-c" />
+                          <Label htmlFor="qr-c">กลาง</Label>
+                        </div>
+                      </RadioGroup>
+                    </div>
+                    
+                    <div className="flex items-center space-x-2 mt-4">
+                      <Switch 
+                        id="show-header-qr" 
+                        checked={showHeaderQR}
+                        onCheckedChange={setShowHeaderQR}
+                      />
+                      <Label htmlFor="show-header-qr">แสดง QR Code ในส่วนหัวตลอดเวลา</Label>
+                    </div>
+                  </div>
+                </div>
+                
+                <div className="space-y-4 border p-4 rounded-md bg-muted/10">
+                  <h3 className="text-lg font-medium">สไลด์โชว์</h3>
+                  <div className="space-y-2">
+                    <Label htmlFor="refresh-interval">ระยะเวลาในการรีเฟรช: {refreshInterval} วินาที</Label>
+                    <Slider
+                      id="refresh-interval"
+                      value={[refreshInterval]}
+                      min={5}
+                      max={60}
+                      step={5}
+                      onValueChange={(value) => setRefreshInterval(value[0])}
+                    />
+                    
+                    <div className="mt-4">
+                      <Label>เอฟเฟกต์การเปลี่ยนสไลด์</Label>
+                      <Select value={slideShowEffect} onValueChange={setSlideShowEffect}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="เลือกเอฟเฟกต์" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="none">ไม่มี</SelectItem>
+                          <SelectItem value="fade">จางเข้าออก</SelectItem>
+                          <SelectItem value="slide">เลื่อน</SelectItem>
+                          <SelectItem value="zoom">ซูม</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
                 </div>
               </TabsContent>
             </Tabs>

@@ -1,21 +1,20 @@
-
-export interface ApiConfig {
-  apiKey: string;
-  folderId: string;
-}
-
 export interface Photo {
   id: string;
   name: string;
   url: string;
-  thumbnailUrl: string;
-  mimeType: string;
-  createdTime: string;
-  modifiedTime: string;
-  size: string;
-  webContentLink: string;
-  fullSizeUrl: string;
-  directDownloadUrl: string;
+  directDownloadUrl?: string;
+  webContentLink?: string;
+  webViewLink?: string;
+  thumbnailLink?: string;
+  iconLink?: string;
+  mimeType?: string;
+  size?: number;
+  modifiedTime?: string;
+}
+
+export interface ApiConfig {
+  apiKey: string;
+  folderId: string;
 }
 
 export interface Theme {
@@ -23,8 +22,8 @@ export interface Theme {
   name: string;
   color: string;
   colorClass: string;
-  gradient?: string; // Add gradient option
-  isGradient?: boolean; // Flag to identify if it's a gradient theme
+  gradient?: string;
+  isGradient?: boolean;
 }
 
 export interface Font {
@@ -34,6 +33,7 @@ export interface Font {
   class: string;
 }
 
+// Update the AppSettings interface to include new settings
 export interface AppSettings {
   title: string;
   theme: Theme;
@@ -45,5 +45,12 @@ export interface AppSettings {
   };
   refreshInterval: number;
   qrCodeSize: number;
+  qrCodePosition: "bottomRight" | "bottomLeft" | "topRight" | "topLeft" | "center";
+  showHeaderQR: boolean;
+  logoUrl: string | null;
   slideShowSpeed: number;
+  slideShowEffect: "fade" | "slide" | "zoom" | "none";
+  bannerUrl: string | null;
+  bannerSize: "small" | "medium" | "large";
+  bannerPosition: "bottomLeft" | "bottomRight" | "topLeft" | "topRight";
 }

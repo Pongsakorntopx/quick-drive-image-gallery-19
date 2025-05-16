@@ -15,6 +15,132 @@ img {
   backface-visibility: hidden; /* Prevent flickering */
 }
 
+/* Theme CSS variables */
+:root {
+  --theme1-50: #eff6ff;
+  --theme1-100: #dbeafe;
+  --theme1-200: #bfdbfe;
+  --theme1-300: #93c5fd;
+  --theme1-400: #60a5fa;
+  --theme1-500: #3b82f6;
+  --theme1-600: #2563eb;
+  --theme1-700: #1d4ed8;
+  --theme1-800: #1e40af;
+  --theme1-900: #1e3a8a;
+  
+  --theme2-50: #fef2f2;
+  --theme2-100: #fee2e2;
+  --theme2-200: #fecaca;
+  --theme2-300: #fca5a5;
+  --theme2-400: #f87171;
+  --theme2-500: #ef4444;
+  --theme2-600: #dc2626;
+  --theme2-700: #b91c1c;
+  --theme2-800: #991b1b;
+  --theme2-900: #7f1d1d;
+  
+  --theme3-50: #ecfdf5;
+  --theme3-100: #d1fae5;
+  --theme3-200: #a7f3d0;
+  --theme3-300: #6ee7b7;
+  --theme3-400: #34d399;
+  --theme3-500: #10b981;
+  --theme3-600: #059669;
+  --theme3-700: #047857;
+  --theme3-800: #065f46;
+  --theme3-900: #064e3b;
+  
+  --theme4-50: #f5f3ff;
+  --theme4-100: #ede9fe;
+  --theme4-200: #ddd6fe;
+  --theme4-300: #c4b5fd;
+  --theme4-400: #a78bfa;
+  --theme4-500: #8b5cf6;
+  --theme4-600: #7c3aed;
+  --theme4-700: #6d28d9;
+  --theme4-800: #5b21b6;
+  --theme4-900: #4c1d95;
+  
+  --theme5-50: #fffbeb;
+  --theme5-100: #fef3c7;
+  --theme5-200: #fde68a;
+  --theme5-300: #fcd34d;
+  --theme5-400: #fbbf24;
+  --theme5-500: #f59e0b;
+  --theme5-600: #d97706;
+  --theme5-700: #b45309;
+  --theme5-800: #92400e;
+  --theme5-900: #78350f;
+  
+  --theme6-50: #f0f9ff;
+  --theme6-100: #e0f2fe;
+  --theme6-200: #bae6fd;
+  --theme6-300: #7dd3fc;
+  --theme6-400: #38bdf8;
+  --theme6-500: #0ea5e9;
+  --theme6-600: #0284c7;
+  --theme6-700: #0369a1;
+  --theme6-800: #075985;
+  --theme6-900: #0c4a6e;
+  
+  --theme7-50: #fdf2f8;
+  --theme7-100: #fce7f3;
+  --theme7-200: #fbcfe8;
+  --theme7-300: #f9a8d4;
+  --theme7-400: #f472b6;
+  --theme7-500: #ec4899;
+  --theme7-600: #db2777;
+  --theme7-700: #be185d;
+  --theme7-800: #9d174d;
+  --theme7-900: #831843;
+  
+  --theme8-50: #f0fdfa;
+  --theme8-100: #ccfbf1;
+  --theme8-200: #99f6e4;
+  --theme8-300: #5eead4;
+  --theme8-400: #2dd4bf;
+  --theme8-500: #14b8a6;
+  --theme8-600: #0d9488;
+  --theme8-700: #0f766e;
+  --theme8-800: #115e59;
+  --theme8-900: #134e4a;
+  
+  --theme9-50: #faf5ff;
+  --theme9-100: #f3e8ff;
+  --theme9-200: #e9d5ff;
+  --theme9-300: #d8b4fe;
+  --theme9-400: #c084fc;
+  --theme9-500: #a855f7;
+  --theme9-600: #9333ea;
+  --theme9-700: #7e22ce;
+  --theme9-800: #6b21a8;
+  --theme9-900: #581c87;
+  
+  --theme10-50: #fefce8;
+  --theme10-100: #fef9c3;
+  --theme10-200: #fef08a;
+  --theme10-300: #fde047;
+  --theme10-400: #facc15;
+  --theme10-500: #eab308;
+  --theme10-600: #ca8a04;
+  --theme10-700: #a16207;
+  --theme10-800: #854d0e;
+  --theme10-900: #713f12;
+}
+
+/* Slideshow transitions */
+.slide-transition {
+  transition: transform 500ms ease;
+}
+
+.fade-transition {
+  transition: opacity 500ms ease;
+}
+
+.zoom-transition {
+  transition: transform 500ms ease;
+}
+
 /* Responsive containers */
 .container {
   width: 100%;
@@ -50,6 +176,27 @@ img {
   .container {
     max-width: 1280px;
   }
+}
+
+/* Gradient backgrounds */
+.bg-gradient-blue-pink {
+  background: linear-gradient(135deg, var(--theme1-500) 0%, var(--theme7-500) 100%);
+}
+
+.bg-gradient-green-blue {
+  background: linear-gradient(135deg, var(--theme3-500) 0%, var(--theme1-500) 100%);
+}
+
+.bg-gradient-purple-pink {
+  background: linear-gradient(135deg, var(--theme4-500) 0%, var(--theme7-500) 100%);
+}
+
+.bg-gradient-amber-red {
+  background: linear-gradient(135deg, var(--theme5-500) 0%, var(--theme2-500) 100%);
+}
+
+.bg-gradient-teal-green {
+  background: linear-gradient(135deg, var(--theme8-500) 0%, var(--theme3-500) 100%);
 }
 
 /* Smooth transitions */

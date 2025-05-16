@@ -143,6 +143,13 @@ const defaultSettings: AppSettings = {
   refreshInterval: 5,
   qrCodeSize: 64,
   slideShowSpeed: 5,
+  qrCodePosition: "bottomRight",
+  showHeaderQR: false,
+  logoUrl: null,
+  slideShowEffect: "fade",
+  bannerUrl: null,
+  bannerSize: "medium",
+  bannerPosition: "bottomLeft",
 };
 
 interface AppContextProps {
@@ -266,9 +273,31 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       const hsl = rgbToHsl(rgb.r, rgb.g, rgb.b);
       root.style.setProperty('--primary', `${hsl.h} ${hsl.s}% ${hsl.l}%`);
       
-      // Adjust other colors based on the theme
-      root.style.setProperty('--primary-foreground', '210 40% 98%');
-      root.style.setProperty('--ring', `${hsl.h} ${Math.max(hsl.s - 10, 0)}% ${hsl.l}%`);
+      // Apply the theme color to the root element
+      if (settings.theme.isGradient) {
+        document.body.className = settings.theme.gradient;
+      } else {
+        document.body.className = `bg-${settings.theme.colorClass}-50`;
+        // Set additional theme variables for components
+        const themeColor = settings.theme.colorClass;
+        root.style.setProperty('--theme-color', themeColor);
+        
+        // Set theme-specific variables
+        root.style.setProperty('--theme-50', `var(--${themeColor}-50)`);
+        root.style.setProperty('--theme-100', `var(--${themeColor}-100)`);
+        root.style.setProperty('--theme-200', `var(--${themeColor}-200)`);
+        root.style.setProperty('--theme-300', `var(--${themeColor}-300)`);
+        root.style.setProperty('--theme-400', `var(--${themeColor}-400)`);
+        root.style.setProperty('--theme-500', `var(--${themeColor}-500)`);
+        root.style.setProperty('--theme-600', `var(--${themeColor}-600)`);
+        root.style.setProperty('--theme-700', `var(--${themeColor}-700)`);
+        root.style.setProperty('--theme-800', `var(--${themeColor}-800)`);
+        root.style.setProperty('--theme-900', `var(--${themeColor}-900)`);
+        
+        // Adjust other colors based on the theme
+        root.style.setProperty('--primary-foreground', '210 40% 98%');
+        root.style.setProperty('--ring', `${hsl.h} ${Math.max(hsl.s - 10, 0)}% ${hsl.l}%`);
+      }
     }
   }, [settings.theme]);
   

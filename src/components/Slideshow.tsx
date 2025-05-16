@@ -11,9 +11,7 @@ import { toast } from "@/components/ui/use-toast";
 import { 
   Carousel, 
   CarouselContent, 
-  CarouselItem, 
-  CarouselPrevious, 
-  CarouselNext 
+  CarouselItem
 } from "@/components/ui/carousel";
 import { type CarouselApi } from "@/components/ui/carousel";
 
@@ -40,13 +38,59 @@ const Slideshow: React.FC = () => {
   const [slideSpeed, setSlideSpeed] = useState<number>(settings.slideShowSpeed);
   const [showQR, setShowQR] = useState<boolean>(true);
   const [isSettingsOpen, setIsSettingsOpen] = useState<boolean>(false);
-  const [shuffleMode, setShuffleMode] = useState<boolean>(false);
+  const [shuffleMode, setShuffleMode] = useState<boolean>(true); // Default to true
   const [remainingTime, setRemainingTime] = useState<number>(slideSpeed);
   const [shuffleIndices, setShuffleIndices] = useState<number[]>([]);
   
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   const progressTimerRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Set the transition class based on settings
+  const getTransitionClass = () => {
+    switch (settings.slideShowEffect) {
+      case 'fade':
+        return 'transition-opacity duration-500';
+      case 'slide':
+        return 'transition-transform duration-500';
+      case 'zoom':
+        return 'transition-transform duration-500 transform-gpu';
+      default:
+        return '';
+    }
+  };
+
+  // Get the enter animation class
+  const getEnterClass = (isActive: boolean) => {
+    if (!isActive) return 'opacity-0';
+    
+    switch (settings.slideShowEffect) {
+      case 'fade':
+        return 'opacity-100';
+      case 'slide':
+        return 'translate-x-0';
+      case 'zoom':
+        return 'scale-100';
+      default:
+        return '';
+    }
+  };
+
+  // Get the exit animation class
+  const getExitClass = (isActive: boolean) => {
+    if (isActive) return '';
+    
+    switch (settings.slideShowEffect) {
+      case 'fade':
+        return 'opacity-0';
+      case 'slide':
+        return '-translate-x-full';
+      case 'zoom':
+        return 'scale-90';
+      default:
+        return '';
+    }
+  };
 
   // Initialize the slideshow
   useEffect(() => {
@@ -284,6 +328,23 @@ const Slideshow: React.FC = () => {
     }
   };
 
+  const getQrCodePosition = () => {
+    switch (settings.qrCodePosition) {
+      case "bottomRight":
+        return "bottom-8 right-8";
+      case "bottomLeft":
+        return "bottom-8 left-8";
+      case "topRight":
+        return "top-8 right-8";
+      case "topLeft":
+        return "top-8 left-8";
+      case "center":
+        return "top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2";
+      default:
+        return "bottom-8 right-8";
+    }
+  };
+
   return (
     <Dialog open={isSlideshowOpen} onOpenChange={(open) => !open && handleClose()}>
       <DialogContent className="max-w-7xl w-screen h-screen p-0 max-h-screen overflow-hidden bg-black">
@@ -306,14 +367,14 @@ const Slideshow: React.FC = () => {
                         <img 
                           src={photo.url} 
                           alt={photo.name}
-                          className="max-w-full max-h-full object-contain"
+                          className={`max-w-full max-h-full object-contain ${getTransitionClass()} ${getEnterClass(index === currentIndex)} ${getExitClass(index === currentIndex)}`}
                         />
                         
                         {showQR && (
-                          <div className="absolute bottom-8 right-8">
+                          <div className={`absolute ${getQrCodePosition()}`}>
                             <QRCode 
                               url={photo.directDownloadUrl || photo.webContentLink || ''} 
-                              size={180} 
+                              size={settings.qrCodeSize} 
                             />
                           </div>
                         )}
@@ -328,6 +389,17 @@ const Slideshow: React.FC = () => {
             <div className="absolute top-4 left-4 bg-black/50 text-white px-3 py-1 rounded-full text-sm backdrop-blur-sm">
               {currentIndex + 1} / {photos.length}
             </div>
+
+            {/* Banner image if configured */}
+            {settings.bannerUrl && (
+              <div className={`absolute ${getBannerPosition()} ${getBannerSize()}`}>
+                <img 
+                  src={settings.bannerUrl} 
+                  alt="Banner" 
+                  className="max-w-full max-h-full object-contain"
+                />
+              </div>
+            )}
           </div>
           
           {/* Progress bar */}
@@ -462,6 +534,35 @@ const Slideshow: React.FC = () => {
       </DialogContent>
     </Dialog>
   );
+
+  // Helper functions for banner positioning and sizing
+  function getBannerPosition() {
+    switch (settings.bannerPosition) {
+      case "bottomLeft":
+        return "bottom-8 left-8";
+      case "bottomRight":
+        return "bottom-8 right-8";
+      case "topLeft":
+        return "top-8 left-8";
+      case "topRight":
+        return "top-8 right-8";
+      default:
+        return "bottom-8 left-8";
+    }
+  }
+
+  function getBannerSize() {
+    switch (settings.bannerSize) {
+      case "small":
+        return "max-w-[100px] max-h-[100px]";
+      case "medium":
+        return "max-w-[200px] max-h-[200px]";
+      case "large":
+        return "max-w-[300px] max-h-[300px]";
+      default:
+        return "max-w-[200px] max-h-[200px]";
+    }
+  }
 };
 
 export default Slideshow;
