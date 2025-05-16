@@ -2,14 +2,14 @@
 import React, { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useAppContext } from "../context/AppContext";
-import { X, Download, Play } from "lucide-react";
+import { X, Download, Play, ChevronLeft, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import QRCode from "./QRCode";
 import { format } from "date-fns";
 import { toast } from "@/components/ui/use-toast";
 
 const ImageViewer: React.FC = () => {
-  const { selectedPhoto, setSelectedPhoto, settings, setIsSlideshowOpen } = useAppContext();
+  const { selectedPhoto, setSelectedPhoto, settings, setIsSlideshowOpen, photos } = useAppContext();
   const [isImageLoading, setIsImageLoading] = useState<boolean>(false);
   const [imageError, setImageError] = useState<boolean>(false);
   const [currentImageUrl, setCurrentImageUrl] = useState<string>("");
@@ -94,6 +94,48 @@ const ImageViewer: React.FC = () => {
     }
   };
 
+  // Navigate to the next photo in the gallery
+  const navigateNext = () => {
+    if (!selectedPhoto || photos.length <= 1) return;
+    
+    const currentIndex = photos.findIndex(photo => photo.id === selectedPhoto.id);
+    if (currentIndex === -1) return;
+    
+    const nextIndex = (currentIndex + 1) % photos.length;
+    setSelectedPhoto(photos[nextIndex]);
+  };
+
+  // Navigate to the previous photo in the gallery
+  const navigatePrevious = () => {
+    if (!selectedPhoto || photos.length <= 1) return;
+    
+    const currentIndex = photos.findIndex(photo => photo.id === selectedPhoto.id);
+    if (currentIndex === -1) return;
+    
+    const prevIndex = (currentIndex - 1 + photos.length) % photos.length;
+    setSelectedPhoto(photos[prevIndex]);
+  };
+
+  // Handle keyboard navigation
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (!selectedPhoto) return;
+      
+      if (e.key === "ArrowRight") {
+        navigateNext();
+      } else if (e.key === "ArrowLeft") {
+        navigatePrevious();
+      } else if (e.key === "Escape") {
+        setSelectedPhoto(null);
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [selectedPhoto, photos]);
+
   return (
     <Dialog open={!!selectedPhoto} onOpenChange={(open) => !open && setSelectedPhoto(null)}>
       <DialogContent className="max-w-5xl w-[90vw] max-h-[90vh] p-0 overflow-hidden bg-background/90 backdrop-blur-modal">
@@ -142,6 +184,28 @@ const ImageViewer: React.FC = () => {
                   />
                 )
               )}
+              
+              {/* Navigation arrows */}
+              {photos.length > 1 && (
+                <>
+                  <Button 
+                    variant="ghost" 
+                    size="icon" 
+                    className="absolute left-2 top-1/2 transform -translate-y-1/2 bg-black/30 text-white hover:bg-black/50 z-10"
+                    onClick={navigatePrevious}
+                  >
+                    <ChevronLeft className="h-8 w-8" />
+                  </Button>
+                  <Button 
+                    variant="ghost" 
+                    size="icon" 
+                    className="absolute right-2 top-1/2 transform -translate-y-1/2 bg-black/30 text-white hover:bg-black/50 z-10"
+                    onClick={navigateNext}
+                  >
+                    <ChevronRight className="h-8 w-8" />
+                  </Button>
+                </>
+              )}
             </div>
           </div>
 
@@ -174,6 +238,28 @@ const ImageViewer: React.FC = () => {
                 <Play className="mr-2 h-4 w-4" /> เริ่มสไลด์โชว์
               </Button>
             </div>
+            
+            {/* Photo navigation with text buttons */}
+            {photos.length > 1 && (
+              <div className="mt-4 grid grid-cols-2 gap-2">
+                <Button 
+                  variant="secondary" 
+                  size="sm"
+                  onClick={navigatePrevious}
+                  className="text-xs"
+                >
+                  <ChevronLeft className="h-4 w-4 mr-1" /> รูปก่อนหน้า
+                </Button>
+                <Button 
+                  variant="secondary" 
+                  size="sm"
+                  onClick={navigateNext}
+                  className="text-xs"
+                >
+                  รูปถัดไป <ChevronRight className="h-4 w-4 ml-1" />
+                </Button>
+              </div>
+            )}
           </div>
         </div>
       </DialogContent>

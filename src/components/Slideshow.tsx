@@ -2,12 +2,20 @@
 import React, { useState, useEffect, useRef } from "react";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { useAppContext } from "../context/AppContext";
-import { X, Play, Pause, SkipForward, SkipBack, Settings, Volume2, Shuffle, RotateCw } from "lucide-react";
+import { X, Play, Pause, Shuffle, Settings, Volume2, ChevronLeft, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
 import QRCode from "./QRCode";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { toast } from "@/components/ui/use-toast";
+import { 
+  Carousel, 
+  CarouselContent, 
+  CarouselItem, 
+  CarouselPrevious, 
+  CarouselNext 
+} from "@/components/ui/carousel";
+import { type CarouselApi } from "@/components/ui/carousel";
 
 const Slideshow: React.FC = () => {
   const {
@@ -21,34 +29,35 @@ const Slideshow: React.FC = () => {
     setCurrentAudio
   } = useAppContext();
 
+  // Carousel control
+  const [carouselApi, setCarouselApi] = useState<CarouselApi | null>(null);
   const [currentIndex, setCurrentIndex] = useState(0);
+  
+  // Audio and settings
   const [audioFile, setAudioFile] = useState<File | null>(null);
   const [audioUrl, setAudioUrl] = useState<string | null>(null);
   const [volume, setVolume] = useState<number>(50);
   const [slideSpeed, setSlideSpeed] = useState<number>(settings.slideShowSpeed);
-  const [visualMode, setVisualMode] = useState<'normal' | 'beat'>('normal');
-  const [shuffleMode, setShuffleMode] = useState<boolean>(false);
   const [showQR, setShowQR] = useState<boolean>(true);
   const [isSettingsOpen, setIsSettingsOpen] = useState<boolean>(false);
+  const [shuffleMode, setShuffleMode] = useState<boolean>(false);
   const [remainingTime, setRemainingTime] = useState<number>(slideSpeed);
-  const [playedIndices, setPlayedIndices] = useState<number[]>([]);
+  const [shuffleIndices, setShuffleIndices] = useState<number[]>([]);
   
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   const progressTimerRef = useRef<NodeJS.Timeout | null>(null);
-  const analyserRef = useRef<AnalyserNode | null>(null);
-  const dataArrayRef = useRef<Uint8Array | null>(null);
-  const animationFrameRef = useRef<number | null>(null);
 
   // Initialize the slideshow
   useEffect(() => {
     if (isSlideshowOpen && photos.length > 0) {
-      setCurrentIndex(0);
-      setPlayedIndices([0]);
+      // Initialize shuffle indices if needed
+      if (shuffleMode && shuffleIndices.length === 0) {
+        initializeShuffleIndices();
+      }
       
       // Always start playing when opened
       setIsPlaying(true);
-      startSlideshow();
       
       toast({
         title: "สไลด์โชว์เริ่มต้นแล้ว",
@@ -60,6 +69,23 @@ const Slideshow: React.FC = () => {
       stopAllTimers();
     };
   }, [isSlideshowOpen, photos.length]);
+
+  // Effect for setting up the carousel API
+  useEffect(() => {
+    if (!carouselApi) return;
+
+    // Set up carousel listeners
+    const handleSelect = () => {
+      setCurrentIndex(carouselApi.selectedScrollSnap());
+    };
+
+    carouselApi.on("select", handleSelect);
+
+    // Return cleanup function
+    return () => {
+      carouselApi.off("select", handleSelect);
+    };
+  }, [carouselApi]);
 
   // Effect for handling play/pause state changes
   useEffect(() => {
@@ -89,46 +115,19 @@ const Slideshow: React.FC = () => {
     }
   }, [audioFile]);
 
-  // Set up audio context for visual effects
-  useEffect(() => {
-    if (audioRef.current && visualMode === 'beat' && isPlaying) {
-      // Create AudioContext only if we're actually using it
-      try {
-        const audioContext = new AudioContext();
-        const analyser = audioContext.createAnalyser();
-        analyser.fftSize = 256;
-        
-        const source = audioContext.createMediaElementSource(audioRef.current);
-        source.connect(analyser);
-        analyser.connect(audioContext.destination);
-        
-        const bufferLength = analyser.frequencyBinCount;
-        const dataArray = new Uint8Array(bufferLength);
-        
-        analyserRef.current = analyser;
-        dataArrayRef.current = dataArray;
-        
-        startVisualAnalysis();
-      } catch (error) {
-        console.error("Error setting up audio analysis:", error);
-        // Fallback to normal mode if audio analysis fails
-        setVisualMode('normal');
-        scheduleNextSlide();
-        startProgressTimer();
-      }
-    } else if (visualMode === 'normal' && isPlaying) {
-      // In normal mode, make sure we have timers running
-      stopAllTimers();
-      scheduleNextSlide();
-      startProgressTimer();
+  // Initialize shuffle indices
+  const initializeShuffleIndices = () => {
+    // Create array with all indices
+    const indices = Array.from({ length: photos.length }, (_, i) => i);
+    
+    // Fisher-Yates shuffle algorithm
+    for (let i = indices.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [indices[i], indices[j]] = [indices[j], indices[i]];
     }
     
-    return () => {
-      if (animationFrameRef.current) {
-        cancelAnimationFrame(animationFrameRef.current);
-      }
-    };
-  }, [visualMode, isPlaying, audioUrl]);
+    setShuffleIndices(indices);
+  };
 
   const stopAllTimers = () => {
     if (timerRef.current) {
@@ -139,33 +138,6 @@ const Slideshow: React.FC = () => {
       clearInterval(progressTimerRef.current);
       progressTimerRef.current = null;
     }
-    if (animationFrameRef.current) {
-      cancelAnimationFrame(animationFrameRef.current);
-      animationFrameRef.current = null;
-    }
-  };
-
-  // Start the audio visual analysis
-  const startVisualAnalysis = () => {
-    const analyzeAudio = () => {
-      if (analyserRef.current && dataArrayRef.current) {
-        analyserRef.current.getByteFrequencyData(dataArrayRef.current);
-        
-        // Calculate the average volume
-        const avg = dataArrayRef.current.reduce((a, b) => a + b, 0) / dataArrayRef.current.length;
-        
-        // If the average volume is above a threshold, change the image
-        if (avg > 130) {  // Adjust this threshold as needed
-          goToNext();
-        }
-      }
-      
-      if (isPlaying) {
-        animationFrameRef.current = requestAnimationFrame(analyzeAudio);
-      }
-    };
-    
-    animationFrameRef.current = requestAnimationFrame(analyzeAudio);
   };
 
   // Start or pause the slideshow
@@ -181,13 +153,8 @@ const Slideshow: React.FC = () => {
       setCurrentAudio(audioRef.current);
     }
     
-    // Only schedule slides if we're in normal mode
-    if (visualMode === 'normal') {
-      scheduleNextSlide();
-      startProgressTimer();
-    } else if (visualMode === 'beat') {
-      startVisualAnalysis();
-    }
+    scheduleNextSlide();
+    startProgressTimer();
   };
 
   const pauseSlideshow = () => {
@@ -227,60 +194,45 @@ const Slideshow: React.FC = () => {
     }, slideSpeed * 1000);
   };
 
-  const getNextRandomIndex = () => {
-    // If all photos have been shown, reset played indices except current
-    if (playedIndices.length >= photos.length) {
-      setPlayedIndices([currentIndex]);
-    }
-    
-    // Find indices that haven't been played yet
-    const availableIndices = Array.from(
-      { length: photos.length },
-      (_, i) => i
-    ).filter(i => !playedIndices.includes(i));
-    
-    // If there are no available indices, use any index except current
-    if (availableIndices.length === 0) {
-      const newIndex = Math.floor(Math.random() * (photos.length - 1));
-      return newIndex >= currentIndex ? newIndex + 1 : newIndex;
-    }
-    
-    // Pick a random index from available ones
-    return availableIndices[Math.floor(Math.random() * availableIndices.length)];
-  };
-
   const goToNext = () => {
-    // Ensure we have photos to display
-    if (photos.length === 0) return;
-    
-    let nextIndex;
+    if (!carouselApi || photos.length === 0) return;
     
     if (shuffleMode) {
-      nextIndex = getNextRandomIndex();
-      setPlayedIndices(prev => [...prev, nextIndex]);
+      // If we haven't initialized shuffle indices yet, do so
+      if (shuffleIndices.length === 0) {
+        initializeShuffleIndices();
+        return;
+      }
+      
+      // Find current position in shuffle indices
+      const currentShuffleIndex = shuffleIndices.findIndex(i => i === currentIndex);
+      const nextShuffleIndex = (currentShuffleIndex + 1) % shuffleIndices.length;
+      const nextIndex = shuffleIndices[nextShuffleIndex];
+      
+      carouselApi.scrollTo(nextIndex);
     } else {
-      nextIndex = (currentIndex + 1) % photos.length;
+      carouselApi.scrollNext();
     }
-    
-    setCurrentIndex(nextIndex);
   };
 
   const goToPrev = () => {
-    // Ensure we have photos to display
-    if (photos.length === 0) return;
+    if (!carouselApi || photos.length === 0) return;
     
     if (shuffleMode) {
-      // In shuffle mode, go to the last played photo if available
-      const prevIndex = playedIndices.length > 1 
-        ? playedIndices[playedIndices.length - 2]
-        : (currentIndex - 1 + photos.length) % photos.length;
+      // If we haven't initialized shuffle indices yet, do so
+      if (shuffleIndices.length === 0) {
+        initializeShuffleIndices();
+        return;
+      }
       
-      setCurrentIndex(prevIndex);
+      // Find current position in shuffle indices
+      const currentShuffleIndex = shuffleIndices.findIndex(i => i === currentIndex);
+      const prevShuffleIndex = (currentShuffleIndex - 1 + shuffleIndices.length) % shuffleIndices.length;
+      const prevIndex = shuffleIndices[prevShuffleIndex];
       
-      // Remove current from played indices
-      setPlayedIndices(prev => prev.slice(0, -1));
+      carouselApi.scrollTo(prevIndex);
     } else {
-      setCurrentIndex((prev) => (prev - 1 + photos.length) % photos.length);
+      carouselApi.scrollPrev();
     }
   };
 
@@ -316,7 +268,7 @@ const Slideshow: React.FC = () => {
     const newSpeed = value[0];
     setSlideSpeed(newSpeed);
     
-    if (isPlaying && visualMode === 'normal') {
+    if (isPlaying) {
       stopAllTimers();
       scheduleNextSlide();
       startProgressTimer();
@@ -324,10 +276,11 @@ const Slideshow: React.FC = () => {
   };
 
   const toggleShuffle = () => {
-    setShuffleMode(prev => !prev);
-    // When turning shuffle on, reset played indices
-    if (!shuffleMode) {
-      setPlayedIndices([currentIndex]);
+    const newShuffleMode = !shuffleMode;
+    setShuffleMode(newShuffleMode);
+    
+    if (newShuffleMode && shuffleIndices.length === 0) {
+      initializeShuffleIndices();
     }
   };
 
@@ -338,34 +291,47 @@ const Slideshow: React.FC = () => {
           {/* Main slideshow view */}
           <div className="absolute inset-0 flex items-center justify-center">
             {photos.length > 0 && (
-              <div className="relative w-full h-full">
-                {photos[currentIndex] && (
-                  <img 
-                    src={photos[currentIndex].url} 
-                    alt={photos[currentIndex].name || `Image ${currentIndex + 1}`} 
-                    className="w-full h-full object-contain"
-                  />
-                )}
-                
-                {showQR && photos[currentIndex] && (
-                  <div className="absolute bottom-8 right-8">
-                    <QRCode 
-                      url={photos[currentIndex].directDownloadUrl || photos[currentIndex].webContentLink || ''} 
-                      size={180} 
-                    />
-                  </div>
-                )}
-                
-                {/* Image counter */}
-                <div className="absolute top-4 left-4 bg-black/50 text-white px-3 py-1 rounded-full text-sm backdrop-blur-sm">
-                  {currentIndex + 1} / {photos.length}
-                </div>
-              </div>
+              <Carousel
+                opts={{ 
+                  loop: true, 
+                  skipSnaps: true 
+                }}
+                className="w-full h-full"
+                setApi={setCarouselApi}
+              >
+                <CarouselContent className="h-full">
+                  {photos.map((photo, index) => (
+                    <CarouselItem key={photo.id} className="h-full">
+                      <div className="w-full h-full flex items-center justify-center">
+                        <img 
+                          src={photo.url} 
+                          alt={photo.name}
+                          className="max-w-full max-h-full object-contain"
+                        />
+                        
+                        {showQR && (
+                          <div className="absolute bottom-8 right-8">
+                            <QRCode 
+                              url={photo.directDownloadUrl || photo.webContentLink || ''} 
+                              size={180} 
+                            />
+                          </div>
+                        )}
+                      </div>
+                    </CarouselItem>
+                  ))}
+                </CarouselContent>
+              </Carousel>
             )}
+            
+            {/* Image counter */}
+            <div className="absolute top-4 left-4 bg-black/50 text-white px-3 py-1 rounded-full text-sm backdrop-blur-sm">
+              {currentIndex + 1} / {photos.length}
+            </div>
           </div>
           
           {/* Progress bar */}
-          {visualMode === 'normal' && isPlaying && (
+          {isPlaying && (
             <div className="absolute top-0 left-0 right-0">
               <div 
                 className="h-1 bg-primary" 
@@ -419,24 +385,6 @@ const Slideshow: React.FC = () => {
                       </div>
                       
                       <div>
-                        <h3 className="text-lg font-medium mb-2">โหมดแสดงภาพ</h3>
-                        <div className="grid grid-cols-2 gap-2">
-                          <Button
-                            variant={visualMode === 'normal' ? 'default' : 'outline'}
-                            onClick={() => setVisualMode('normal')}
-                          >
-                            ปกติ
-                          </Button>
-                          <Button
-                            variant={visualMode === 'beat' ? 'default' : 'outline'}
-                            onClick={() => setVisualMode('beat')}
-                          >
-                            ตามจังหวะเพลง
-                          </Button>
-                        </div>
-                      </div>
-                      
-                      <div>
                         <h3 className="text-lg font-medium mb-2">แสดง QR Code</h3>
                         <div className="flex items-center gap-2">
                           <Button
@@ -467,7 +415,7 @@ const Slideshow: React.FC = () => {
             <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-4 flex items-center justify-between">
               <div className="flex items-center gap-4">
                 <Button variant="ghost" size="icon" onClick={goToPrev} className="text-white hover:bg-white/20">
-                  <SkipBack className="h-5 w-5" />
+                  <ChevronLeft className="h-6 w-6" />
                 </Button>
                 
                 {isPlaying ? (
@@ -481,7 +429,7 @@ const Slideshow: React.FC = () => {
                 )}
                 
                 <Button variant="ghost" size="icon" onClick={goToNext} className="text-white hover:bg-white/20">
-                  <SkipForward className="h-5 w-5" />
+                  <ChevronRight className="h-6 w-6" />
                 </Button>
                 
                 <Button 
