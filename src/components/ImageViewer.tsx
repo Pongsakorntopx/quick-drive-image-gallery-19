@@ -1,11 +1,11 @@
-
 import React, { useEffect } from "react";
-import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { useAppContext } from "../context/AppContext";
 import { Button } from "@/components/ui/button";
 import { X, ChevronLeft, ChevronRight } from "lucide-react";
 import { QRCode } from "./QRCode";
 import { toast } from "@/components/ui/use-toast";
+import { VisuallyHidden } from "@radix-ui/react-visually-hidden";
 
 const ImageViewer = () => {
   const { selectedPhoto, setSelectedPhoto, photos } = useAppContext();
@@ -69,10 +69,22 @@ const ImageViewer = () => {
   return (
     <Dialog open={!!selectedPhoto} onOpenChange={(open) => !open && setSelectedPhoto(null)}>
       <DialogContent className="max-w-5xl max-h-[90vh] p-0 overflow-hidden bg-background/95 backdrop-blur-lg">
+        {/* Adding DialogTitle for accessibility but keeping it visually hidden */}
+        <DialogTitle className="sr-only">
+          <VisuallyHidden>รูปภาพ: {selectedPhoto.name}</VisuallyHidden>
+        </DialogTitle>
+        
         <div className="relative w-full h-full max-h-[80vh] flex flex-col">
+          {/* Close button - fixed position to ensure consistency */}
           <div className="absolute top-2 right-2 z-10">
-            <Button variant="ghost" size="icon" onClick={() => setSelectedPhoto(null)}>
+            <Button 
+              variant="ghost" 
+              size="icon" 
+              onClick={() => setSelectedPhoto(null)}
+              className="bg-background/30 backdrop-blur-sm hover:bg-background/50 rounded-full"
+            >
               <X className="h-4 w-4" />
+              <span className="sr-only">ปิด</span>
             </Button>
           </div>
           
@@ -85,6 +97,7 @@ const ImageViewer = () => {
               onClick={handlePrevious}
             >
               <ChevronLeft className="h-6 w-6" />
+              <span className="sr-only">ก่อนหน้า</span>
             </Button>
           </div>
           
@@ -96,14 +109,24 @@ const ImageViewer = () => {
               onClick={handleNext}
             >
               <ChevronRight className="h-6 w-6" />
+              <span className="sr-only">ถัดไป</span>
             </Button>
           </div>
           
           <div className="flex-1 p-6 flex items-center justify-center overflow-hidden">
+            {/* Using direct URL instead of thumbnailLink for better quality */}
             <img
-              src={selectedPhoto.url}
+              src={selectedPhoto.fullSizeUrl || selectedPhoto.directDownloadUrl || selectedPhoto.url}
               alt={selectedPhoto.name}
               className="max-w-full max-h-[60vh] object-contain rounded shadow-lg"
+              onError={(e) => {
+                // Fallback if primary image URL fails
+                const imgElement = e.target as HTMLImageElement;
+                if (imgElement.src !== selectedPhoto.webContentLink) {
+                  console.log("Image load failed, trying fallback URL");
+                  imgElement.src = selectedPhoto.webContentLink || selectedPhoto.thumbnailLink;
+                }
+              }}
             />
           </div>
           

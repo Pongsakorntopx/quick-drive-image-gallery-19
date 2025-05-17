@@ -1,3 +1,4 @@
+
 import { ApiConfig, Photo } from "../types";
 
 const DRIVE_API_BASE_URL = "https://www.googleapis.com/drive/v3";
@@ -50,9 +51,10 @@ export const fetchPhotosFromDrive = async (config: ApiConfig): Promise<Photo[]> 
     return allPhotos.map((file: any) => ({
       id: file.id,
       name: file.name,
-      // Use thumbnailLink for preview display
+      // Improved URL generation with multiple fallbacks
       url: file.thumbnailLink ? file.thumbnailLink.replace('=s220', '=s1000') : getPhotoUrl(file.id),
-      thumbnailUrl: file.thumbnailLink || `https://drive.google.com/thumbnail?id=${file.id}`,
+      thumbnailLink: file.thumbnailLink || `https://drive.google.com/thumbnail?id=${file.id}`,
+      iconLink: file.iconLink || `https://drive.google.com/icon?id=${file.id}`,
       mimeType: file.mimeType,
       createdTime: file.createdTime,
       modifiedTime: file.modifiedTime,

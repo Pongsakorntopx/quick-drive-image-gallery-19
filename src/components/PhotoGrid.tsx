@@ -28,6 +28,7 @@ const PhotoGrid: React.FC = () => {
   // Calculate optimized layout for masonry grid
   useEffect(() => {
     if (photos.length > 0) {
+      console.log(`Setting up initial batch of ${Math.min(batchSize, photos.length)} photos`);
       // Initial batch of photos
       const initialBatch = photos.slice(0, batchSize).map((photo, index) => ({
         id: photo.id,
@@ -40,6 +41,7 @@ const PhotoGrid: React.FC = () => {
   // Handle lazy loading of more photos when scrolling
   useEffect(() => {
     if (inView && photos.length > virtualizedPhotos.length) {
+      console.log(`Loading next batch. Current: ${virtualizedPhotos.length}, Total: ${photos.length}`);
       const nextBatch = photos
         .slice(virtualizedPhotos.length, virtualizedPhotos.length + batchSize)
         .map((photo, index) => ({
@@ -135,24 +137,29 @@ const PhotoGrid: React.FC = () => {
         </div>
       ) : photos.length === 0 ? (
         <div className="flex flex-col items-center justify-center p-8 min-h-[400px]">
-          <div className="text-lg mb-4">ไม่พบรูปภาพ</div>
-          <div className="text-muted-foreground text-center max-w-md">
-            ตรวจสอบว่าคุณได้ป้อน API Key และ Folder ID อย่างถูกต้อง และโฟลเดอร์ของคุณมีรูปภาพ
+          <div className="text-lg mb-4 bg-green-100 text-green-800 p-4 rounded flex items-center">
+            <div className="mr-3">
+              <div className="rounded-full h-4 w-4 border-2 border-t-transparent border-green-500 animate-spin"></div>
+            </div>
+            กำลังเชื่อมต่อไปยัง Google Drive Folder...
           </div>
         </div>
       ) : (
         <>
           <div ref={gridRef} className="masonry-grid">
-            {virtualizedPhotos.map((vPhoto) => (
-              <div key={vPhoto.id} className="masonry-item">
-                <div className="masonry-content">
-                  <ImageCard 
-                    photo={photos.find(p => p.id === vPhoto.id)!} 
-                    onClick={() => setSelectedPhoto(photos.find(p => p.id === vPhoto.id)!)} 
-                  />
+            {virtualizedPhotos.map((vPhoto) => {
+              const photo = photos.find(p => p.id === vPhoto.id);
+              return photo ? (
+                <div key={vPhoto.id} className="masonry-item">
+                  <div className="masonry-content">
+                    <ImageCard 
+                      photo={photo} 
+                      onClick={() => setSelectedPhoto(photo)} 
+                    />
+                  </div>
                 </div>
-              </div>
-            ))}
+              ) : null;
+            })}
           </div>
           
           {/* Load more trigger element */}

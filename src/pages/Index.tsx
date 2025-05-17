@@ -135,7 +135,7 @@ const Index = () => {
       
       {/* Header QR code if enabled - adjusted position */}
       {settings.showHeaderQR && (
-        <div className="fixed top-20 right-24 z-40">
+        <div className="fixed top-24 right-24 z-40">
           <QRCode 
             url={window.location.href} 
             size={settings.qrCodeSize} 

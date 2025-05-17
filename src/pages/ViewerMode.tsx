@@ -89,7 +89,12 @@ const ViewerMode = () => {
             {isLoading ? (
               <div className="rounded-full h-12 w-12 border-4 border-t-transparent border-primary animate-spin"></div>
             ) : (
-              <p className="text-muted-foreground">ไม่พบรูปภาพ</p>
+              <div className="text-lg mb-4 bg-green-100 text-green-800 p-4 rounded flex items-center">
+                <div className="mr-3">
+                  <div className="rounded-full h-4 w-4 border-2 border-t-transparent border-green-500 animate-spin"></div>
+                </div>
+                กำลังเชื่อมต่อไปยัง Google Drive Folder...
+              </div>
             )}
           </div>
         )}

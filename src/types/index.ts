@@ -1,5 +1,3 @@
-
-
 export interface Photo {
   id: string;
   name: string;
@@ -10,9 +8,11 @@ export interface Photo {
   thumbnailLink?: string;
   iconLink?: string;
   thumbnailUrl?: string;
+  fullSizeUrl?: string;
   mimeType?: string;
   size?: number;
   modifiedTime?: string;
+  createdTime?: string;
 }
 
 export interface ApiConfig {
@@ -58,4 +58,3 @@ export interface AppSettings {
   bannerSize: "small" | "medium" | "large";
   bannerPosition: "bottomLeft" | "bottomRight" | "topLeft" | "topRight";
 }
-

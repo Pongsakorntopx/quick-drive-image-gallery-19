@@ -66,12 +66,21 @@ const ImageCard: React.FC<ImageCardProps> = ({ photo, onClick }) => {
       className="image-container relative rounded-lg overflow-hidden shadow-lg transition-all duration-300 hover:shadow-xl cursor-pointer group"
       onClick={onClick}
     >
-      {/* Use thumbnailLink for grid display */}
+      {/* Use thumbnailLink for grid display with fallback options */}
       <img
-        src={photo.thumbnailLink}
+        src={photo.thumbnailLink || `https://drive.google.com/thumbnail?id=${photo.id}`}
         alt={photo.name}
         loading="lazy"
         className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+        onError={(e) => {
+          // Fallback chain if thumbnail fails
+          const imgElement = e.target as HTMLImageElement;
+          if (imgElement.src !== `https://drive.google.com/thumbnail?id=${photo.id}`) {
+            imgElement.src = `https://drive.google.com/thumbnail?id=${photo.id}`;
+          } else if (photo.iconLink) {
+            imgElement.src = photo.iconLink;
+          }
+        }}
       />
       
       <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300">
