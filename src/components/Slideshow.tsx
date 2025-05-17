@@ -1,7 +1,8 @@
+
 import React, { useState, useEffect, useRef } from "react";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { useAppContext } from "../context/AppContext";
-import { X, Play, Pause, Shuffle, Settings, Volume2, ChevronLeft, ChevronRight } from "lucide-react";
+import { X, Play, Pause, Shuffle, Settings, Volume2, ChevronLeft, ChevronRight, Music } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
 import QRCode from "./QRCode";
@@ -13,6 +14,32 @@ import {
   CarouselItem
 } from "@/components/ui/carousel";
 import { type CarouselApi } from "@/components/ui/carousel";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+
+// Music tracks for slideshow
+const musicTracks = [
+  { id: "none", name: "ไม่เปิดเพลง", url: null },
+  { id: "track1", name: "เพลงผ่อนคลาย 1", url: "https://cdn.pixabay.com/download/audio/2022/01/18/audio_5fa8942f4d.mp3" },
+  { id: "track2", name: "เพลงผ่อนคลาย 2", url: "https://cdn.pixabay.com/download/audio/2021/11/01/audio_00fa5593f1.mp3" },
+  { id: "track3", name: "เพลงผ่อนคลาย 3", url: "https://cdn.pixabay.com/download/audio/2022/03/10/audio_40ccf93084.mp3" },
+  { id: "track4", name: "เพลงสดใส 1", url: "https://cdn.pixabay.com/download/audio/2021/05/24/audio_709b579e5c.mp3" },
+  { id: "track5", name: "เพลงสดใส 2", url: "https://cdn.pixabay.com/download/audio/2022/01/13/audio_ebd4f1e58c.mp3" },
+  { id: "track6", name: "เพลงสบาย 1", url: "https://cdn.pixabay.com/download/audio/2021/10/25/audio_efda2cc668.mp3" },
+  { id: "track7", name: "เพลงสบาย 2", url: "https://cdn.pixabay.com/download/audio/2021/09/29/audio_645350d4cd.mp3" },
+  { id: "track8", name: "เพลงเร็ว 1", url: "https://cdn.pixabay.com/download/audio/2021/11/29/audio_97cee2b295.mp3" },
+  { id: "track9", name: "เพลงเร็ว 2", url: "https://cdn.pixabay.com/download/audio/2022/03/15/audio_95e5aaa64a.mp3" },
+  { id: "track10", name: "เพลงตื่นเต้น 1", url: "https://cdn.pixabay.com/download/audio/2022/01/16/audio_95e2dfd359.mp3" },
+  { id: "track11", name: "เพลงตื่นเต้น 2", url: "https://cdn.pixabay.com/download/audio/2022/03/19/audio_1c21397613.mp3" },
+  { id: "track12", name: "เพลงเศร้า 1", url: "https://cdn.pixabay.com/download/audio/2021/11/13/audio_cb4f1805c9.mp3" },
+  { id: "track13", name: "เพลงเศร้า 2", url: "https://cdn.pixabay.com/download/audio/2022/02/07/audio_00e6f2a01d.mp3" },
+  { id: "track14", name: "เพลงคลาสสิก 1", url: "https://cdn.pixabay.com/download/audio/2021/08/08/audio_0abb0a0f93.mp3" },
+  { id: "track15", name: "เพลงคลาสสิก 2", url: "https://cdn.pixabay.com/download/audio/2022/03/15/audio_ec5906c060.mp3" },
+  { id: "track16", name: "เพลงโลกตะวันออก 1", url: "https://cdn.pixabay.com/download/audio/2022/01/27/audio_5889f919fa.mp3" },
+  { id: "track17", name: "เพลงโลกตะวันออก 2", url: "https://cdn.pixabay.com/download/audio/2022/02/18/audio_d23ba9ada6.mp3" },
+  { id: "track18", name: "เพลงชาวเขา 1", url: "https://cdn.pixabay.com/download/audio/2022/02/07/audio_3b2be608cc.mp3" },
+  { id: "track19", name: "เพลงธรรมชาติ 1", url: "https://cdn.pixabay.com/download/audio/2021/11/04/audio_9ccbedc077.mp3" },
+  { id: "track20", name: "เพลงธรรมชาติ 2", url: "https://cdn.pixabay.com/download/audio/2021/09/06/audio_97d59492a0.mp3" },
+];
 
 const Slideshow: React.FC = () => {
   const {
@@ -31,8 +58,7 @@ const Slideshow: React.FC = () => {
   const [currentIndex, setCurrentIndex] = useState(0);
   
   // Audio and settings
-  const [audioFile, setAudioFile] = useState<File | null>(null);
-  const [audioUrl, setAudioUrl] = useState<string | null>(null);
+  const [selectedTrackId, setSelectedTrackId] = useState<string>("none");
   const [volume, setVolume] = useState<number>(50);
   const [slideSpeed, setSlideSpeed] = useState<number>(settings.slideShowSpeed);
   const [showQR, setShowQR] = useState<boolean>(true);
@@ -40,10 +66,13 @@ const Slideshow: React.FC = () => {
   const [shuffleMode, setShuffleMode] = useState<boolean>(true); // Default to true
   const [remainingTime, setRemainingTime] = useState<number>(slideSpeed);
   const [shuffleIndices, setShuffleIndices] = useState<number[]>([]);
+  const [autoScroll, setAutoScroll] = useState<boolean>(false);
+  const [autoScrollSpeed, setAutoScrollSpeed] = useState<number>(10); // seconds
   
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   const progressTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const autoScrollRef = useRef<NodeJS.Timeout | null>(null);
 
   // Set the transition class based on settings
   const getTransitionClass = () => {
@@ -141,22 +170,41 @@ const Slideshow: React.FC = () => {
     }
   }, [isPlaying, isSlideshowOpen]);
 
-  // Handle audio file change
+  // Handle track selection changes
   useEffect(() => {
-    if (audioFile) {
-      const url = URL.createObjectURL(audioFile);
-      setAudioUrl(url);
-
-      if (audioRef.current) {
-        audioRef.current.src = url;
+    if (audioRef.current) {
+      const selectedTrack = musicTracks.find(track => track.id === selectedTrackId);
+      
+      if (selectedTrack && selectedTrack.url) {
+        audioRef.current.src = selectedTrack.url;
         audioRef.current.volume = volume / 100;
+        
+        if (isPlaying) {
+          audioRef.current.play().catch(error => {
+            console.error("Error playing audio:", error);
+          });
+        }
+      } else {
+        audioRef.current.pause();
+        audioRef.current.src = '';
       }
-
-      return () => {
-        URL.revokeObjectURL(url);
-      };
     }
-  }, [audioFile]);
+  }, [selectedTrackId, isPlaying]);
+
+  // Handle auto-scroll
+  useEffect(() => {
+    if (!isSlideshowOpen) return;
+    
+    if (autoScroll) {
+      startAutoScroll();
+    } else {
+      stopAutoScroll();
+    }
+    
+    return () => {
+      stopAutoScroll();
+    };
+  }, [autoScroll, autoScrollSpeed, isSlideshowOpen]);
 
   // Initialize shuffle indices
   const initializeShuffleIndices = () => {
@@ -181,6 +229,10 @@ const Slideshow: React.FC = () => {
       clearInterval(progressTimerRef.current);
       progressTimerRef.current = null;
     }
+    if (autoScrollRef.current) {
+      clearInterval(autoScrollRef.current);
+      autoScrollRef.current = null;
+    }
   };
 
   // Start or pause the slideshow
@@ -189,7 +241,7 @@ const Slideshow: React.FC = () => {
     setRemainingTime(slideSpeed);
     
     // If we have audio, play it
-    if (audioRef.current && audioUrl) {
+    if (audioRef.current && selectedTrackId !== "none") {
       audioRef.current.play().catch(error => {
         console.error("Error playing audio:", error);
       });
@@ -206,6 +258,36 @@ const Slideshow: React.FC = () => {
     
     if (audioRef.current) {
       audioRef.current.pause();
+    }
+  };
+
+  const startAutoScroll = () => {
+    if (autoScrollRef.current) {
+      clearInterval(autoScrollRef.current);
+    }
+    
+    // Convert seconds to milliseconds for interval
+    autoScrollRef.current = setInterval(() => {
+      // Scroll the page down by a small amount
+      window.scrollBy({
+        top: 50,
+        behavior: "smooth"
+      });
+      
+      // If we're at the bottom of the page, scroll back to top
+      if ((window.innerHeight + window.scrollY) >= document.body.offsetHeight) {
+        window.scrollTo({
+          top: 0,
+          behavior: "smooth"
+        });
+      }
+    }, autoScrollSpeed * 100); // Use smaller intervals for smoother scrolling
+  };
+
+  const stopAutoScroll = () => {
+    if (autoScrollRef.current) {
+      clearInterval(autoScrollRef.current);
+      autoScrollRef.current = null;
     }
   };
 
@@ -291,13 +373,6 @@ const Slideshow: React.FC = () => {
     setCurrentAudio(null);
   };
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = e.target.files;
-    if (files && files[0]) {
-      setAudioFile(files[0]);
-    }
-  };
-
   const handleVolumeChange = (value: number[]) => {
     const newVolume = value[0];
     setVolume(newVolume);
@@ -315,6 +390,16 @@ const Slideshow: React.FC = () => {
       stopAllTimers();
       scheduleNextSlide();
       startProgressTimer();
+    }
+  };
+
+  const handleAutoScrollSpeedChange = (value: number[]) => {
+    const newSpeed = value[0];
+    setAutoScrollSpeed(newSpeed);
+    
+    if (autoScroll) {
+      stopAutoScroll();
+      startAutoScroll();
     }
   };
 
@@ -381,7 +466,7 @@ const Slideshow: React.FC = () => {
                 
                 {/* QR Code display on the right side */}
                 {showQR && photos.length > 0 && currentIndex >= 0 && (
-                  <div className="w-1/4 h-full flex flex-col items-center justify-center p-4 border-l border-white/10">
+                  <div className="w-1/4 h-full flex flex-col items-center justify-center p-4 border-l border-white/10 bg-black/50 backdrop-blur-md">
                     <div className="text-white mb-4 text-center">
                       <h3 className="text-lg font-medium mb-1 truncate max-w-xs">
                         {photos[currentIndex]?.name}
@@ -395,6 +480,27 @@ const Slideshow: React.FC = () => {
                       size={settings.qrCodeSize} 
                       className="shadow-lg"
                     />
+                    
+                    <div className="mt-8 text-center">
+                      <p className="text-sm text-white/50 mb-2">รูปภาพที่ {currentIndex + 1} จาก {photos.length}</p>
+                      
+                      {/* Track selection */}
+                      <div className="max-w-xs mt-4">
+                        <Select value={selectedTrackId} onValueChange={setSelectedTrackId}>
+                          <SelectTrigger className="bg-black/50 border-white/20 text-white">
+                            <Music className="w-4 h-4 mr-2" />
+                            <SelectValue placeholder="เลือกเพลง" />
+                          </SelectTrigger>
+                          <SelectContent className="max-h-[400px]">
+                            {musicTracks.map(track => (
+                              <SelectItem key={track.id} value={track.id}>
+                                {track.name}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
                   </div>
                 )}
               </div>
@@ -430,6 +536,21 @@ const Slideshow: React.FC = () => {
             </div>
           )}
           
+          {/* Auto-scroll indicator */}
+          {autoScroll && (
+            <div className="fixed top-2 left-1/2 -translate-x-1/2 z-50 bg-red-500 text-white px-4 py-1 rounded-full flex items-center space-x-2">
+              <span>เลื่อนอัตโนมัติ</span>
+              <Button 
+                size="sm" 
+                variant="outline"
+                className="h-6 ml-2 bg-white/20 hover:bg-white/10 border-white/30"
+                onClick={() => setAutoScroll(false)}
+              >
+                ปิด
+              </Button>
+            </div>
+          )}
+          
           {/* Controls overlay */}
           <div className="absolute inset-0 opacity-0 hover:opacity-100 transition-opacity duration-300">
             {/* Top controls */}
@@ -445,16 +566,22 @@ const Slideshow: React.FC = () => {
                       <Settings className="h-5 w-5" />
                     </Button>
                   </SheetTrigger>
-                  <SheetContent>
+                  <SheetContent className="bg-black/90 border-white/10 text-white">
                     <div className="mt-6 space-y-6">
                       <div>
                         <h3 className="text-lg font-medium mb-2">เลือกเพลงประกอบ</h3>
-                        <input 
-                          type="file" 
-                          accept="audio/*"
-                          onChange={handleFileChange}
-                          className="block w-full text-sm file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-primary file:text-primary-foreground hover:file:bg-primary/90"
-                        />
+                        <Select value={selectedTrackId} onValueChange={setSelectedTrackId}>
+                          <SelectTrigger className="bg-black/50 border-white/20">
+                            <SelectValue placeholder="เลือกเพลง" />
+                          </SelectTrigger>
+                          <SelectContent className="max-h-[400px]">
+                            {musicTracks.map(track => (
+                              <SelectItem key={track.id} value={track.id}>
+                                {track.name}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
                       </div>
                       
                       <div>
@@ -467,6 +594,7 @@ const Slideshow: React.FC = () => {
                             max={10}
                             step={0.5}
                             onValueChange={handleSpeedChange}
+                            className="bg-white/20"
                           />
                         </div>
                       </div>
@@ -488,11 +616,49 @@ const Slideshow: React.FC = () => {
                           </Button>
                         </div>
                       </div>
+                      
+                      <div>
+                        <h3 className="text-lg font-medium mb-2">เลื่อนหน้าอัตโนมัติ</h3>
+                        <div className="flex items-center gap-2 mb-4">
+                          <Button
+                            variant={autoScroll ? 'default' : 'outline'}
+                            onClick={() => setAutoScroll(true)}
+                          >
+                            เปิด
+                          </Button>
+                          <Button
+                            variant={!autoScroll ? 'default' : 'outline'}
+                            onClick={() => setAutoScroll(false)}
+                          >
+                            ปิด
+                          </Button>
+                        </div>
+                        
+                        {autoScroll && (
+                          <div className="flex items-center gap-4">
+                            <span className="w-12 text-center">ช้า {autoScrollSpeed}</span>
+                            <Slider
+                              value={[autoScrollSpeed]}
+                              min={1}
+                              max={20}
+                              step={1}
+                              onValueChange={handleAutoScrollSpeedChange}
+                              className="bg-white/20"
+                            />
+                            <span className="w-12 text-center">เร็ว</span>
+                          </div>
+                        )}
+                      </div>
                     </div>
                   </SheetContent>
                 </Sheet>
                 
-                <Button variant="ghost" size="icon" onClick={handleClose} className="text-white hover:bg-white/20 ml-2">
+                <Button 
+                  variant="ghost" 
+                  size="icon" 
+                  onClick={handleClose} 
+                  className="text-white hover:bg-white/20 ml-2 z-50"
+                >
                   <X className="h-5 w-5" />
                 </Button>
               </div>
@@ -535,7 +701,7 @@ const Slideshow: React.FC = () => {
                     min={0} 
                     max={100} 
                     step={1}
-                    className="w-24" 
+                    className="w-24 bg-white/20" 
                     onValueChange={handleVolumeChange}
                   />
                 </div>
@@ -549,35 +715,6 @@ const Slideshow: React.FC = () => {
       </DialogContent>
     </Dialog>
   );
-
-  // Helper functions for banner positioning and sizing
-  function getBannerPosition() {
-    switch (settings.bannerPosition) {
-      case "bottomLeft":
-        return "bottom-8 left-8";
-      case "bottomRight":
-        return "bottom-8 right-8";
-      case "topLeft":
-        return "top-8 left-8";
-      case "topRight":
-        return "top-8 right-8";
-      default:
-        return "bottom-8 left-8";
-    }
-  }
-
-  function getBannerSize() {
-    switch (settings.bannerSize) {
-      case "small":
-        return "max-w-[100px] max-h-[100px]";
-      case "medium":
-        return "max-w-[200px] max-h-[200px]";
-      case "large":
-        return "max-w-[300px] max-h-[300px]";
-      default:
-        return "max-w-[200px] max-h-[200px]";
-    }
-  }
 };
 
 export default Slideshow;

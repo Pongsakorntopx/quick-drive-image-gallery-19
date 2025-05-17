@@ -1,5 +1,5 @@
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useAppContext } from "../context/AppContext";
 import Header from "../components/Header";
 import PhotoGrid from "../components/PhotoGrid";
@@ -8,13 +8,21 @@ import ImageViewer from "../components/ImageViewer";
 import SettingsDialog from "../components/SettingsDialog";
 import Slideshow from "../components/Slideshow";
 import QRCode from "../components/QRCode";
+import { Loader2 } from "lucide-react";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 const Index = () => {
-  const { apiConfig, refreshPhotos, settings } = useAppContext();
+  const { apiConfig, refreshPhotos, settings, isLoading } = useAppContext();
+  const [isConnecting, setIsConnecting] = useState(false);
 
   useEffect(() => {
     if (apiConfig.apiKey && apiConfig.folderId) {
-      refreshPhotos();
+      if (!isConnecting) {
+        setIsConnecting(true);
+        refreshPhotos().finally(() => {
+          setIsConnecting(false);
+        });
+      }
     }
     
     // Apply theme class to body
@@ -40,7 +48,7 @@ const Index = () => {
     const logoElement = document.getElementById("site-logo");
     if (logoElement) {
       if (settings.logoUrl) {
-        logoElement.innerHTML = `<img src="${settings.logoUrl}" alt="Logo" style="max-height: ${settings.logoSize || 100}px;" class="mx-auto" />`;
+        logoElement.innerHTML = `<img src="${settings.logoUrl}" alt="Logo" style="max-height: ${settings.logoSize}px;" class="mx-auto" />`;
       } else {
         logoElement.innerHTML = "";
       }
@@ -98,7 +106,17 @@ const Index = () => {
       
       <main className="flex-1 w-full">
         {apiConfig.apiKey && apiConfig.folderId ? (
-          <PhotoGrid />
+          <>
+            {isConnecting && (
+              <Alert className="m-4 bg-green-50 border-green-300">
+                <AlertDescription className="flex items-center">
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  กำลังเชื่อมต่อไปยัง Google Drive... กรุณารอสักครู่
+                </AlertDescription>
+              </Alert>
+            )}
+            <PhotoGrid />
+          </>
         ) : (
           <ApiSetup />
         )}
@@ -115,9 +133,9 @@ const Index = () => {
         </div>
       )}
       
-      {/* Header QR code if enabled */}
+      {/* Header QR code if enabled - adjusted position */}
       {settings.showHeaderQR && (
-        <div className="fixed top-4 right-24 z-50">
+        <div className="fixed top-16 right-24 z-40">
           <QRCode 
             url={window.location.href} 
             size={settings.qrCodeSize} 

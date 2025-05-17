@@ -1,3 +1,4 @@
+
 import React, { createContext, useContext, useState, useEffect } from "react";
 import { ApiConfig, Photo, AppSettings, Theme, Font } from "../types";
 import { fetchPhotosFromDrive } from "../services/googleDriveService";
@@ -142,10 +143,11 @@ const defaultSettings: AppSettings = {
   },
   refreshInterval: 5,
   qrCodeSize: 64,
-  slideShowSpeed: 5,
   qrCodePosition: "bottomRight",
   showHeaderQR: false,
   logoUrl: null,
+  logoSize: 100, // This field was missing in the defaultSettings
+  slideShowSpeed: 5,
   slideShowEffect: "fade",
   bannerUrl: null,
   bannerSize: "medium",

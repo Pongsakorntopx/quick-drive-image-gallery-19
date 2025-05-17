@@ -66,7 +66,7 @@ const ImageCard: React.FC<ImageCardProps> = ({ photo, onClick }) => {
       className="image-container relative rounded-lg overflow-hidden shadow-lg transition-all duration-300 hover:shadow-xl cursor-pointer group"
       onClick={onClick}
     >
-      {/* Use thumbnailLink for grid display instead of thumbnailUrl */}
+      {/* Use thumbnailLink for grid display */}
       <img
         src={photo.thumbnailLink}
         alt={photo.name}
