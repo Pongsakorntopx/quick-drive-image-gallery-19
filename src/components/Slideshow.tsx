@@ -74,6 +74,35 @@ const Slideshow: React.FC = () => {
   const progressTimerRef = useRef<NodeJS.Timeout | null>(null);
   const autoScrollRef = useRef<NodeJS.Timeout | null>(null);
 
+  // Helper functions for banner positioning and sizing
+  const getBannerPosition = () => {
+    switch (settings.bannerPosition) {
+      case "bottomLeft":
+        return "bottom-8 left-8";
+      case "bottomRight":
+        return "bottom-8 right-8";
+      case "topLeft":
+        return "top-20 left-8"; // Adjusted to be below header
+      case "topRight":
+        return "top-20 right-8"; // Adjusted to be below header
+      default:
+        return "bottom-8 left-8";
+    }
+  };
+
+  const getBannerSize = () => {
+    switch (settings.bannerSize) {
+      case "small":
+        return "max-w-[100px] max-h-[100px]";
+      case "medium":
+        return "max-w-[200px] max-h-[200px]";
+      case "large":
+        return "max-w-[300px] max-h-[300px]";
+      default:
+        return "max-w-[200px] max-h-[200px]";
+    }
+  };
+
   // Set the transition class based on settings
   const getTransitionClass = () => {
     switch (settings.slideShowEffect) {

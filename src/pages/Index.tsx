@@ -58,7 +58,7 @@ const Index = () => {
       // Clean up any theme classes
       document.body.className = "";
     };
-  }, [apiConfig.apiKey, apiConfig.folderId, settings.theme, settings.logoUrl, settings.logoSize]);
+  }, [apiConfig.apiKey, apiConfig.folderId, settings.theme, settings.logoUrl, settings.logoSize, refreshPhotos]);
 
   // Helper functions for banner positioning and sizing
   function getBannerPosition() {
@@ -135,7 +135,7 @@ const Index = () => {
       
       {/* Header QR code if enabled - adjusted position */}
       {settings.showHeaderQR && (
-        <div className="fixed top-16 right-24 z-40">
+        <div className="fixed top-20 right-24 z-40">
           <QRCode 
             url={window.location.href} 
             size={settings.qrCodeSize} 

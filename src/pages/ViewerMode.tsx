@@ -30,7 +30,36 @@ const ViewerMode = () => {
       // Clean up any theme classes
       document.body.className = "";
     };
-  }, [apiConfig, settings.theme]);
+  }, [apiConfig, settings.theme, refreshPhotos]);
+
+  // Helper functions for banner positioning and sizing
+  function getBannerPosition() {
+    switch (settings.bannerPosition) {
+      case "bottomLeft":
+        return "bottom-8 left-8";
+      case "bottomRight":
+        return "bottom-8 right-8";
+      case "topLeft":
+        return "top-20 left-8"; // Adjusted to be below header
+      case "topRight":
+        return "top-20 right-8"; // Adjusted to be below header
+      default:
+        return "bottom-8 left-8";
+    }
+  }
+
+  function getBannerSize() {
+    switch (settings.bannerSize) {
+      case "small":
+        return "max-w-[100px] max-h-[100px]";
+      case "medium":
+        return "max-w-[200px] max-h-[200px]";
+      case "large":
+        return "max-w-[300px] max-h-[300px]";
+      default:
+        return "max-w-[200px] max-h-[200px]";
+    }
+  }
 
   return (
     <div className={`min-h-screen flex flex-col ${settings.theme.isGradient ? settings.theme.gradient : ''}`}>
@@ -84,35 +113,6 @@ const ViewerMode = () => {
       </footer>
     </div>
   );
-  
-  // Helper functions for banner positioning and sizing
-  function getBannerPosition() {
-    switch (settings.bannerPosition) {
-      case "bottomLeft":
-        return "bottom-8 left-8";
-      case "bottomRight":
-        return "bottom-8 right-8";
-      case "topLeft":
-        return "top-20 left-8"; // Adjusted to be below header
-      case "topRight":
-        return "top-20 right-8"; // Adjusted to be below header
-      default:
-        return "bottom-8 left-8";
-    }
-  }
-
-  function getBannerSize() {
-    switch (settings.bannerSize) {
-      case "small":
-        return "max-w-[100px] max-h-[100px]";
-      case "medium":
-        return "max-w-[200px] max-h-[200px]";
-      case "large":
-        return "max-w-[300px] max-h-[300px]";
-      default:
-        return "max-w-[200px] max-h-[200px]";
-    }
-  }
 };
 
 export default ViewerMode;
