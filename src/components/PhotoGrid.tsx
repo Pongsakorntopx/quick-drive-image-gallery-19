@@ -1,5 +1,4 @@
-
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useRef, useState, useMemo } from "react";
 import { useAppContext } from "../context/AppContext";
 import ImageCard from "./ImageCard";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -22,26 +21,46 @@ const PhotoGrid: React.FC = () => {
     triggerOnce: false,
   });
 
+  // Previous photos ref to prevent unnecessary updates
+  const prevPhotosLength = useRef<number>(0);
+
   // Batch size for virtualization
   const batchSize = 12; 
   
   // Calculate optimized layout for masonry grid
   useEffect(() => {
-    if (photos.length > 0) {
-      console.log(`Setting up initial batch of ${Math.min(batchSize, photos.length)} photos`);
-      // Initial batch of photos
-      const initialBatch = photos.slice(0, batchSize).map((photo, index) => ({
-        id: photo.id,
-        index,
-      }));
-      setVirtualizedPhotos(initialBatch);
+    if (photos.length > 0 && prevPhotosLength.current !== photos.length) {
+      // Only update when the photos array actually changes
+      if (virtualizedPhotos.length === 0) {
+        // Initial batch of photos
+        const initialBatch = photos.slice(0, batchSize).map((photo, index) => ({
+          id: photo.id,
+          index,
+        }));
+        setVirtualizedPhotos(initialBatch);
+      } else {
+        // Keep existing photos and add any new ones if needed
+        const existingIds = new Set(virtualizedPhotos.map(vp => vp.id));
+        const newBatch = photos
+          .slice(0, Math.max(virtualizedPhotos.length, batchSize))
+          .map((photo, index) => ({
+            id: photo.id,
+            index,
+          }))
+          .filter(vp => !existingIds.has(vp.id));
+          
+        if (newBatch.length > 0) {
+          setVirtualizedPhotos(prev => [...prev, ...newBatch]);
+        }
+      }
+      
+      prevPhotosLength.current = photos.length;
     }
   }, [photos]);
 
   // Handle lazy loading of more photos when scrolling
   useEffect(() => {
     if (inView && photos.length > virtualizedPhotos.length) {
-      console.log(`Loading next batch. Current: ${virtualizedPhotos.length}, Total: ${photos.length}`);
       const nextBatch = photos
         .slice(virtualizedPhotos.length, virtualizedPhotos.length + batchSize)
         .map((photo, index) => ({
@@ -52,6 +71,15 @@ const PhotoGrid: React.FC = () => {
       setVirtualizedPhotos(prev => [...prev, ...nextBatch]);
     }
   }, [inView, photos, virtualizedPhotos]);
+
+  // Memoize the photo lookup for better performance
+  const photoMap = useMemo(() => {
+    const map = new Map();
+    photos.forEach(photo => {
+      map.set(photo.id, photo);
+    });
+    return map;
+  }, [photos]);
 
   // Create the masonry layout
   useEffect(() => {
@@ -137,18 +165,13 @@ const PhotoGrid: React.FC = () => {
         </div>
       ) : photos.length === 0 ? (
         <div className="flex flex-col items-center justify-center p-8 min-h-[400px]">
-          <div className="text-lg mb-4 bg-green-100 text-green-800 p-4 rounded flex items-center">
-            <div className="mr-3">
-              <div className="rounded-full h-4 w-4 border-2 border-t-transparent border-green-500 animate-spin"></div>
-            </div>
-            กำลังเชื่อมต่อไปยัง Google Drive Folder...
-          </div>
+          <div className="rounded-full h-8 w-8 border-4 border-t-transparent border-primary animate-spin"></div>
         </div>
       ) : (
         <>
           <div ref={gridRef} className="masonry-grid">
             {virtualizedPhotos.map((vPhoto) => {
-              const photo = photos.find(p => p.id === vPhoto.id);
+              const photo = photoMap.get(vPhoto.id);
               return photo ? (
                 <div key={vPhoto.id} className="masonry-item">
                   <div className="masonry-content">

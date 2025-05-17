@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useState, useEffect } from "react";
 import { ApiConfig, Photo, AppSettings, Theme, Font } from "../types";
 import { fetchPhotosFromDrive } from "../services/googleDriveService";
@@ -220,8 +219,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       
       return () => clearInterval(interval);
     }
-  }, [apiConfig, settings.refreshInterval]);
+  }, [apiConfig, settings.refreshInterval, refreshPhotos]);
 
+  // Modified refresh photos function to prevent flickering
   const refreshPhotos = async (): Promise<boolean> => {
     if (!apiConfig.apiKey || !apiConfig.folderId) {
       setError("API Key และ Folder ID จำเป็นต้องระบุ");
@@ -229,7 +229,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }
 
     try {
-      setIsLoading(true);
+      // Don't set loading if we already have photos - prevents flickering
+      if (photos.length === 0) {
+        setIsLoading(true);
+      }
+      
       setError(null);
       const fetchedPhotos = await fetchPhotosFromDrive(apiConfig);
       
@@ -237,7 +241,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         setError("ไม่พบรูปภาพในโฟลเดอร์ที่ระบุ");
         return false;
       } else {
-        setPhotos(fetchedPhotos);
+        // Only update if there are changes to avoid unnecessary rerenders
+        const hasChanges = checkIfPhotosChanged(photos, fetchedPhotos);
+        if (hasChanges) {
+          setPhotos(fetchedPhotos);
+        }
         return true;
       }
     } catch (err) {
@@ -252,6 +260,17 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     } finally {
       setIsLoading(false);
     }
+  };
+
+  // Helper function to check if photos array has actually changed
+  const checkIfPhotosChanged = (oldPhotos: Photo[], newPhotos: Photo[]): boolean => {
+    if (oldPhotos.length !== newPhotos.length) {
+      return true;
+    }
+    
+    // Check if any IDs are different
+    const oldIds = new Set(oldPhotos.map(p => p.id));
+    return newPhotos.some(p => !oldIds.has(p.id));
   };
 
   // Modify CSS variables based on the selected theme

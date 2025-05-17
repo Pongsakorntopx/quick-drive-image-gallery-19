@@ -11,7 +11,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Separator } from "@/components/ui/separator";
 
 const ApiSetup: React.FC = () => {
-  const { setApiConfig, refreshPhotos, isLoading, setIsSettingsOpen } = useAppContext();
+  const { setApiConfig, refreshPhotos, isLoading } = useAppContext();
   const [apiKey, setApiKey] = useState("");
   const [folderId, setFolderId] = useState("");
   const [isConnecting, setIsConnecting] = useState(false);
@@ -31,15 +31,23 @@ const ApiSetup: React.FC = () => {
     setIsConnecting(true);
     
     try {
+      // Save the configuration
       setApiConfig({ apiKey, folderId });
       
-      // Open settings after configuring API
-      setIsSettingsOpen(true);
+      // Immediately try to refresh photos
+      await refreshPhotos();
+      
+      // Success toast
+      toast({
+        title: "เชื่อมต่อสำเร็จ",
+        description: "ระบบได้เชื่อมต่อกับ Google Drive เรียบร้อยแล้ว",
+      });
+      
     } catch (error) {
       console.error("Error setting API config:", error);
       toast({
         title: "เกิดข้อผิดพลาด",
-        description: "ไม่สามารถบันทึกการตั้งค่าได้",
+        description: "ไม่สามารถเชื่อมต่อกับ Google Drive ได้",
         variant: "destructive",
       });
     } finally {
@@ -67,7 +75,7 @@ const ApiSetup: React.FC = () => {
                 value={apiKey}
                 onChange={(e) => setApiKey(e.target.value)}
               />
-              <div className="text-sm text-muted-foreground space-y-1 bg-muted/50 p-2 rounded-md">
+              <div className="text-sm text-muted-foreground space-y-1 bg-muted/50 p-2 rounded-md overflow-auto max-h-48">
                 <p>API Key สามารถสร้างได้จาก Google Cloud Console ตามขั้นตอนต่อไปนี้:</p>
                 <ol className="list-decimal pl-5 space-y-1">
                   <li>สร้าง Project ใหม่</li>
@@ -96,13 +104,13 @@ const ApiSetup: React.FC = () => {
                 value={folderId}
                 onChange={(e) => setFolderId(e.target.value)}
               />
-              <div className="text-sm text-muted-foreground space-y-1 bg-muted/50 p-2 rounded-md">
+              <div className="text-sm text-muted-foreground space-y-1 bg-muted/50 p-2 rounded-md overflow-auto max-h-48">
                 <p>Folder ID คือตัวระบุเฉพาะของโฟลเดอร์ใน Google Drive</p>
                 <p>วิธีดู Folder ID:</p>
                 <ol className="list-decimal pl-5 space-y-1">
                   <li>เปิดโฟลเดอร์ที่ต้องการใน Google Drive</li>
                   <li>ดูที่ URL จะมีรูปแบบดังนี้:</li>
-                  <code className="block bg-muted p-1 rounded mt-1 text-xs overflow-hidden text-ellipsis">
+                  <code className="block bg-muted p-1 rounded mt-1 text-xs overflow-auto">
                     https://drive.google.com/drive/folders/<span className="text-primary font-medium">1a2b3c4d5e6f7g8h9i0j</span>
                   </code>
                   <li>ส่วนที่ไฮไลท์คือ Folder ID ที่ต้องนำมาใส่</li>

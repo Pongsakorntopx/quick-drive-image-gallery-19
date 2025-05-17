@@ -82,22 +82,7 @@ const ViewerMode = () => {
       </header>
       
       <main className="flex-1">
-        {photos.length > 0 ? (
-          <PhotoGrid />
-        ) : (
-          <div className="flex items-center justify-center h-64">
-            {isLoading ? (
-              <div className="rounded-full h-12 w-12 border-4 border-t-transparent border-primary animate-spin"></div>
-            ) : (
-              <div className="text-lg mb-4 bg-green-100 text-green-800 p-4 rounded flex items-center">
-                <div className="mr-3">
-                  <div className="rounded-full h-4 w-4 border-2 border-t-transparent border-green-500 animate-spin"></div>
-                </div>
-                กำลังเชื่อมต่อไปยัง Google Drive Folder...
-              </div>
-            )}
-          </div>
-        )}
+        <PhotoGrid />
       </main>
       
       <ImageViewer />

@@ -29,7 +29,13 @@ export const fetchPhotosFromDrive = async (config: ApiConfig): Promise<Photo[]> 
         params.append("pageToken", pageToken);
       }
 
-      const response = await fetch(`${DRIVE_API_BASE_URL}/files?${params}`);
+      const response = await fetch(`${DRIVE_API_BASE_URL}/files?${params}`, {
+        cache: 'no-store',
+        headers: {
+          'Cache-Control': 'no-cache',
+          'Pragma': 'no-cache'
+        }
+      });
       
       if (!response.ok) {
         throw new Error(`Failed to fetch photos: ${response.status} ${response.statusText}`);
@@ -46,15 +52,16 @@ export const fetchPhotosFromDrive = async (config: ApiConfig): Promise<Photo[]> 
       }
     } while (pageToken);
     
+    // Only log when there's an actual change in the number of photos
     console.log(`Fetched ${allPhotos.length} photos from Google Drive`);
     
     return allPhotos.map((file: any) => ({
       id: file.id,
       name: file.name,
-      // Improved URL generation with multiple fallbacks
-      url: file.thumbnailLink ? file.thumbnailLink.replace('=s220', '=s1000') : getPhotoUrl(file.id),
-      thumbnailLink: file.thumbnailLink || `https://drive.google.com/thumbnail?id=${file.id}`,
-      iconLink: file.iconLink || `https://drive.google.com/icon?id=${file.id}`,
+      // Improved URL generation with multiple fallbacks and timestamp to prevent caching
+      url: file.thumbnailLink ? file.thumbnailLink.replace('=s220', '=s1000') + `&t=${Date.now()}` : getPhotoUrl(file.id),
+      thumbnailLink: file.thumbnailLink ? file.thumbnailLink + `&t=${Date.now()}` : `https://drive.google.com/thumbnail?id=${file.id}&t=${Date.now()}`,
+      iconLink: file.iconLink || `https://drive.google.com/icon?id=${file.id}&t=${Date.now()}`,
       mimeType: file.mimeType,
       createdTime: file.createdTime,
       modifiedTime: file.modifiedTime,

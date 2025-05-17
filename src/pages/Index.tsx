@@ -8,19 +8,17 @@ import ImageViewer from "../components/ImageViewer";
 import SettingsDialog from "../components/SettingsDialog";
 import Slideshow from "../components/Slideshow";
 import QRCode from "../components/QRCode";
-import { Loader2 } from "lucide-react";
-import { Alert, AlertDescription } from "@/components/ui/alert";
 
 const Index = () => {
-  const { apiConfig, refreshPhotos, settings, isLoading } = useAppContext();
-  const [isConnecting, setIsConnecting] = useState(false);
+  const { apiConfig, refreshPhotos, settings } = useAppContext();
+  const [isInitialLoad, setIsInitialLoad] = useState(true);
 
   useEffect(() => {
     if (apiConfig.apiKey && apiConfig.folderId) {
-      if (!isConnecting) {
-        setIsConnecting(true);
+      // Only refresh on initial load to prevent flickering
+      if (isInitialLoad) {
         refreshPhotos().finally(() => {
-          setIsConnecting(false);
+          setIsInitialLoad(false);
         });
       }
     }
@@ -58,7 +56,7 @@ const Index = () => {
       // Clean up any theme classes
       document.body.className = "";
     };
-  }, [apiConfig.apiKey, apiConfig.folderId, settings.theme, settings.logoUrl, settings.logoSize, refreshPhotos]);
+  }, [apiConfig.apiKey, apiConfig.folderId, settings.theme, settings.logoUrl, settings.logoSize, refreshPhotos, isInitialLoad]);
 
   // Helper functions for banner positioning and sizing
   function getBannerPosition() {
@@ -106,17 +104,7 @@ const Index = () => {
       
       <main className="flex-1 w-full">
         {apiConfig.apiKey && apiConfig.folderId ? (
-          <>
-            {isConnecting && (
-              <Alert className="m-4 bg-green-50 border-green-300">
-                <AlertDescription className="flex items-center">
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  กำลังเชื่อมต่อไปยัง Google Drive... กรุณารอสักครู่
-                </AlertDescription>
-              </Alert>
-            )}
-            <PhotoGrid />
-          </>
+          <PhotoGrid />
         ) : (
           <ApiSetup />
         )}
