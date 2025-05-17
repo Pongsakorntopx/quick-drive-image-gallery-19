@@ -3,20 +3,16 @@ import React, { useEffect } from "react";
 import { useAppContext } from "../context/AppContext";
 import PhotoGrid from "../components/PhotoGrid";
 import ImageViewer from "../components/ImageViewer";
+import AutoScroll from "../components/AutoScroll";
 
 const ViewerMode = () => {
-  const { apiConfig, refreshPhotos, isLoading, photos, settings } = useAppContext();
+  const { apiConfig, refreshPhotos, settings } = useAppContext();
 
   useEffect(() => {
     if (apiConfig.apiKey && apiConfig.folderId) {
       refreshPhotos();
     }
     
-    // Apply theme class to body
-    document.body.className = settings.theme.isGradient 
-      ? settings.theme.gradient 
-      : `bg-${settings.theme.colorClass}-50`;
-      
     // Set meta viewport for better mobile experience
     const viewport = document.querySelector("meta[name=viewport]");
     if (!viewport) {
@@ -26,11 +22,40 @@ const ViewerMode = () => {
       document.head.appendChild(meta);
     }
     
-    return () => {
-      // Clean up any theme classes
-      document.body.className = "";
+    // Apply font styles
+    const applyFontColorStyles = () => {
+      const style = document.createElement('style');
+      if (settings.useGradientFont) {
+        style.textContent = `
+          .font-styled {
+            background: linear-gradient(to right, ${settings.fontGradientStart || '#000000'}, ${settings.fontGradientEnd || '#555555'});
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+          }
+        `;
+      } else {
+        style.textContent = `
+          .font-styled {
+            color: ${settings.fontColor || '#000000'};
+          }
+        `;
+      }
+      document.head.appendChild(style);
     };
-  }, [apiConfig, settings.theme, refreshPhotos]);
+    
+    applyFontColorStyles();
+    
+    return () => {
+      // Clean up styles
+      const customStyles = document.head.querySelectorAll('style');
+      customStyles.forEach(style => {
+        if (style.textContent?.includes('.font-styled')) {
+          style.remove();
+        }
+      });
+    };
+  }, [apiConfig, settings.theme, settings.useGradientFont, settings.fontColor, settings.fontGradientStart, settings.fontGradientEnd, refreshPhotos]);
 
   // Helper functions for banner positioning and sizing
   function getBannerPosition() {
@@ -62,8 +87,8 @@ const ViewerMode = () => {
   }
 
   return (
-    <div className={`min-h-screen flex flex-col ${settings.theme.isGradient ? settings.theme.gradient : ''}`}>
-      <header className={`w-full px-4 md:px-6 py-3 ${settings.theme.isGradient ? 'bg-background/75' : 'bg-background/90'} backdrop-blur-sm border-b sticky top-0 z-10`}>
+    <div className="min-h-screen flex flex-col bg-background">
+      <header className="w-full px-4 md:px-6 py-3 bg-background/90 backdrop-blur-sm border-b sticky top-0 z-10">
         <div className="flex items-center justify-center">
           {settings.logoUrl && (
             <div className="mb-2 mt-1">
@@ -71,11 +96,12 @@ const ViewerMode = () => {
                 src={settings.logoUrl} 
                 alt="Logo" 
                 className="max-h-16 max-w-[200px] mx-auto" 
+                style={{ maxHeight: `${settings.logoSize}px` }}
               />
             </div>
           )}
           
-          <h1 className={`text-center font-bold text-xl md:text-2xl ${settings.font.class}`}>
+          <h1 className={`text-center font-bold text-xl md:text-2xl ${settings.font.class} font-styled`}>
             {settings.title}
           </h1>
         </div>
@@ -86,6 +112,7 @@ const ViewerMode = () => {
       </main>
       
       <ImageViewer />
+      <AutoScroll />
       
       {/* Banner */}
       {settings.bannerUrl && (
@@ -98,7 +125,18 @@ const ViewerMode = () => {
         </div>
       )}
       
-      <footer className="py-2 px-4 text-center text-sm text-muted-foreground">
+      {/* Header QR code if enabled - only show when banner isn't at topRight position */}
+      {settings.showHeaderQR && (!settings.bannerUrl || settings.bannerPosition !== "topRight") && (
+        <div className="fixed top-24 right-24 z-40">
+          <QRCode 
+            url={window.location.href} 
+            size={settings.qrCodeSize} 
+            className="shadow-lg bg-white/90 backdrop-blur-sm"
+          />
+        </div>
+      )}
+      
+      <footer className="py-2 px-4 text-center text-sm text-muted-foreground font-styled">
         <p>แกลเลอรี่รูปภาพ © {new Date().getFullYear()}</p>
       </footer>
     </div>

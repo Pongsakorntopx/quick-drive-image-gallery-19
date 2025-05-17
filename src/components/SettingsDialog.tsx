@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
 import { useAppContext } from "../context/AppContext";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { RotateCw, Monitor, Smartphone, Tablet, Image, QrCode, LayoutGrid } from "lucide-react";
+import { RotateCw, Monitor, Smartphone, Tablet, Image, QrCode, ArrowDown, ArrowUp } from "lucide-react";
 import { toast } from "@/components/ui/use-toast";
 import { Separator } from "@/components/ui/separator";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -40,25 +40,31 @@ const SettingsDialog: React.FC = () => {
   const [themeId, setThemeId] = useState(settings.theme.id);
   const [previewDevice, setPreviewDevice] = useState<'desktop' | 'tablet' | 'mobile'>('desktop');
   
+  // Font color settings
+  const [fontColor, setFontColor] = useState(settings.fontColor || "#000000");
+  const [useGradientFont, setUseGradientFont] = useState(settings.useGradientFont || false);
+  const [fontGradientStart, setFontGradientStart] = useState(settings.fontGradientStart || "#000000");
+  const [fontGradientEnd, setFontGradientEnd] = useState(settings.fontGradientEnd || "#555555");
+  
   // Settings for QR code and logo
   const [qrCodePosition, setQrCodePosition] = useState(settings.qrCodePosition);
   const [showHeaderQR, setShowHeaderQR] = useState(settings.showHeaderQR);
-  const [slideShowEffect, setSlideShowEffect] = useState(settings.slideShowEffect);
-  const [logoSize, setLogoSize] = useState<number>(100); // Default logo size
+  const [logoSize, setLogoSize] = useState(settings.logoSize || 100);
   
   // Banner settings
   const [bannerSize, setBannerSize] = useState(settings.bannerSize);
   const [bannerPosition, setBannerPosition] = useState(settings.bannerPosition);
+  
+  // Auto-scroll settings
+  const [autoScrollEnabled, setAutoScrollEnabled] = useState(settings.autoScrollEnabled || false);
+  const [autoScrollDirection, setAutoScrollDirection] = useState(settings.autoScrollDirection || "down");
+  const [autoScrollSpeed, setAutoScrollSpeed] = useState(settings.autoScrollSpeed || 10);
   
   // File upload references
   const logoFileRef = useRef<HTMLInputElement>(null);
   const bannerFileRef = useRef<HTMLInputElement>(null);
   const [logoPreview, setLogoPreview] = useState<string | null>(settings.logoUrl);
   const [bannerPreview, setBannerPreview] = useState<string | null>(settings.bannerUrl);
-
-  // Filter themes by type
-  const solidThemes = themes.filter(theme => !theme.isGradient);
-  const gradientThemes = themes.filter(theme => theme.isGradient);
 
   const handleSaveApiSettings = () => {
     setApiConfig({
@@ -82,16 +88,22 @@ const SettingsDialog: React.FC = () => {
         subtitle: subtitleSize,
         body: bodySize,
       },
+      fontColor,
+      useGradientFont,
+      fontGradientStart,
+      fontGradientEnd,
       qrCodeSize,
       refreshInterval,
       qrCodePosition,
       showHeaderQR,
       logoUrl: logoPreview,
-      logoSize: logoSize,
-      slideShowEffect,
+      logoSize,
       bannerUrl: bannerPreview,
       bannerSize,
       bannerPosition,
+      autoScrollEnabled,
+      autoScrollDirection,
+      autoScrollSpeed
     });
     
     setIsSettingsOpen(false);
@@ -117,10 +129,16 @@ const SettingsDialog: React.FC = () => {
     setShowHeaderQR(false);
     setLogoPreview(null);
     setLogoSize(100);
-    setSlideShowEffect("fade");
+    setFontColor("#000000");
+    setUseGradientFont(false);
+    setFontGradientStart("#000000");
+    setFontGradientEnd("#555555");
     setBannerPreview(null);
     setBannerSize("medium");
     setBannerPosition("bottomLeft");
+    setAutoScrollEnabled(false);
+    setAutoScrollDirection("down");
+    setAutoScrollSpeed(10);
     
     toast({
       title: "รีเซ็ตการตั้งค่า",
@@ -152,9 +170,8 @@ const SettingsDialog: React.FC = () => {
     }
   };
 
-  // Preview component to show theme applied
-  const ThemePreview = () => {
-    const selectedTheme = themes.find(t => t.id === themeId) || themes[0];
+  // Preview component to show font styling applied
+  const FontPreview = () => {
     const selectedFont = fonts.find(f => f.id === titleFont) || fonts[0];
     
     // Get device frame class
@@ -169,26 +186,17 @@ const SettingsDialog: React.FC = () => {
       contentClass = "p-3";
     }
     
-    // Set colors based on theme
-    const getBgColor = () => {
-      if (selectedTheme.isGradient) {
-        return selectedTheme.gradient;
+    // Set font color styling
+    const getFontColor = () => {
+      if (useGradientFont) {
+        return {
+          background: `linear-gradient(to right, ${fontGradientStart}, ${fontGradientEnd})`,
+          WebkitBackgroundClip: 'text',
+          WebkitTextFillColor: 'transparent',
+          backgroundClip: 'text',
+        };
       }
-      return `bg-${selectedTheme.colorClass}-100`;
-    };
-    
-    const getCardBgColor = () => {
-      if (selectedTheme.isGradient) {
-        return 'bg-background/80 backdrop-blur-sm';
-      }
-      return `bg-${selectedTheme.colorClass}-50`;
-    };
-    
-    const getButtonBgColor = () => {
-      if (selectedTheme.isGradient) {
-        return selectedTheme.gradient;
-      }
-      return `bg-${selectedTheme.colorClass}-500 hover:bg-${selectedTheme.colorClass}-600`;
+      return { color: fontColor };
     };
 
     return (
@@ -221,20 +229,27 @@ const SettingsDialog: React.FC = () => {
         </div>
         
         <div className={`${deviceClass} border rounded-lg shadow-md`}>
-          <div className={`${getBgColor()} h-full`}>
+          <div className="bg-background h-full">
             <div className={`${contentClass}`}>
-              <div className={`${getCardBgColor()} rounded-lg p-3 shadow-sm border border-white/20`}>
-                <h2 className={`${selectedFont.class} font-bold`} style={{fontSize: `${titleSize}px`}}>
+              <div className="rounded-lg p-3 shadow-sm border">
+                <h2 
+                  className={`${selectedFont.class} font-bold`} 
+                  style={{
+                    fontSize: `${titleSize}px`,
+                    ...getFontColor()
+                  }}
+                >
                   {title || "แกลเลอรี่รูปภาพ"}
                 </h2>
-                <p className={`${selectedFont.class} mt-2`} style={{fontSize: `${bodySize}px`}}>
-                  ตัวอย่างการแสดงผลด้วยธีม {selectedTheme.name}
+                <p 
+                  className={`${selectedFont.class} mt-2`} 
+                  style={{
+                    fontSize: `${bodySize}px`,
+                    ...getFontColor()
+                  }}
+                >
+                  ตัวอย่างข้อความที่ใช้แสดงผล
                 </p>
-                <div className="mt-4">
-                  <button className={`${getButtonBgColor()} text-white px-4 py-2 rounded-md text-sm`}>
-                    ตัวอย่างปุ่ม
-                  </button>
-                </div>
               </div>
             </div>
           </div>
@@ -290,11 +305,6 @@ const SettingsDialog: React.FC = () => {
                     <p>สามารถดู Folder ID ได้จาก URL ของโฟลเดอร์ใน Google Drive</p>
                     <p className="mt-2">ตัวอย่าง URL: <code className="bg-muted p-1 rounded">https://drive.google.com/drive/folders/<span className="text-primary">1a2b3c4d5e6f7g8h9i0j</span></code></p>
                     <p className="mt-1">ส่วนที่ไฮไลท์คือ Folder ID ที่ต้องนำมาใส่</p>
-                    <p className="mt-2">
-                      <a href="https://developers.google.com/drive/api/guides/folder" className="text-primary hover:underline" target="_blank" rel="noopener noreferrer">
-                        อ่านเพิ่มเติมเกี่ยวกับ Google Drive Folder ID
-                      </a>
-                    </p>
                   </div>
                 </div>
                 
@@ -316,109 +326,193 @@ const SettingsDialog: React.FC = () => {
                 
                 <Separator className="my-4" />
                 
+                {/* Font Settings */}
                 <div className="space-y-4">
-                  <Label className="text-lg font-medium">ธีมสี</Label>
+                  <h3 className="text-lg font-medium">ตัวอักษรและสี</h3>
                   
                   <div className="space-y-2">
-                    <Label className="text-sm">สีพื้นฐาน</Label>
-                    <div className="grid grid-cols-5 gap-2">
-                      {solidThemes.map((theme) => (
-                        <button
-                          key={theme.id}
-                          type="button"
-                          onClick={() => setThemeId(theme.id)}
-                          className={`h-12 w-full rounded-md border-2 transition-all ${
-                            themeId === theme.id ? 'border-ring scale-105' : 'border-transparent'
-                          }`}
-                          style={{ backgroundColor: theme.color }}
-                          aria-label={`Theme ${theme.name}`}
-                        >
-                          <span className="sr-only">{theme.name}</span>
-                        </button>
-                      ))}
-                    </div>
+                    <Label htmlFor="font">รูปแบบตัวอักษร</Label>
+                    <Select value={titleFont} onValueChange={setTitleFont}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="เลือกรูปแบบตัวอักษร" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {fonts.map((font) => (
+                          <SelectItem key={font.id} value={font.id} className={font.class}>
+                            {font.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   </div>
                   
                   <div className="space-y-2">
-                    <Label className="text-sm">ไล่ระดับสี (Gradients)</Label>
-                    <div className="grid grid-cols-2 gap-3">
-                      {gradientThemes.map((theme) => (
-                        <button
-                          key={theme.id}
-                          type="button"
-                          onClick={() => setThemeId(theme.id)}
-                          className={`h-16 w-full rounded-md border-2 transition-all ${theme.gradient} ${
-                            themeId === theme.id ? 'border-ring scale-105' : 'border-transparent'
-                          }`}
-                          aria-label={`Gradient theme ${theme.name}`}
-                        >
-                          <span className="font-medium text-white drop-shadow-md">
-                            {theme.name}
-                          </span>
-                        </button>
-                      ))}
+                    <Label htmlFor="font-color">สีตัวอักษร</Label>
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="color"
+                        id="font-color"
+                        value={fontColor}
+                        onChange={(e) => setFontColor(e.target.value)}
+                        className="h-10 w-16"
+                      />
+                      <Input
+                        value={fontColor}
+                        onChange={(e) => setFontColor(e.target.value)}
+                        className="flex-1"
+                      />
                     </div>
+                  </div>
+                  
+                  <div className="flex items-center space-x-2">
+                    <Switch
+                      id="use-gradient"
+                      checked={useGradientFont}
+                      onCheckedChange={setUseGradientFont}
+                    />
+                    <Label htmlFor="use-gradient">ใช้สีไล่ระดับสำหรับตัวอักษร</Label>
+                  </div>
+                  
+                  {useGradientFont && (
+                    <div className="space-y-3 pl-6 border-l-2 border-primary/20 mt-2">
+                      <div className="space-y-1">
+                        <Label htmlFor="gradient-start">สีเริ่มต้น</Label>
+                        <div className="flex items-center gap-2">
+                          <input
+                            type="color"
+                            id="gradient-start"
+                            value={fontGradientStart}
+                            onChange={(e) => setFontGradientStart(e.target.value)}
+                            className="h-10 w-16"
+                          />
+                          <Input
+                            value={fontGradientStart}
+                            onChange={(e) => setFontGradientStart(e.target.value)}
+                            className="flex-1"
+                          />
+                        </div>
+                      </div>
+                      
+                      <div className="space-y-1">
+                        <Label htmlFor="gradient-end">สีสิ้นสุด</Label>
+                        <div className="flex items-center gap-2">
+                          <input
+                            type="color"
+                            id="gradient-end"
+                            value={fontGradientEnd}
+                            onChange={(e) => setFontGradientEnd(e.target.value)}
+                            className="h-10 w-16"
+                          />
+                          <Input
+                            value={fontGradientEnd}
+                            onChange={(e) => setFontGradientEnd(e.target.value)}
+                            className="flex-1"
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                  
+                  <div className="space-y-2">
+                    <Label htmlFor="title-size">ขนาดตัวอักษรหัวข้อ: {titleSize}px</Label>
+                    <Slider
+                      id="title-size"
+                      value={[titleSize]}
+                      min={16}
+                      max={48}
+                      step={1}
+                      onValueChange={(value) => setTitleSize(value[0])}
+                    />
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label htmlFor="subtitle-size">ขนาดตัวอักษรหัวข้อย่อย: {subtitleSize}px</Label>
+                    <Slider
+                      id="subtitle-size"
+                      value={[subtitleSize]}
+                      min={12}
+                      max={24}
+                      step={1}
+                      onValueChange={(value) => setSubtitleSize(value[0])}
+                    />
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label htmlFor="body-size">ขนาดตัวอักษรเนื้อหา: {bodySize}px</Label>
+                    <Slider
+                      id="body-size"
+                      value={[bodySize]}
+                      min={12}
+                      max={20}
+                      step={1}
+                      onValueChange={(value) => setBodySize(value[0])}
+                    />
                   </div>
                 </div>
                 
-                <ThemePreview />
+                <FontPreview />
                 
-                <Separator className="my-4" />
-                
-                <div className="space-y-2">
-                  <Label htmlFor="font">รูปแบบตัวอักษร</Label>
-                  <Select value={titleFont} onValueChange={setTitleFont}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="เลือกรูปแบบตัวอักษร" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {fonts.map((font) => (
-                        <SelectItem key={font.id} value={font.id} className={font.class}>
-                          {font.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                
-                <div className="space-y-2">
-                  <Label htmlFor="title-size">ขนาดตัวอักษรหัวข้อ: {titleSize}px</Label>
-                  <Slider
-                    id="title-size"
-                    value={[titleSize]}
-                    min={16}
-                    max={48}
-                    step={1}
-                    onValueChange={(value) => setTitleSize(value[0])}
-                  />
-                </div>
-                
-                <div className="space-y-2">
-                  <Label htmlFor="subtitle-size">ขนาดตัวอักษรหัวข้อย่อย: {subtitleSize}px</Label>
-                  <Slider
-                    id="subtitle-size"
-                    value={[subtitleSize]}
-                    min={12}
-                    max={24}
-                    step={1}
-                    onValueChange={(value) => setSubtitleSize(value[0])}
-                  />
-                </div>
-                
-                <div className="space-y-2">
-                  <Label htmlFor="body-size">ขนาดตัวอักษรเนื้อหา: {bodySize}px</Label>
-                  <Slider
-                    id="body-size"
-                    value={[bodySize]}
-                    min={12}
-                    max={20}
-                    step={1}
-                    onValueChange={(value) => setBodySize(value[0])}
-                  />
-                </div>
               </TabsContent>
               
               <TabsContent value="advanced" className="space-y-4">
+                {/* Auto-scroll Settings */}
+                <div className="space-y-4 border p-4 rounded-md bg-muted/10">
+                  <h3 className="text-lg font-medium">เลื่อนหน้าเว็บอัตโนมัติ</h3>
+                  
+                  <div className="flex items-center space-x-2">
+                    <Switch
+                      id="auto-scroll"
+                      checked={autoScrollEnabled}
+                      onCheckedChange={setAutoScrollEnabled}
+                    />
+                    <Label htmlFor="auto-scroll">เปิดใช้งานการเลื่อนหน้าเว็บอัตโนมัติ</Label>
+                  </div>
+                  
+                  {autoScrollEnabled && (
+                    <div className="space-y-3 pl-6 border-l-2 border-primary/20 mt-2">
+                      <div className="space-y-2">
+                        <Label>ทิศทางการเลื่อน</Label>
+                        <div className="flex gap-2">
+                          <Button
+                            type="button"
+                            variant={autoScrollDirection === 'down' ? 'default' : 'outline'}
+                            onClick={() => setAutoScrollDirection('down')}
+                            className="flex-1"
+                          >
+                            <ArrowDown className="h-4 w-4 mr-2" /> เลื่อนลง
+                          </Button>
+                          
+                          <Button
+                            type="button"
+                            variant={autoScrollDirection === 'up' ? 'default' : 'outline'}
+                            onClick={() => setAutoScrollDirection('up')}
+                            className="flex-1"
+                          >
+                            <ArrowUp className="h-4 w-4 mr-2" /> เลื่อนขึ้น
+                          </Button>
+                        </div>
+                      </div>
+                      
+                      <div className="space-y-2">
+                        <Label htmlFor="scroll-speed">ความเร็วในการเลื่อน: {autoScrollSpeed}</Label>
+                        <div className="flex gap-2 items-center">
+                          <span className="text-sm">ช้า</span>
+                          <Slider
+                            id="scroll-speed"
+                            value={[autoScrollSpeed]}
+                            min={1}
+                            max={20}
+                            step={1}
+                            onValueChange={(value) => setAutoScrollSpeed(value[0])}
+                            className="flex-1"
+                          />
+                          <span className="text-sm">เร็ว</span>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+                
                 <div className="space-y-4 border p-4 rounded-md bg-muted/10">
                   <h3 className="text-lg font-medium">โลโก้</h3>
                   <div className="space-y-2">
@@ -614,39 +708,6 @@ const SettingsDialog: React.FC = () => {
                         onCheckedChange={setShowHeaderQR}
                       />
                       <Label htmlFor="show-header-qr">แสดง QR Code ในส่วนหัวตลอดเวลา</Label>
-                    </div>
-                  </div>
-                </div>
-                
-                <div className="space-y-4 border p-4 rounded-md bg-muted/10">
-                  <h3 className="text-lg font-medium">สไลด์โชว์</h3>
-                  <div className="space-y-2">
-                    <Label htmlFor="refresh-interval">ระยะเวลาในการรีเฟรช: {refreshInterval} วินาที</Label>
-                    <Slider
-                      id="refresh-interval"
-                      value={[refreshInterval]}
-                      min={5}
-                      max={60}
-                      step={5}
-                      onValueChange={(value) => setRefreshInterval(value[0])}
-                    />
-                    
-                    <div className="mt-4">
-                      <Label>เอฟเฟกต์การเปลี่ยนสไลด์</Label>
-                      <Select 
-                        value={slideShowEffect} 
-                        onValueChange={(value: "none" | "fade" | "slide" | "zoom") => setSlideShowEffect(value)}
-                      >
-                        <SelectTrigger>
-                          <SelectValue placeholder="เลือกเอฟเฟกต์" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="none">ไม่มี</SelectItem>
-                          <SelectItem value="fade">จางเข้าออก</SelectItem>
-                          <SelectItem value="slide">เลื่อน</SelectItem>
-                          <SelectItem value="zoom">ซูม</SelectItem>
-                        </SelectContent>
-                      </Select>
                     </div>
                   </div>
                 </div>

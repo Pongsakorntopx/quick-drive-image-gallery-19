@@ -6,8 +6,8 @@ import PhotoGrid from "../components/PhotoGrid";
 import ApiSetup from "../components/ApiSetup";
 import ImageViewer from "../components/ImageViewer";
 import SettingsDialog from "../components/SettingsDialog";
-import Slideshow from "../components/Slideshow";
 import QRCode from "../components/QRCode";
+import AutoScroll from "../components/AutoScroll";
 
 const Index = () => {
   const { apiConfig, refreshPhotos, settings } = useAppContext();
@@ -23,16 +23,30 @@ const Index = () => {
       }
     }
     
-    // Apply theme class to body
-    document.body.className = "";
+    // Apply font styles
+    const applyFontColorStyles = () => {
+      const style = document.createElement('style');
+      if (settings.useGradientFont) {
+        style.textContent = `
+          .font-styled {
+            background: linear-gradient(to right, ${settings.fontGradientStart || '#000000'}, ${settings.fontGradientEnd || '#555555'});
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+          }
+        `;
+      } else {
+        style.textContent = `
+          .font-styled {
+            color: ${settings.fontColor || '#000000'};
+          }
+        `;
+      }
+      document.head.appendChild(style);
+    };
     
-    // Apply the correct theme
-    if (settings.theme.isGradient) {
-      document.body.classList.add(settings.theme.gradient);
-    } else {
-      document.body.classList.add(`bg-${settings.theme.colorClass}-50`);
-    }
-      
+    applyFontColorStyles();
+    
     // Set meta viewport for better mobile experience
     const viewport = document.querySelector("meta[name=viewport]");
     if (!viewport) {
@@ -42,21 +56,16 @@ const Index = () => {
       document.head.appendChild(meta);
     }
     
-    // Display logo if available
-    const logoElement = document.getElementById("site-logo");
-    if (logoElement) {
-      if (settings.logoUrl) {
-        logoElement.innerHTML = `<img src="${settings.logoUrl}" alt="Logo" style="max-height: ${settings.logoSize}px;" class="mx-auto" />`;
-      } else {
-        logoElement.innerHTML = "";
-      }
-    }
-    
     return () => {
-      // Clean up any theme classes
-      document.body.className = "";
+      // Clean up styles
+      const customStyles = document.head.querySelectorAll('style');
+      customStyles.forEach(style => {
+        if (style.textContent?.includes('.font-styled')) {
+          style.remove();
+        }
+      });
     };
-  }, [apiConfig.apiKey, apiConfig.folderId, settings.theme, settings.logoUrl, settings.logoSize, refreshPhotos, isInitialLoad]);
+  }, [apiConfig.apiKey, apiConfig.folderId, settings.useGradientFont, settings.fontColor, settings.fontGradientStart, settings.fontGradientEnd, refreshPhotos, isInitialLoad]);
 
   // Helper functions for banner positioning and sizing
   function getBannerPosition() {
@@ -87,19 +96,8 @@ const Index = () => {
     }
   }
 
-  // Prepare dynamic class for container based on theme
-  const containerClass = () => {
-    let baseClass = "min-h-screen flex flex-col";
-    
-    if (settings.theme.isGradient) {
-      return `${baseClass} bg-background/90`;
-    } else {
-      return `${baseClass} bg-${settings.theme.colorClass}-50`;
-    }
-  };
-
   return (
-    <div className={containerClass()}>
+    <div className="min-h-screen flex flex-col bg-background">
       <Header />
       
       <main className="flex-1 w-full">
@@ -121,8 +119,8 @@ const Index = () => {
         </div>
       )}
       
-      {/* Header QR code if enabled - adjusted position */}
-      {settings.showHeaderQR && (
+      {/* Header QR code if enabled - only show when banner isn't at topRight position */}
+      {settings.showHeaderQR && (!settings.bannerUrl || settings.bannerPosition !== "topRight") && (
         <div className="fixed top-24 right-24 z-40">
           <QRCode 
             url={window.location.href} 
@@ -134,7 +132,7 @@ const Index = () => {
       
       <ImageViewer />
       <SettingsDialog />
-      <Slideshow />
+      <AutoScroll />
     </div>
   );
 };
