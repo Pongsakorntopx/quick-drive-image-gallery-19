@@ -1,3 +1,4 @@
+
 import React, { createContext, useContext, useState, useEffect } from "react";
 import { ApiConfig, Photo, AppSettings, Theme, Font } from "../types";
 import { fetchPhotosFromDrive } from "../services/googleDriveService";
@@ -210,16 +211,16 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     localStorage.setItem("gdrive-app-settings", JSON.stringify(settings));
   }, [settings]);
 
-  // Refresh photos periodically
-  useEffect(() => {
-    if (apiConfig.apiKey && apiConfig.folderId) {
-      const interval = setInterval(() => {
-        refreshPhotos();
-      }, settings.refreshInterval * 1000);
-      
-      return () => clearInterval(interval);
+  // Helper function to check if photos array has actually changed
+  const checkIfPhotosChanged = (oldPhotos: Photo[], newPhotos: Photo[]): boolean => {
+    if (oldPhotos.length !== newPhotos.length) {
+      return true;
     }
-  }, [apiConfig, settings.refreshInterval, refreshPhotos]);
+    
+    // Check if any IDs are different
+    const oldIds = new Set(oldPhotos.map(p => p.id));
+    return newPhotos.some(p => !oldIds.has(p.id));
+  };
 
   // Modified refresh photos function to prevent flickering
   const refreshPhotos = async (): Promise<boolean> => {
@@ -262,16 +263,16 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }
   };
 
-  // Helper function to check if photos array has actually changed
-  const checkIfPhotosChanged = (oldPhotos: Photo[], newPhotos: Photo[]): boolean => {
-    if (oldPhotos.length !== newPhotos.length) {
-      return true;
+  // Refresh photos periodically - moved after refreshPhotos function is defined
+  useEffect(() => {
+    if (apiConfig.apiKey && apiConfig.folderId) {
+      const interval = setInterval(() => {
+        refreshPhotos();
+      }, settings.refreshInterval * 1000);
+      
+      return () => clearInterval(interval);
     }
-    
-    // Check if any IDs are different
-    const oldIds = new Set(oldPhotos.map(p => p.id));
-    return newPhotos.some(p => !oldIds.has(p.id));
-  };
+  }, [apiConfig, settings.refreshInterval]);
 
   // Modify CSS variables based on the selected theme
   useEffect(() => {
