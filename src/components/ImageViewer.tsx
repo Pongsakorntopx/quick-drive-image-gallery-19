@@ -102,7 +102,7 @@ const ImageViewer: React.FC = () => {
               {/* QR code container - only on medium screens and up */}
               <div className="md:w-1/4 p-3 flex flex-col items-center justify-center">
                 <div className="mb-2 text-sm font-medium text-center">
-                  {t("viewer.scanQrCode")}
+                  {settings.language === "th" ? "สแกนเพื่อดาวน์โหลด" : "Scan to download"}
                 </div>
                 <div className="bg-white/95 dark:bg-black/50 p-3 rounded-lg shadow-md">
                   <QRCode
@@ -119,7 +119,7 @@ const ImageViewer: React.FC = () => {
                     onClick={() => window.open(downloadUrl, "_blank")}
                   >
                     <Download className="mr-2 h-4 w-4" />
-                    {t("viewer.download")}
+                    {settings.language === "th" ? "ดาวน์โหลด" : "Download"}
                   </Button>
                 )}
               </div>
@@ -145,13 +145,7 @@ const ImageViewer: React.FC = () => {
             </Button>
           </div>
           
-          {/* Navigation indicator */}
-          <div className="text-center text-sm text-muted-foreground mt-2">
-            {t("viewer.imageCounter", { 
-              current: currentPhotoIndex + 1, 
-              total: photos.length 
-            })}
-          </div>
+          {/* Removed the image counter text as requested */}
         </div>
       </DialogContent>
     </Dialog>

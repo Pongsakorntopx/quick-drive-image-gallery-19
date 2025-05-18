@@ -25,7 +25,7 @@ const PhotoGrid: React.FC = () => {
   // Previous photos ref to prevent unnecessary updates
   const prevPhotosLength = useRef<number>(0);
 
-  // Batch size for virtualization - ปรับเพิ่มเพื่อโหลดรูปมากขึ้นใน��รั้งแรก
+  // Batch size for virtualization - increased for better initial load
   const batchSize = 24; 
   
   // Calculate optimized layout for masonry grid
@@ -51,7 +51,7 @@ const PhotoGrid: React.FC = () => {
           .filter(vp => !existingIds.has(vp.id));
           
         if (newBatch.length > 0) {
-          setVirtualizedPhotos(prev => [...prev, ...newBatch]);
+          setVirtualizedPhotos(prev => [...newBatch, ...prev]); // New photos at the beginning
         }
       }
       
@@ -82,9 +82,9 @@ const PhotoGrid: React.FC = () => {
     return map;
   }, [photos]);
 
-  // Create the masonry layout - ปรับปรุงให้มีประสิทธิภาพและสวยงามมากขึ้น
+  // Create the masonry layout with improved performance
   useEffect(() => {
-    // เฉพาะ layout แบบ masonry เท่านั้นที่ต้องคำนวณ
+    // Only calculate for masonry layouts
     if (settings.gridLayout !== "googlePhotos" && settings.gridLayout !== "auto") {
       return;
     }
@@ -96,7 +96,7 @@ const PhotoGrid: React.FC = () => {
           allItems.forEach((item) => {
             const itemElement = item as HTMLElement;
             const rowHeight = 10;
-            const rowGap = 16; // ต้องตรงกับ grid-gap ใน CSS
+            const rowGap = 16; // Must match grid-gap in CSS
             const contentElement = itemElement.querySelector(".masonry-content");
             
             if (contentElement) {
@@ -106,45 +106,58 @@ const PhotoGrid: React.FC = () => {
               );
               itemElement.style.gridRowEnd = `span ${rowSpan}`;
               
-              // เพิ่มเอฟเฟกต์เฟดอินเมื่อโหลดเสร็จ
-              setTimeout(() => {
+              // Add fade-in effect when loaded
+              if (!itemElement.classList.contains('loaded')) {
+                itemElement.classList.add('loaded');
                 itemElement.style.opacity = "1";
                 itemElement.style.transform = "translateY(0)";
-              }, 50 * parseInt(itemElement.dataset.index || "0"));
+              }
             }
           });
         }
       };
 
-      // ใช้ ResizeObserver สำหรับอัพเดทเมื่อขนาดหน้าจอเปลี่ยน
-      const observer = new ResizeObserver(() => {
+      // Use IntersectionObserver for lazy loading images
+      const observer = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+          if (entry.isIntersecting) {
+            const img = entry.target.querySelector('img');
+            if (img && img.dataset.src) {
+              img.src = img.dataset.src;
+              img.onload = resizeAllGridItems;
+              delete img.dataset.src;
+            }
+            observer.unobserve(entry.target);
+          }
+        });
+      }, {
+        rootMargin: '200px', // Start loading before visible
+      });
+      
+      // Observe all masonry items
+      const allItems = gridRef.current.querySelectorAll(".masonry-item");
+      allItems.forEach(item => observer.observe(item));
+
+      // Use ResizeObserver for responsive adjustments
+      const resizeObserver = new ResizeObserver(() => {
         resizeAllGridItems();
       });
 
       if (gridRef.current) {
-        observer.observe(gridRef.current);
+        resizeObserver.observe(gridRef.current);
       }
 
-      // Resize เมื่อรูปโหลดเสร็จ
-      const allImages = gridRef.current.querySelectorAll("img");
-      allImages.forEach((img) => {
-        if (img.complete) {
-          resizeAllGridItems();
-        } else {
-          img.addEventListener("load", resizeAllGridItems);
-        }
-      });
-
-      // Initial resize
+      // Initial layout calculation
       resizeAllGridItems();
+      
+      // Add a small delay for initial layout calculation to ensure images are measured correctly
+      setTimeout(resizeAllGridItems, 100);
 
       return () => {
         if (gridRef.current) {
-          observer.unobserve(gridRef.current);
+          resizeObserver.unobserve(gridRef.current);
+          allItems.forEach(item => observer.unobserve(item));
         }
-        allImages.forEach((img) => {
-          img.removeEventListener("load", resizeAllGridItems);
-        });
       };
     }
   }, [virtualizedPhotos, settings.gridLayout]);
@@ -168,13 +181,20 @@ const PhotoGrid: React.FC = () => {
       if (settings.gridRows && settings.gridRows > 0) {
         const gridRowStyles = {
           height: settings.gridRows === 1 ? "calc(100vh - 120px)" : `calc((100vh - 120px) / ${settings.gridRows})`,
-          minHeight: "100px"
+          minHeight: "150px"
         };
         return { className: "", style: gridRowStyles };
       }
       return { className: "", style: {} };
     }
-    return { className: "masonry-item", style: { opacity: 0, transform: "translateY(20px)", transition: "opacity 0.3s ease, transform 0.3s ease" } };
+    return { 
+      className: "masonry-item", 
+      style: { 
+        opacity: 0, 
+        transform: "translateY(20px)", 
+        transition: "opacity 0.3s ease, transform 0.3s ease" 
+      } 
+    };
   };
 
   // Get content class based on settings
@@ -266,7 +286,7 @@ const PhotoGrid: React.FC = () => {
             })}
           </div>
           
-          {/* Load more trigger element - ปรับปรุงตัวโหลดข้อมูลเพิ่ม */}
+          {/* Load more trigger element */}
           {virtualizedPhotos.length < photos.length && (
             <div 
               ref={loadMoreRef} 
@@ -276,10 +296,10 @@ const PhotoGrid: React.FC = () => {
             </div>
           )}
 
-          {/* แสดงเมื่อโหลดรูปทั้งหมดแล้ว */}
+          {/* Show when all photos are loaded */}
           {virtualizedPhotos.length === photos.length && photos.length > 0 && (
             <div className="w-full flex items-center justify-center mt-6 mb-2 text-muted-foreground text-sm">
-              <p>แสดงรูปภาพทั้งหมด ({photos.length} รูป)</p>
+              <p>{settings.language === "th" ? `แสดงรูปภาพทั้งหมด (${photos.length} รูป)` : `Showing all photos (${photos.length})`}</p>
             </div>
           )}
         </>
@@ -292,7 +312,7 @@ const PhotoGrid: React.FC = () => {
           display: grid;
           grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
           grid-auto-rows: 10px;
-          grid-gap: 8px;
+          grid-gap: 16px;
         }
         .masonry-item {
           margin-bottom: 0;
@@ -311,16 +331,17 @@ const PhotoGrid: React.FC = () => {
           box-shadow: 0 5px 15px rgba(0, 0, 0, 0.12);
         }
 
-        /* ปรับ responsive grid สำหรับหน้าจอขนาดต่างๆ */
+        /* Responsive grid for different screen sizes */
         @media (max-width: 640px) {
           .masonry-grid {
             grid-template-columns: repeat(2, 1fr);
-            grid-gap: 6px;
+            grid-gap: 8px;
           }
         }
         @media (min-width: 641px) and (max-width: 768px) {
           .masonry-grid {
             grid-template-columns: repeat(3, 1fr);
+            grid-gap: 12px;
           }
         }
         @media (min-width: 769px) and (max-width: 1024px) {
@@ -345,4 +366,3 @@ const PhotoGrid: React.FC = () => {
 };
 
 export default PhotoGrid;
-

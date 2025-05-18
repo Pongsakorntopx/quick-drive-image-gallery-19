@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useState, useEffect } from "react";
 import { ApiConfig, Photo, AppSettings, Theme, Font, PhotoFetchResult, Language, ThemeMode } from "../types";
 import { fetchPhotosFromDrive } from "../services/googleDriveService";
@@ -231,7 +230,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   // Modified refresh photos function to always place new photos at the top
   const refreshPhotos = async (): Promise<boolean> => {
     if (!apiConfig.apiKey || !apiConfig.folderId) {
-      setError("กรุณาระบุ API Key และ Folder ID");
+      setError(settings.language === "th" ? "กรุณาระบุ API Key และ Folder ID" : "Please provide API Key and Folder ID");
       return false;
     }
     
@@ -258,16 +257,37 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           return 0;
         });
         
-        setPhotos(sortedPhotos);
+        // Find new photos (not in the current photos array)
+        if (photos.length > 0) {
+          const currentIds = new Set(photos.map(p => p.id));
+          const newPhotos = sortedPhotos.filter(p => !currentIds.has(p.id));
+          const existingPhotos = sortedPhotos.filter(p => currentIds.has(p.id));
+          
+          // If we have new photos, place them at the beginning
+          if (newPhotos.length > 0) {
+            setPhotos([...newPhotos, ...existingPhotos]);
+          } else {
+            setPhotos(sortedPhotos);
+          }
+        } else {
+          setPhotos(sortedPhotos);
+        }
+        
         setError(null);
         return true;
       } else {
-        setError(result.error || "ไม่สามารถดึงข้อมูลรูปภาพได้");
+        setError(settings.language === "th" ? 
+          "ไม่สามารถดึงข้อมูลรูปภาพได้" : 
+          "Could not fetch images"
+        );
         return false;
       }
     } catch (err) {
       console.error("Error fetching photos:", err);
-      setError("เกิดข้อผิดพลาดในการดึงข้อมูลรูปภาพ");
+      setError(settings.language === "th" ? 
+        "เกิดข้อผิดพลาดในการดึงข้อมูลรูปภาพ" : 
+        "Error fetching images"
+      );
       return false;
     } finally {
       setIsLoading(false);

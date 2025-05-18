@@ -1,5 +1,5 @@
 
-import React from "react";
+import React, { useState } from "react";
 import { Photo } from "../types";
 import { useAppContext } from "../context/AppContext";
 import QRCode from "./QRCode";
@@ -14,6 +14,7 @@ interface ImageCardProps {
 
 const ImageCard: React.FC<ImageCardProps> = ({ photo, onClick }) => {
   const { settings } = useAppContext();
+  const [imageLoaded, setImageLoaded] = useState(false);
 
   const handleDownload = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -30,14 +31,14 @@ const ImageCard: React.FC<ImageCardProps> = ({ photo, onClick }) => {
       document.body.removeChild(link);
       
       toast({
-        title: "ดาวน์โหลดเริ่มต้นแล้ว",
-        description: `กำลังดาวน์โหลด ${photo.name}`
+        title: settings.language === "th" ? "ดาวน์โหลดเริ่มต้นแล้ว" : "Download started",
+        description: settings.language === "th" ? `กำลังดาวน์โหลด ${photo.name}` : `Downloading ${photo.name}`
       });
     } catch (error) {
       console.error("Download error:", error);
       toast({
-        title: "เกิดข้อผิดพลาด",
-        description: "ไม่สามารถดาวน์โหลดรูปภาพได้",
+        title: settings.language === "th" ? "เกิดข้อผิดพลาด" : "Error",
+        description: settings.language === "th" ? "ไม่สามารถดาวน์โหลดรูปภาพได้" : "Could not download the image",
         variant: "destructive"
       });
     }
@@ -61,19 +62,24 @@ const ImageCard: React.FC<ImageCardProps> = ({ photo, onClick }) => {
     }
   };
 
+  const handleImageLoad = () => {
+    setImageLoaded(true);
+  };
+
   return (
     <div 
       className="relative rounded-lg overflow-hidden shadow-sm transition-all duration-300 hover:shadow-md cursor-pointer group h-full"
       onClick={onClick}
     >
-      {/* ภาพและโอเวอร์เลย์ */}
+      {/* Image and overlay */}
       <div className="relative overflow-hidden w-full h-full">
         {/* Use thumbnailLink for grid display with fallback options */}
         <img
           src={photo.thumbnailLink || `https://drive.google.com/thumbnail?id=${photo.id}`}
           alt={photo.name}
           loading="lazy"
-          className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+          className={`w-full h-full object-cover transition-transform duration-500 group-hover:scale-105 ${imageLoaded ? 'opacity-100' : 'opacity-0'}`}
+          onLoad={handleImageLoad}
           onError={(e) => {
             // Fallback chain if thumbnail fails
             const imgElement = e.target as HTMLImageElement;
@@ -85,6 +91,13 @@ const ImageCard: React.FC<ImageCardProps> = ({ photo, onClick }) => {
             }
           }}
         />
+        
+        {/* Loader placeholder until image loads */}
+        {!imageLoaded && (
+          <div className="absolute inset-0 flex items-center justify-center bg-slate-100 dark:bg-slate-800">
+            <div className="h-6 w-6 border-2 border-primary border-t-transparent rounded-full animate-spin"></div>
+          </div>
+        )}
         
         {/* Overlay with gradient effect */}
         <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/30 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300">
