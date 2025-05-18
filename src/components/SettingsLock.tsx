@@ -178,8 +178,8 @@ const SettingsLock: React.FC<SettingsLockProps> = ({
                 pattern="[0-9]"
                 render={({ slots }) => (
                   <InputOTPGroup className="gap-2">
-                    {slots.map((slot, index) => (
-                      <InputOTPSlot key={index} {...slot} />
+                    {slots.map((slot, idx) => (
+                      <InputOTPSlot key={idx} {...slot} index={idx} />
                     ))}
                   </InputOTPGroup>
                 )}
@@ -199,8 +199,8 @@ const SettingsLock: React.FC<SettingsLockProps> = ({
                 pattern="[0-9]"
                 render={({ slots }) => (
                   <InputOTPGroup className="gap-2">
-                    {slots.map((slot, index) => (
-                      <InputOTPSlot key={index} {...slot} />
+                    {slots.map((slot, idx) => (
+                      <InputOTPSlot key={idx} {...slot} index={idx} />
                     ))}
                   </InputOTPGroup>
                 )}
