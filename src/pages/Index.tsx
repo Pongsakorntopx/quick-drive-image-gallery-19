@@ -8,6 +8,7 @@ import ImageViewer from "../components/ImageViewer";
 import SettingsDialog from "../components/SettingsDialog";
 import QRCode from "../components/QRCode";
 import AutoScroll from "../components/AutoScroll";
+import { createGoogleFontUrl } from "../config/fonts";
 
 const Index = () => {
   const { apiConfig, refreshPhotos, settings } = useAppContext();
@@ -23,29 +24,21 @@ const Index = () => {
       }
     }
     
-    // Apply font styles
-    const applyFontColorStyles = () => {
-      const style = document.createElement('style');
-      if (settings.useGradientFont) {
-        style.textContent = `
-          .font-styled {
-            background: linear-gradient(to right, ${settings.fontGradientStart || '#000000'}, ${settings.fontGradientEnd || '#555555'});
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
-          }
-        `;
-      } else {
-        style.textContent = `
-          .font-styled {
-            color: ${settings.fontColor || '#000000'};
-          }
-        `;
+    // Load Google Fonts
+    const loadGoogleFonts = () => {
+      const existingLink = document.getElementById("google-fonts-link");
+      if (existingLink) {
+        existingLink.remove();
       }
-      document.head.appendChild(style);
+      
+      const link = document.createElement("link");
+      link.id = "google-fonts-link";
+      link.rel = "stylesheet";
+      link.href = createGoogleFontUrl();
+      document.head.appendChild(link);
     };
     
-    applyFontColorStyles();
+    loadGoogleFonts();
     
     // Set meta viewport for better mobile experience
     const viewport = document.querySelector("meta[name=viewport]");
@@ -56,16 +49,7 @@ const Index = () => {
       document.head.appendChild(meta);
     }
     
-    return () => {
-      // Clean up styles
-      const customStyles = document.head.querySelectorAll('style');
-      customStyles.forEach(style => {
-        if (style.textContent?.includes('.font-styled')) {
-          style.remove();
-        }
-      });
-    };
-  }, [apiConfig.apiKey, apiConfig.folderId, settings.useGradientFont, settings.fontColor, settings.fontGradientStart, settings.fontGradientEnd, refreshPhotos, isInitialLoad]);
+  }, [apiConfig.apiKey, apiConfig.folderId, refreshPhotos, isInitialLoad]);
 
   // Helper functions for banner positioning and sizing
   function getBannerPosition() {
@@ -84,6 +68,10 @@ const Index = () => {
   }
 
   function getBannerSize() {
+    if (settings.bannerSize === "custom" && settings.customBannerSize) {
+      return `max-w-[${settings.customBannerSize.width}px] max-h-[${settings.customBannerSize.height}px]`;
+    }
+    
     switch (settings.bannerSize) {
       case "small":
         return "max-w-[100px] max-h-[100px]";
@@ -97,7 +85,7 @@ const Index = () => {
   }
 
   return (
-    <div className="min-h-screen flex flex-col bg-background">
+    <div className={`min-h-screen flex flex-col bg-background ${settings.font.class}`}>
       <Header />
       
       <main className="flex-1 w-full">
@@ -110,7 +98,17 @@ const Index = () => {
       
       {/* Banner */}
       {settings.bannerUrl && (
-        <div className={`fixed ${getBannerPosition()} ${getBannerSize()} z-10`}>
+        <div 
+          className={`fixed ${getBannerPosition()} z-10`}
+          style={
+            settings.bannerSize === "custom" && settings.customBannerSize
+              ? { 
+                  maxWidth: `${settings.customBannerSize.width}px`, 
+                  maxHeight: `${settings.customBannerSize.height}px` 
+                }
+              : {}
+          }
+        >
           <img 
             src={settings.bannerUrl} 
             alt="Banner" 

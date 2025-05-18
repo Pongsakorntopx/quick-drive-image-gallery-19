@@ -1,7 +1,9 @@
+
 import React, { createContext, useContext, useState, useEffect } from "react";
-import { ApiConfig, Photo, AppSettings, Theme, Font, PhotoFetchResult } from "../types";
+import { ApiConfig, Photo, AppSettings, Theme, Font, PhotoFetchResult, Language, ThemeMode } from "../types";
 import { fetchPhotosFromDrive } from "../services/googleDriveService";
 import { useToast } from "@/components/ui/use-toast";
+import { allFonts } from "../config/fonts";
 
 // Define the predefined themes
 const predefinedThemes: Theme[] = [
@@ -53,73 +55,21 @@ const predefinedThemes: Theme[] = [
     isGradient: false,
     gradient: "",
   },
-  {
-    id: "sunset",
-    name: "พระอาทิตย์ตก",
-    colorClass: "orange",
-    color: "#FF512F",
-    isGradient: true,
-    gradient: "bg-gradient-to-r from-orange-500 to-amber-500",
-  },
-  {
-    id: "ocean",
-    name: "มหาสมุทร",
-    colorClass: "blue",
-    color: "#2193b0",
-    isGradient: true,
-    gradient: "bg-gradient-to-r from-blue-500 to-cyan-400",
-  },
-  {
-    id: "forest",
-    name: "ป่าไม้",
-    colorClass: "green",
-    color: "#134e5e",
-    isGradient: true,
-    gradient: "bg-gradient-to-r from-emerald-600 to-green-400",
-  },
-  {
-    id: "lavender",
-    name: "ลาเวนเดอร์",
-    colorClass: "purple",
-    color: "#8e2de2",
-    isGradient: true,
-    gradient: "bg-gradient-to-r from-purple-500 to-pink-400",
-  },
-];
-
-// Define font options
-const predefinedFonts: Font[] = [
-  {
-    id: "default",
-    name: "ค่าเริ่มต้น",
-    class: "font-sans",
-  },
-  {
-    id: "serif",
-    name: "ตัวอักษรมีหัว",
-    class: "font-serif",
-  },
-  {
-    id: "mono",
-    name: "โมโนสเปซ",
-    class: "font-mono",
-  },
 ];
 
 // Default settings
 const defaultSettings: AppSettings = {
   title: "แกลเลอรี่รูปภาพ Google Drive",
+  showTitle: true, // Added showTitle setting
+  titleSize: 24, // Changed from fontSize.title
   theme: predefinedThemes[0],
-  font: predefinedFonts[0],
+  themeMode: "light" as ThemeMode, // Added theme mode
+  language: "th" as Language, // Added language setting
+  font: allFonts[0],
   fontSize: {
-    title: 24,
     subtitle: 16,
     body: 14,
   },
-  fontColor: "#000000", 
-  useGradientFont: false,
-  fontGradientStart: "#000000",
-  fontGradientEnd: "#555555",
   qrCodeSize: 64,
   refreshInterval: 5,
   qrCodePosition: "bottomRight",
@@ -128,11 +78,11 @@ const defaultSettings: AppSettings = {
   logoSize: 100,
   bannerUrl: null,
   bannerSize: "medium",
+  customBannerSize: { width: 200, height: 200 }, // New for custom banner size
   bannerPosition: "bottomLeft",
   autoScrollEnabled: false,
   autoScrollDirection: "down",
   autoScrollSpeed: 10,
-  slideShowEffect: "fade"
 };
 
 // Context interface
@@ -152,6 +102,7 @@ interface AppContextType {
   setIsSettingsOpen: React.Dispatch<React.SetStateAction<boolean>>;
   themes: Theme[];
   fonts: Font[];
+  resetAllData: () => void; // New function to reset all data
 }
 
 // Create the context
@@ -191,24 +142,36 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [settings, setSettings] = useState<AppSettings>(() => {
     const savedSettings = localStorage.getItem("gdrive-app-settings");
     if (savedSettings) {
-      const parsed = JSON.parse(savedSettings) as AppSettings;
-      // Make sure we have a theme object, not just an id
-      if (parsed.theme && typeof parsed.theme === 'object' && 'id' in parsed.theme) {
-        const foundTheme = predefinedThemes.find(t => t.id === parsed.theme.id);
-        if (foundTheme) {
-          parsed.theme = foundTheme;
+      try {
+        const parsed = JSON.parse(savedSettings) as AppSettings;
+        
+        // Make sure we have a theme object
+        if (parsed.theme && typeof parsed.theme === 'object' && 'id' in parsed.theme) {
+          const foundTheme = predefinedThemes.find(t => t.id === parsed.theme.id);
+          if (foundTheme) {
+            parsed.theme = foundTheme;
+          }
         }
-      }
-      // Make sure we have a font object, not just an id
-      if (parsed.font && typeof parsed.font === 'object' && 'id' in parsed.font) {
-        const foundFont = predefinedFonts.find(f => f.id === parsed.font.id);
-        if (foundFont) {
-          parsed.font = foundFont;
+        
+        // Make sure we have a font object
+        if (parsed.font && typeof parsed.font === 'object' && 'id' in parsed.font) {
+          const foundFont = allFonts.find(f => f.id === parsed.font.id);
+          if (foundFont) {
+            parsed.font = foundFont;
+          }
         }
+        
+        // Ensure all new settings have default values
+        return { 
+          ...defaultSettings, 
+          ...parsed,
+          // For backward compatibility, copy old fontSize.title to titleSize if exists
+          titleSize: parsed.fontSize?.title || parsed.titleSize || defaultSettings.titleSize
+        };
+      } catch (e) {
+        console.error("Error parsing saved settings:", e);
+        return defaultSettings;
       }
-      
-      // Ensure all new settings have default values
-      return { ...defaultSettings, ...parsed };
     }
     return defaultSettings;
   });
@@ -225,6 +188,24 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   useEffect(() => {
     localStorage.setItem("gdrive-app-settings", JSON.stringify(settings));
   }, [settings]);
+  
+  // Function to reset all data
+  const resetAllData = () => {
+    localStorage.removeItem("gdrive-app-config");
+    localStorage.removeItem("gdrive-app-settings");
+    
+    setApiConfig({ apiKey: "", folderId: "" });
+    setSettings(defaultSettings);
+    setPhotos([]);
+    setSelectedPhoto(null);
+    
+    toast({
+      title: settings.language === "th" ? "ล้างข้อมูลทั้งหมดสำเร็จ" : "All data has been reset successfully",
+      description: settings.language === "th" 
+        ? "การตั้งค่าทั้งหมดถูกรีเซ็ตเป็นค่าเริ่มต้น" 
+        : "All settings have been reset to defaults",
+    });
+  };
 
   // Helper function to check if photos array has actually changed
   const checkIfPhotosChanged = (oldPhotos: Photo[], newPhotos: Photo[]): boolean => {
@@ -298,24 +279,17 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }
   }, [apiConfig, settings.refreshInterval]);
 
-  // Modify CSS variables based on the selected theme
+  // Apply theme mode
   useEffect(() => {
-    const root = document.documentElement;
-    const htmlEl = document.querySelector('html');
-    
-    if (htmlEl) {
-      if (settings.theme.isGradient) {
-        htmlEl.classList.add(settings.theme.gradient);
+    const htmlElement = document.querySelector('html');
+    if (htmlElement) {
+      if (settings.themeMode === 'dark') {
+        htmlElement.classList.add('dark');
       } else {
-        htmlEl.className = '';
+        htmlElement.classList.remove('dark');
       }
     }
-    
-    // Apply theme colors as CSS variables
-    if (settings.theme.colorClass) {
-      root.style.setProperty('--primary', settings.theme.colorClass);
-    }
-  }, [settings.theme]);
+  }, [settings.themeMode]);
 
   const contextValue: AppContextType = {
     apiConfig,
@@ -332,7 +306,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     isSettingsOpen,
     setIsSettingsOpen,
     themes: predefinedThemes,
-    fonts: predefinedFonts
+    fonts: allFonts,
+    resetAllData
   };
 
   return (

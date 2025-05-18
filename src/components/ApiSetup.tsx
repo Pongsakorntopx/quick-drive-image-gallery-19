@@ -6,15 +6,17 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useAppContext } from "../context/AppContext";
 import { toast } from "@/components/ui/use-toast";
-import { Loader2, ArrowUpRight } from "lucide-react";
+import { Loader2, ArrowUpRight, RefreshCw } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Separator } from "@/components/ui/separator";
+import { useTranslation } from "../hooks/useTranslation";
 
 const ApiSetup: React.FC = () => {
-  const { setApiConfig, refreshPhotos, isLoading } = useAppContext();
+  const { setApiConfig, refreshPhotos, isLoading, resetAllData } = useAppContext();
   const [apiKey, setApiKey] = useState("");
   const [folderId, setFolderId] = useState("");
   const [isConnecting, setIsConnecting] = useState(false);
+  const { t } = useTranslation();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -39,57 +41,54 @@ const ApiSetup: React.FC = () => {
       
       // Success toast
       toast({
-        title: "เชื่อมต่อสำเร็จ",
-        description: "ระบบได้เชื่อมต่อกับ Google Drive เรียบร้อยแล้ว",
+        title: t("toast.connection.success"),
+        description: t("toast.connection.success"),
       });
       
     } catch (error) {
       console.error("Error setting API config:", error);
       toast({
-        title: "เกิดข้อผิดพลาด",
-        description: "ไม่สามารถเชื่อมต่อกับ Google Drive ได้",
+        title: t("toast.connection.error"),
+        description: t("toast.connection.error"),
         variant: "destructive",
       });
     } finally {
       setIsConnecting(false);
     }
   };
+  
+  const handleReset = () => {
+    resetAllData();
+  };
 
   return (
     <div className="flex items-center justify-center min-h-[80vh] p-4">
       <Card className="w-full max-w-md shadow-lg">
         <CardHeader>
-          <CardTitle>ยินดีต้อนรับสู่แกลเลอรี่รูปภาพ Google Drive</CardTitle>
+          <CardTitle>{t("setup.welcome")}</CardTitle>
           <CardDescription>
-            กรุณากรอกข้อมูลที่จำเป็นเพื่อเชื่อมต่อกับ Google Drive
+            {t("setup.instructions")}
           </CardDescription>
         </CardHeader>
 
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="apiKey">Google Drive API Key</Label>
+              <Label htmlFor="apiKey">{t("setup.apiKey")}</Label>
               <Input
                 id="apiKey"
-                placeholder="ใส่ API Key"
+                placeholder={t("setup.apiKeyPlaceholder")}
                 value={apiKey}
                 onChange={(e) => setApiKey(e.target.value)}
               />
-              <div className="text-sm text-muted-foreground space-y-1 bg-muted/50 p-2 rounded-md overflow-auto max-h-48">
-                <p>API Key สามารถสร้างได้จาก Google Cloud Console ตามขั้นตอนต่อไปนี้:</p>
-                <ol className="list-decimal pl-5 space-y-1">
-                  <li>สร้าง Project ใหม่</li>
-                  <li>เปิดใช้งาน Google Drive API</li>
-                  <li>สร้าง API Key จากเมนู Credentials</li>
-                  <li>จำกัดสิทธิ์การใช้งาน API Key ให้ใช้ได้เฉพาะ Google Drive API</li>
-                </ol>
+              <div className="text-sm text-muted-foreground bg-muted/50 p-2 rounded-md overflow-auto max-h-28">
                 <a 
                   href="https://console.cloud.google.com/apis/credentials" 
                   target="_blank" 
                   rel="noopener noreferrer" 
                   className="inline-flex items-center text-primary hover:underline mt-1"
                 >
-                  ไปที่ Google Cloud Console <ArrowUpRight className="ml-1 h-3 w-3" />
+                  Google Cloud Console <ArrowUpRight className="ml-1 h-3 w-3" />
                 </a>
               </div>
             </div>
@@ -97,50 +96,32 @@ const ApiSetup: React.FC = () => {
             <Separator className="my-3" />
 
             <div className="space-y-2">
-              <Label htmlFor="folderId">Google Drive Folder ID</Label>
+              <Label htmlFor="folderId">{t("setup.folderId")}</Label>
               <Input
                 id="folderId"
-                placeholder="ใส่รหัสโฟลเดอร์"
+                placeholder={t("setup.folderIdPlaceholder")}
                 value={folderId}
                 onChange={(e) => setFolderId(e.target.value)}
               />
-              <div className="text-sm text-muted-foreground space-y-1 bg-muted/50 p-2 rounded-md overflow-auto max-h-48">
-                <p>Folder ID คือตัวระบุเฉพาะของโฟลเดอร์ใน Google Drive</p>
-                <p>วิธีดู Folder ID:</p>
-                <ol className="list-decimal pl-5 space-y-1">
-                  <li>เปิดโฟลเดอร์ที่ต้องการใน Google Drive</li>
-                  <li>ดูที่ URL จะมีรูปแบบดังนี้:</li>
-                  <code className="block bg-muted p-1 rounded mt-1 text-xs overflow-auto">
-                    https://drive.google.com/drive/folders/<span className="text-primary font-medium">1a2b3c4d5e6f7g8h9i0j</span>
-                  </code>
-                  <li>ส่วนที่ไฮไลท์คือ Folder ID ที่ต้องนำมาใส่</li>
-                </ol>
-                <p className="mt-1">
-                  <strong>สำคัญ:</strong> โฟลเดอร์ต้องตั้งค่าให้เปิดเป็นสาธารณะหรือแชร์ให้เข้าถึงได้
-                </p>
-                <a 
-                  href="https://developers.google.com/drive/api/guides/folder" 
-                  target="_blank" 
-                  rel="noopener noreferrer" 
-                  className="inline-flex items-center text-primary hover:underline mt-1"
-                >
-                  อ่านเพิ่มเติม <ArrowUpRight className="ml-1 h-3 w-3" />
-                </a>
+              <div className="text-sm text-muted-foreground bg-muted/50 p-2 rounded-md overflow-auto max-h-28">
+                <code className="block bg-muted p-1 rounded mt-1 text-xs overflow-auto">
+                  https://drive.google.com/drive/folders/<span className="text-primary font-medium">1a2b3c4d5e6f7g8h9i0j</span>
+                </code>
               </div>
             </div>
 
             {isConnecting && (
-              <Alert className="bg-green-50 border-green-300">
+              <Alert className="bg-green-50 border-green-300 dark:bg-green-950 dark:border-green-800">
                 <AlertDescription className="flex items-center">
                   <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  กำลังเชื่อมต่อไปยัง Google Drive... กรุณารอสักครู่
+                  {t("setup.connecting")}
                 </AlertDescription>
               </Alert>
             )}
           </form>
         </CardContent>
 
-        <CardFooter>
+        <CardFooter className="flex flex-col gap-2">
           <Button 
             className="w-full" 
             type="button" 
@@ -150,11 +131,21 @@ const ApiSetup: React.FC = () => {
             {isConnecting ? (
               <>
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                กำลังเชื่อมต่อ...
+                {t("setup.connecting")}
               </>
             ) : (
-              "เริ่มต้นใช้งาน"
+              t("setup.start")
             )}
+          </Button>
+          
+          <Button
+            type="button"
+            variant="outline"
+            className="w-full border-destructive text-destructive hover:bg-destructive/10"
+            onClick={handleReset}
+          >
+            <RefreshCw className="mr-2 h-4 w-4" />
+            {t("setup.reset")}
           </Button>
         </CardFooter>
       </Card>

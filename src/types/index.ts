@@ -31,19 +31,22 @@ export interface Font {
   class: string;
 }
 
+export type Language = "th" | "en";
+
+export type ThemeMode = "light" | "dark";
+
 export interface AppSettings {
   title: string;
+  showTitle: boolean; // Added showTitle setting
+  titleSize: number; // Renamed from fontSize.title for simplicity
   theme: Theme;
+  themeMode: ThemeMode; // Added theme mode (light/dark)
+  language: Language; // Added language setting
   font: Font;
   fontSize: {
-    title: number;
     subtitle: number;
     body: number;
   };
-  fontColor: string;
-  useGradientFont: boolean;
-  fontGradientStart: string;
-  fontGradientEnd: string;
   qrCodeSize: number;
   refreshInterval: number;
   qrCodePosition: "bottomRight" | "bottomLeft" | "topRight" | "topLeft" | "center";
@@ -51,12 +54,12 @@ export interface AppSettings {
   logoUrl: string | null;
   logoSize: number;
   bannerUrl: string | null;
-  bannerSize: "small" | "medium" | "large";
+  bannerSize: "small" | "medium" | "large" | "custom"; // Added custom option
+  customBannerSize: { width: number; height: number }; // For custom banner size
   bannerPosition: "bottomLeft" | "bottomRight" | "topLeft" | "topRight";
   autoScrollEnabled: boolean;
   autoScrollDirection: "up" | "down";
   autoScrollSpeed: number;
-  slideShowEffect: "none" | "fade" | "slide" | "zoom";
 }
 
 // Add interface for photo fetch result to fix the context errors
@@ -64,4 +67,12 @@ export interface PhotoFetchResult {
   success: boolean;
   data?: Photo[];
   error?: string;
+}
+
+// Add translation interface
+export interface Translation {
+  [key: string]: {
+    th: string;
+    en: string;
+  };
 }

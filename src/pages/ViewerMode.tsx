@@ -4,15 +4,34 @@ import { useAppContext } from "../context/AppContext";
 import PhotoGrid from "../components/PhotoGrid";
 import ImageViewer from "../components/ImageViewer";
 import AutoScroll from "../components/AutoScroll";
-import QRCode from "../components/QRCode"; // Added missing import
+import QRCode from "../components/QRCode";
+import { createGoogleFontUrl } from "../config/fonts";
+import { useTranslation } from "../hooks/useTranslation";
 
 const ViewerMode = () => {
   const { apiConfig, refreshPhotos, settings } = useAppContext();
+  const { t } = useTranslation();
 
   useEffect(() => {
     if (apiConfig.apiKey && apiConfig.folderId) {
       refreshPhotos();
     }
+    
+    // Load Google Fonts
+    const loadGoogleFonts = () => {
+      const existingLink = document.getElementById("google-fonts-link");
+      if (existingLink) {
+        existingLink.remove();
+      }
+      
+      const link = document.createElement("link");
+      link.id = "google-fonts-link";
+      link.rel = "stylesheet";
+      link.href = createGoogleFontUrl();
+      document.head.appendChild(link);
+    };
+    
+    loadGoogleFonts();
     
     // Set meta viewport for better mobile experience
     const viewport = document.querySelector("meta[name=viewport]");
@@ -23,40 +42,7 @@ const ViewerMode = () => {
       document.head.appendChild(meta);
     }
     
-    // Apply font styles
-    const applyFontColorStyles = () => {
-      const style = document.createElement('style');
-      if (settings.useGradientFont) {
-        style.textContent = `
-          .font-styled {
-            background: linear-gradient(to right, ${settings.fontGradientStart || '#000000'}, ${settings.fontGradientEnd || '#555555'});
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
-          }
-        `;
-      } else {
-        style.textContent = `
-          .font-styled {
-            color: ${settings.fontColor || '#000000'};
-          }
-        `;
-      }
-      document.head.appendChild(style);
-    };
-    
-    applyFontColorStyles();
-    
-    return () => {
-      // Clean up styles
-      const customStyles = document.head.querySelectorAll('style');
-      customStyles.forEach(style => {
-        if (style.textContent?.includes('.font-styled')) {
-          style.remove();
-        }
-      });
-    };
-  }, [apiConfig, settings.theme, settings.useGradientFont, settings.fontColor, settings.fontGradientStart, settings.fontGradientEnd, refreshPhotos]);
+  }, [apiConfig, refreshPhotos]);
 
   // Helper functions for banner positioning and sizing
   function getBannerPosition() {
@@ -75,6 +61,10 @@ const ViewerMode = () => {
   }
 
   function getBannerSize() {
+    if (settings.bannerSize === "custom" && settings.customBannerSize) {
+      return `max-w-[${settings.customBannerSize.width}px] max-h-[${settings.customBannerSize.height}px]`;
+    }
+    
     switch (settings.bannerSize) {
       case "small":
         return "max-w-[100px] max-h-[100px]";
@@ -88,7 +78,7 @@ const ViewerMode = () => {
   }
 
   return (
-    <div className="min-h-screen flex flex-col bg-background">
+    <div className={`min-h-screen flex flex-col bg-background ${settings.font.class}`}>
       <header className="w-full px-4 md:px-6 py-3 bg-background/90 backdrop-blur-sm border-b sticky top-0 z-10">
         <div className="flex items-center justify-center">
           {settings.logoUrl && (
@@ -102,9 +92,12 @@ const ViewerMode = () => {
             </div>
           )}
           
-          <h1 className={`text-center font-bold text-xl md:text-2xl ${settings.font.class} font-styled`}>
-            {settings.title}
-          </h1>
+          {settings.showTitle && (
+            <h1 className={`text-center font-bold text-xl md:text-2xl font-styled`}
+                style={{ fontSize: `${settings.titleSize}px` }}>
+              {settings.title}
+            </h1>
+          )}
         </div>
       </header>
       
@@ -117,7 +110,17 @@ const ViewerMode = () => {
       
       {/* Banner */}
       {settings.bannerUrl && (
-        <div className={`fixed ${getBannerPosition()} ${getBannerSize()} z-10`}>
+        <div 
+          className={`fixed ${getBannerPosition()} z-10`}
+          style={
+            settings.bannerSize === "custom" && settings.customBannerSize
+              ? { 
+                  maxWidth: `${settings.customBannerSize.width}px`, 
+                  maxHeight: `${settings.customBannerSize.height}px` 
+                }
+              : {}
+          }
+        >
           <img 
             src={settings.bannerUrl} 
             alt="Banner" 
@@ -137,8 +140,8 @@ const ViewerMode = () => {
         </div>
       )}
       
-      <footer className="py-2 px-4 text-center text-sm text-muted-foreground font-styled">
-        <p>แกลเลอรี่รูปภาพ © {new Date().getFullYear()}</p>
+      <footer className="py-2 px-4 text-center text-sm text-muted-foreground">
+        <p>{t("app.footer", { year: new Date().getFullYear() })}</p>
       </footer>
     </div>
   );

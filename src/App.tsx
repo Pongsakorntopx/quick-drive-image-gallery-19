@@ -5,9 +5,22 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AppProvider } from "./context/AppContext";
+import { useEffect } from "react";
 import Index from "./pages/Index";
 import ViewerMode from "./pages/ViewerMode";
 import NotFound from "./pages/NotFound";
+import { createGoogleFontUrl } from "./config/fonts";
+
+// Add Google Fonts to document head
+const addGoogleFonts = () => {
+  const link = document.createElement("link");
+  link.rel = "stylesheet";
+  link.href = createGoogleFontUrl();
+  document.head.appendChild(link);
+};
+
+// Executed once when app loads
+addGoogleFonts();
 
 const queryClient = new QueryClient();
 
