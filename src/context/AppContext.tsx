@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useState, useEffect } from "react";
 import { ApiConfig, Photo, AppSettings, Theme, Font, PhotoFetchResult, Language, ThemeMode } from "../types";
 import { fetchPhotosFromDrive } from "../services/googleDriveService";
@@ -60,11 +59,11 @@ const predefinedThemes: Theme[] = [
 // Default settings
 const defaultSettings: AppSettings = {
   title: "แกลเลอรี่รูปภาพ Google Drive",
-  showTitle: true, // Added showTitle setting
-  titleSize: 24, // Changed from fontSize.title
+  showTitle: true,
+  titleSize: 24,  // This is now a direct property, not under fontSize
   theme: predefinedThemes[0],
-  themeMode: "light" as ThemeMode, // Added theme mode
-  language: "th" as Language, // Added language setting
+  themeMode: "light" as ThemeMode,
+  language: "th" as Language,
   font: allFonts[0],
   fontSize: {
     subtitle: 16,
@@ -78,7 +77,7 @@ const defaultSettings: AppSettings = {
   logoSize: 100,
   bannerUrl: null,
   bannerSize: "medium",
-  customBannerSize: { width: 200, height: 200 }, // New for custom banner size
+  customBannerSize: { width: 200, height: 200 },
   bannerPosition: "bottomLeft",
   autoScrollEnabled: false,
   autoScrollDirection: "down",
@@ -165,8 +164,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         return { 
           ...defaultSettings, 
           ...parsed,
-          // For backward compatibility, copy old fontSize.title to titleSize if exists
-          titleSize: parsed.fontSize?.title || parsed.titleSize || defaultSettings.titleSize
+          // For backward compatibility, use titleSize directly or fallback to default
+          titleSize: parsed.titleSize || defaultSettings.titleSize
         };
       } catch (e) {
         console.error("Error parsing saved settings:", e);
