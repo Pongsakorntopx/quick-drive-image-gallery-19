@@ -1,5 +1,5 @@
 
-import React, { useState } from "react";
+import React from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Lock, Unlock } from "lucide-react";
@@ -16,7 +16,7 @@ const SettingsLock: React.FC<SettingsLockProps> = ({
   onLockChange
 }) => {
   const { t } = useTranslation();
-  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [isDialogOpen, setIsDialogOpen] = React.useState(false);
   
   const handleLockClick = () => {
     if (!isLocked) {

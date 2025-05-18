@@ -60,9 +60,7 @@ export interface AppSettings {
   autoScrollEnabled: boolean;
   autoScrollDirection: "up" | "down";
   autoScrollSpeed: number;
-  settingsLocked: boolean; // New setting for locking settings
-  settingsPin: string; // PIN code for unlocking
-  settingsPinLength: 4 | 6 | 8; // PIN length options
+  settingsLocked: boolean; // Setting for locking settings
 }
 
 // Add interface for photo fetch result to fix the context errors
