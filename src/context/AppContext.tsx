@@ -1,3 +1,4 @@
+
 import React, { createContext, useContext, useState, useEffect } from "react";
 import { ApiConfig, Photo, AppSettings, Theme, Font, PhotoFetchResult, Language, ThemeMode } from "../types";
 import { fetchPhotosFromDrive } from "../services/googleDriveService";
@@ -171,7 +172,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           // For backward compatibility
           titleSize: parsed.titleSize || defaultSettings.titleSize,
           // Force language to Thai (as we're removing language selection)
-          language: "th",
+          language: "th" as Language,
           // For new properties
           headerQRCodeSize: parsed.headerQRCodeSize || defaultSettings.headerQRCodeSize,
           viewerQRCodeSize: parsed.viewerQRCodeSize || defaultSettings.viewerQRCodeSize,
@@ -256,6 +257,19 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
             // Place new photos at the top, followed by existing photos in their current order
             // This preserves the existing order while adding new photos at the top
             setPhotos(prevPhotos => [...newPhotos, ...prevPhotos]);
+            
+            // Show a toast notification when new photos are added
+            if (newPhotos.length === 1) {
+              toast({
+                title: "มีรูปภาพใหม่",
+                description: `เพิ่มรูปภาพใหม่ 1 รูป`
+              });
+            } else {
+              toast({
+                title: "มีรูปภาพใหม่",
+                description: `เพิ่มรูปภาพใหม่ ${newPhotos.length} รูป`
+              });
+            }
           } else {
             // If no new photos, just check for any changes in the existing ones (like modified time)
             const updatedPhotos = sortedPhotos.map(newPhoto => {
