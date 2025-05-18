@@ -128,17 +128,17 @@ const SettingsDialog: React.FC = () => {
       headerQRCodeSize: 48,
       viewerQRCodeSize: 80,
       refreshInterval: 5,
-      qrCodePosition: "bottomRight",
+      qrCodePosition: "bottomRight" as "bottomRight", // Use a type assertion to specify exact string literal type
       showHeaderQR: false,
       logoUrl: null,
       logoSize: 100,
       bannerUrl: null,
       bannerSize: 200,
-      bannerPosition: "bottomLeft",
+      bannerPosition: "bottomLeft" as "bottomLeft", // Fix this one too while we're at it
       autoScrollEnabled: false,
-      autoScrollDirection: "down",
+      autoScrollDirection: "down" as "down", // Fix this one as well
       autoScrollSpeed: 10,
-      gridLayout: "googlePhotos",
+      gridLayout: "googlePhotos" as "googlePhotos", // Fix this one as well
       gridColumns: 4,
       gridRows: 0,
     };
@@ -607,10 +607,10 @@ const SettingsDialog: React.FC = () => {
                     <Label>{t("settings.banner.position")}</Label>
                     <RadioGroup
                       value={localSettings.bannerPosition}
-                      onValueChange={(value: any) =>
+                      onValueChange={(value) =>
                         setLocalSettings({
                           ...localSettings,
-                          bannerPosition: value,
+                          bannerPosition: value as "bottomLeft" | "bottomRight" | "topLeft" | "topRight",
                         })
                       }
                       className="grid grid-cols-2 gap-2"
@@ -644,10 +644,10 @@ const SettingsDialog: React.FC = () => {
                   <Label>{t("settings.layout.title")}</Label>
                   <RadioGroup
                     value={localSettings.gridLayout}
-                    onValueChange={(value: any) =>
+                    onValueChange={(value) =>
                       setLocalSettings({
                         ...localSettings,
-                        gridLayout: value,
+                        gridLayout: value as "googlePhotos" | "auto" | "fixed" | "custom",
                       })
                     }
                   >
@@ -769,10 +769,10 @@ const SettingsDialog: React.FC = () => {
                     <Label>{t("settings.qrcode.position")}</Label>
                     <RadioGroup
                       value={localSettings.qrCodePosition}
-                      onValueChange={(value: any) =>
+                      onValueChange={(value) =>
                         setLocalSettings({
                           ...localSettings,
-                          qrCodePosition: value,
+                          qrCodePosition: value as "bottomRight" | "bottomLeft" | "topRight" | "topLeft" | "center",
                         })
                       }
                       className="grid grid-cols-2 gap-2"
@@ -840,7 +840,7 @@ const SettingsDialog: React.FC = () => {
                           variant={localSettings.autoScrollDirection === "down" ? "default" : "outline"}
                           className="flex-1"
                           onClick={() =>
-                            setLocalSettings({ ...localSettings, autoScrollDirection: "down" })
+                            setLocalSettings({ ...localSettings, autoScrollDirection: "down" as "down" })
                           }
                         >
                           {t("settings.advanced.autoScrollDown")}
@@ -850,14 +850,14 @@ const SettingsDialog: React.FC = () => {
                           variant={localSettings.autoScrollDirection === "up" ? "default" : "outline"}
                           className="flex-1"
                           onClick={() =>
-                            setLocalSettings({ ...localSettings, autoScrollDirection: "up" })
+                            setLocalSettings({ ...localSettings, autoScrollDirection: "up" as "up" })
                           }
                         >
                           {t("settings.advanced.autoScrollUp")}
                         </Button>
                       </div>
                     </div>
-
+                    
                     <div className="space-y-2">
                       <div className="flex items-center justify-between">
                         <Label>
@@ -881,9 +881,7 @@ const SettingsDialog: React.FC = () => {
                     </div>
                   </>
                 )}
-
-                <Separator />
-
+                
                 <div className="space-y-2">
                   <Label htmlFor="refreshInterval">
                     Refresh Interval: {localSettings.refreshInterval} seconds
