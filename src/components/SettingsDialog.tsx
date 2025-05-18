@@ -1,4 +1,3 @@
-
 import React, { useState, useRef, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -67,10 +66,6 @@ const SettingsDialog: React.FC = () => {
   
   // Settings lock
   const [settingsLocked, setSettingsLocked] = useState(settings.settingsLocked);
-  const [settingsPin, setSettingsPin] = useState(settings.settingsPin);
-  const [settingsPinLength, setSettingsPinLength] = useState<4 | 6 | 8>(
-    settings.settingsPinLength || 4
-  );
   
   // File upload references
   const logoFileRef = useRef<HTMLInputElement>(null);
@@ -80,7 +75,7 @@ const SettingsDialog: React.FC = () => {
 
   // Check if settings are locked when opening the dialog
   useEffect(() => {
-    if (isSettingsOpen && settings.settingsLocked && !settingsPin) {
+    if (isSettingsOpen && settings.settingsLocked) {
       // If settings are locked but there's no PIN, unlock them
       setSettingsLocked(false);
       setSettings(prev => ({
@@ -88,7 +83,7 @@ const SettingsDialog: React.FC = () => {
         settingsLocked: false
       }));
     }
-  }, [isSettingsOpen, settings.settingsLocked, settingsPin]);
+  }, [isSettingsOpen, settings.settingsLocked]);
 
   const handleSaveApiSettings = () => {
     setApiConfig({
@@ -132,8 +127,6 @@ const SettingsDialog: React.FC = () => {
       autoScrollDirection,
       autoScrollSpeed,
       settingsLocked,
-      settingsPin,
-      settingsPinLength
     });
     
     setIsSettingsOpen(false);
@@ -172,8 +165,6 @@ const SettingsDialog: React.FC = () => {
       setAutoScrollDirection("down");
       setAutoScrollSpeed(10);
       setSettingsLocked(false);
-      setSettingsPin("");
-      setSettingsPinLength(4);
       
       toast({
         title: t("toast.settings.reset"),
@@ -334,10 +325,6 @@ const SettingsDialog: React.FC = () => {
                 <SettingsLock
                   isLocked={settingsLocked}
                   onLockChange={setSettingsLocked}
-                  pin={settingsPin}
-                  onPinChange={setSettingsPin}
-                  pinLength={settingsPinLength}
-                  onPinLengthChange={setSettingsPinLength}
                 />
               </div>
             ) : (
@@ -782,10 +769,6 @@ const SettingsDialog: React.FC = () => {
                   <SettingsLock
                     isLocked={settingsLocked}
                     onLockChange={setSettingsLocked}
-                    pin={settingsPin}
-                    onPinChange={setSettingsPin}
-                    pinLength={settingsPinLength}
-                    onPinLengthChange={setSettingsPinLength}
                   />
                 </TabsContent>
               </Tabs>
