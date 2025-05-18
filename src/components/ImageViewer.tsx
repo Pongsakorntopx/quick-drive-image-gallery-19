@@ -78,7 +78,7 @@ const ImageViewer: React.FC = () => {
   return (
     <div
       ref={viewerRef}
-      className="fixed inset-0 bg-black/90 backdrop-blur-sm z-50 flex items-center justify-center"
+      className="fixed inset-0 bg-black/95 backdrop-blur-xl z-50 flex items-center justify-center"
     >
       <Button
         size="icon"
@@ -114,28 +114,30 @@ const ImageViewer: React.FC = () => {
       
       <div className="w-full max-w-6xl h-full max-h-[85vh] px-4 flex flex-col md:flex-row items-center justify-center gap-6">
         <div className="relative flex-1 h-full max-h-[65vh] md:max-h-[85vh] flex items-center justify-center">
-          {/* Add decorative frame around the image */}
-          <div className="relative rounded-lg overflow-hidden shadow-2xl bg-gradient-to-r from-gray-800 to-gray-900 p-1">
-            <div className="absolute inset-0 bg-gradient-to-br from-purple-500/20 to-blue-500/20 opacity-70 z-0"></div>
-            <div className="relative z-10 p-2 bg-black/50 backdrop-blur-md rounded-lg">
+          {/* Enhanced decorative frame around the image */}
+          <div className="relative rounded-xl overflow-hidden shadow-2xl bg-gradient-to-r from-gray-800 to-gray-900 p-2">
+            {/* Gradient border effect */}
+            <div className="absolute inset-0 bg-gradient-to-br from-purple-500/30 to-blue-500/30 opacity-80 z-0 animate-pulse"></div>
+            
+            <div className="viewer-image-container relative z-10">
               <img
                 src={selectedPhoto.fullSizeUrl || selectedPhoto.url}
                 alt={t("viewer.imageAlt")}
-                className="max-w-full max-h-[60vh] md:max-h-[80vh] object-contain rounded shadow-lg"
+                className="viewer-image max-w-full max-h-[60vh] md:max-h-[80vh] object-contain"
                 draggable={false}
               />
-            </div>
-            
-            {/* Add photo name overlay at bottom */}
-            <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-3 text-center">
-              <h3 className="text-white font-medium truncate">{selectedPhoto.name}</h3>
+              
+              {/* Add photo name overlay at bottom */}
+              <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-3 text-center">
+                <h3 className="text-white font-medium truncate">{selectedPhoto.name}</h3>
+              </div>
             </div>
           </div>
         </div>
         
         <div className="flex-shrink-0 md:w-1/4 flex flex-col items-center justify-center">
-          <div className="bg-gradient-to-br from-white/95 to-white/85 p-3 rounded-lg shadow-2xl backdrop-blur-sm transform transition-all duration-200 hover:scale-105">
-            <div className="mb-3 text-center text-gray-800 font-medium">
+          <div className="bg-gradient-to-br from-white/95 to-white/85 dark:from-gray-800/95 dark:to-gray-900/85 p-4 rounded-xl shadow-2xl backdrop-blur-sm transform transition-all duration-200 hover:scale-105 border border-white/20 dark:border-gray-700/30">
+            <div className="mb-3 text-center text-gray-800 dark:text-gray-200 font-medium">
               <p>{t("viewer.scanQR")}</p>
             </div>
             <QRCode 
@@ -143,7 +145,7 @@ const ImageViewer: React.FC = () => {
               size={settings.qrCodeSize * 2} 
               className="shadow-md"
             />
-            <div className="mt-3 text-center text-xs text-gray-600">
+            <div className="mt-3 text-center text-xs text-gray-600 dark:text-gray-400">
               <p>{t("viewer.scanToDownload")}</p>
             </div>
           </div>

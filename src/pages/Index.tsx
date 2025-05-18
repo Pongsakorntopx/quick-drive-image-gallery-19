@@ -122,7 +122,7 @@ const Index = () => {
         <div className="fixed top-24 right-24 z-40">
           <QRCode 
             url={window.location.href} 
-            size={settings.qrCodeSize} 
+            size={settings.headerQRCodeSize || settings.qrCodeSize} 
             className="shadow-lg bg-white/90 backdrop-blur-sm"
           />
         </div>

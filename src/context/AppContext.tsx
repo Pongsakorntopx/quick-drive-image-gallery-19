@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useState, useEffect } from "react";
 import { ApiConfig, Photo, AppSettings, Theme, Font, PhotoFetchResult, Language, ThemeMode } from "../types";
 import { fetchPhotosFromDrive } from "../services/googleDriveService";
@@ -61,7 +60,7 @@ const predefinedThemes: Theme[] = [
 const defaultSettings: AppSettings = {
   title: "แกลเลอรี่รูปภาพ Google Drive",
   showTitle: true,
-  titleSize: 24,  // This is now a direct property, not under fontSize
+  titleSize: 24,
   theme: predefinedThemes[0],
   themeMode: "light" as ThemeMode,
   language: "th" as Language,
@@ -71,6 +70,7 @@ const defaultSettings: AppSettings = {
     body: 14,
   },
   qrCodeSize: 64,
+  headerQRCodeSize: 48,
   refreshInterval: 5,
   qrCodePosition: "bottomRight",
   showHeaderQR: false,
@@ -83,7 +83,9 @@ const defaultSettings: AppSettings = {
   autoScrollEnabled: false,
   autoScrollDirection: "down",
   autoScrollSpeed: 10,
-  // Removing settingsLocked property since it no longer exists in the AppSettings interface
+  gridLayout: "auto",
+  gridColumns: 4,
+  gridRows: 0,
 };
 
 // Context interface
@@ -166,8 +168,13 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         return { 
           ...defaultSettings, 
           ...parsed,
-          // For backward compatibility, use titleSize directly or fallback to default
+          // For backward compatibility
           titleSize: parsed.titleSize || defaultSettings.titleSize,
+          // For new properties
+          headerQRCodeSize: parsed.headerQRCodeSize || defaultSettings.headerQRCodeSize,
+          gridLayout: parsed.gridLayout || defaultSettings.gridLayout,
+          gridColumns: parsed.gridColumns || defaultSettings.gridColumns,
+          gridRows: parsed.gridRows || defaultSettings.gridRows,
         };
       } catch (e) {
         console.error("Error parsing saved settings:", e);

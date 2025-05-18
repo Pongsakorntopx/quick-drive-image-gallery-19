@@ -1,5 +1,5 @@
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import { useAppContext } from "../context/AppContext";
 import { Button } from "@/components/ui/button";
 import { X, Pause, Play } from "lucide-react";
@@ -10,19 +10,58 @@ const AutoScroll = () => {
   const { t } = useTranslation();
   const [isPaused, setIsPaused] = useState(false);
   const [isControlsVisible, setIsControlsVisible] = useState(true);
-  const [hideTimeout, setHideTimeout] = useState<NodeJS.Timeout | null>(null);
+  const hideTimeout = useRef<NodeJS.Timeout | null>(null);
+  
+  // Use requestAnimationFrame for smoother scrolling
+  const scrollAnimationRef = useRef<number | null>(null);
+  const lastScrollTime = useRef<number>(0);
+  
+  // Smoothly scroll the page using requestAnimationFrame
+  const smoothScroll = useCallback(() => {
+    if (!settings.autoScrollEnabled || isPaused) {
+      if (scrollAnimationRef.current) {
+        cancelAnimationFrame(scrollAnimationRef.current);
+        scrollAnimationRef.current = null;
+      }
+      return;
+    }
 
-  // Setup the autoscroll
-  useEffect(() => {
-    if (!settings.autoScrollEnabled || isPaused) return;
+    const now = performance.now();
+    const elapsed = now - lastScrollTime.current;
     
-    const interval = setInterval(() => {
+    // Limit scrolling to 60fps for smoothness
+    if (elapsed > 16) { // ~60fps (1000ms / 60 ≈ 16.67ms)
       const scrollAmount = settings.autoScrollDirection === "down" ? 1 : -1;
-      window.scrollBy(0, scrollAmount * settings.autoScrollSpeed);
-    }, 100);
+      
+      // Calculate a frame-rate independent scrolling amount
+      const scrollPixels = (settings.autoScrollSpeed * elapsed) / 100;
+      
+      window.scrollBy({
+        top: scrollAmount * scrollPixels,
+        left: 0,
+        behavior: 'auto' // Use auto instead of smooth for better control
+      });
+      
+      lastScrollTime.current = now;
+    }
     
-    return () => clearInterval(interval);
+    // Continue the animation loop
+    scrollAnimationRef.current = requestAnimationFrame(smoothScroll);
   }, [settings.autoScrollEnabled, settings.autoScrollDirection, settings.autoScrollSpeed, isPaused]);
+
+  // Setup the autoscroll using requestAnimationFrame for smoother scrolling
+  useEffect(() => {
+    if (settings.autoScrollEnabled && !isPaused) {
+      lastScrollTime.current = performance.now();
+      scrollAnimationRef.current = requestAnimationFrame(smoothScroll);
+    }
+    
+    return () => {
+      if (scrollAnimationRef.current) {
+        cancelAnimationFrame(scrollAnimationRef.current);
+      }
+    };
+  }, [settings.autoScrollEnabled, settings.autoScrollDirection, settings.autoScrollSpeed, isPaused, smoothScroll]);
   
   // Handle mouse movement or touch to show controls
   useEffect(() => {
@@ -32,8 +71,8 @@ const AutoScroll = () => {
       setIsControlsVisible(true);
       
       // Clear any existing timeout
-      if (hideTimeout) {
-        clearTimeout(hideTimeout);
+      if (hideTimeout.current) {
+        clearTimeout(hideTimeout.current);
       }
       
       // Set a new timeout to hide controls after 3 seconds
@@ -41,7 +80,7 @@ const AutoScroll = () => {
         setIsControlsVisible(false);
       }, 3000);
       
-      setHideTimeout(timeout);
+      hideTimeout.current = timeout;
     };
     
     window.addEventListener("mousemove", showControls);
@@ -53,8 +92,8 @@ const AutoScroll = () => {
     return () => {
       window.removeEventListener("mousemove", showControls);
       window.removeEventListener("touchstart", showControls);
-      if (hideTimeout) {
-        clearTimeout(hideTimeout);
+      if (hideTimeout.current) {
+        clearTimeout(hideTimeout.current);
       }
     };
   }, [settings.autoScrollEnabled]);

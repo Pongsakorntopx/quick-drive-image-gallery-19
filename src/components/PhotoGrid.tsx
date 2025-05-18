@@ -1,3 +1,4 @@
+
 import React, { useEffect, useRef, useState, useMemo } from "react";
 import { useAppContext } from "../context/AppContext";
 import ImageCard from "./ImageCard";
@@ -13,7 +14,7 @@ interface VirtualizedPhoto {
 }
 
 const PhotoGrid: React.FC = () => {
-  const { photos, isLoading, error, refreshPhotos, setSelectedPhoto } = useAppContext();
+  const { photos, isLoading, error, refreshPhotos, setSelectedPhoto, settings } = useAppContext();
   const gridRef = useRef<HTMLDivElement>(null);
   const [virtualizedPhotos, setVirtualizedPhotos] = useState<VirtualizedPhoto[]>([]);
   const { ref: loadMoreRef, inView } = useInView({
@@ -83,6 +84,11 @@ const PhotoGrid: React.FC = () => {
 
   // Create the masonry layout
   useEffect(() => {
+    // Don't use masonry layout if using fixed grid
+    if (settings.gridLayout === "fixed" || settings.gridLayout === "custom") {
+      return;
+    }
+    
     if (virtualizedPhotos.length > 0 && gridRef.current) {
       const resizeAllGridItems = () => {
         const allItems = gridRef.current?.querySelectorAll(".masonry-item");
@@ -139,7 +145,39 @@ const PhotoGrid: React.FC = () => {
         }
       };
     }
-  }, [virtualizedPhotos]);
+  }, [virtualizedPhotos, settings.gridLayout]);
+
+  // Get grid layout class based on settings
+  const getGridLayoutClass = () => {
+    if (settings.gridLayout === "fixed" || settings.gridLayout === "custom") {
+      const columns = settings.gridColumns || 4;
+      return `grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-${Math.min(columns, 12)}`;
+    }
+    return "masonry-grid";
+  };
+
+  // Get grid item class based on settings
+  const getGridItemClass = () => {
+    if (settings.gridLayout === "fixed" || settings.gridLayout === "custom") {
+      if (settings.gridRows && settings.gridRows > 0) {
+        const gridRowStyles = {
+          height: `calc(100vh / ${settings.gridRows + 1})`,
+          minHeight: "100px"
+        };
+        return { className: "", style: gridRowStyles };
+      }
+      return { className: "", style: {} };
+    }
+    return { className: "masonry-item", style: {} };
+  };
+
+  // Get content class based on settings
+  const getContentClass = () => {
+    if (settings.gridLayout === "fixed" || settings.gridLayout === "custom") {
+      return "h-full";
+    }
+    return "masonry-content";
+  };
 
   if (error) {
     return (
@@ -169,12 +207,18 @@ const PhotoGrid: React.FC = () => {
         </div>
       ) : (
         <>
-          <div ref={gridRef} className="masonry-grid">
+          <div ref={gridRef} className={getGridLayoutClass()}>
             {virtualizedPhotos.map((vPhoto) => {
               const photo = photoMap.get(vPhoto.id);
+              const gridItemProps = getGridItemClass();
+              
               return photo ? (
-                <div key={vPhoto.id} className="masonry-item">
-                  <div className="masonry-content">
+                <div 
+                  key={vPhoto.id} 
+                  className={gridItemProps.className}
+                  style={gridItemProps.style}
+                >
+                  <div className={getContentClass()}>
                     <ImageCard 
                       photo={photo} 
                       onClick={() => setSelectedPhoto(photo)} 

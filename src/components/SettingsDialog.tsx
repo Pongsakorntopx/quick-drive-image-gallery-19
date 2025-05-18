@@ -1,4 +1,3 @@
-
 import React, { useState, useRef, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -8,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
 import { useAppContext } from "../context/AppContext";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { RotateCw, Monitor, Smartphone, Tablet, Image, QrCode, ArrowDown, ArrowUp } from "lucide-react";
+import { RotateCw, Monitor, Smartphone, Tablet, Image, QrCode, ArrowDown, ArrowUp, Columns2, Columns3, Columns4, Grid2x2, Grid3x3 } from "lucide-react";
 import { toast } from "@/components/ui/use-toast";
 import { Separator } from "@/components/ui/separator";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -17,6 +16,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { fontCategories } from "../config/fonts";
 import { useTranslation } from "../hooks/useTranslation";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 
 const SettingsDialog: React.FC = () => {
   const { t } = useTranslation();
@@ -33,11 +33,13 @@ const SettingsDialog: React.FC = () => {
     resetAllData
   } = useAppContext();
 
+  // Basic settings
   const [apiKey, setApiKey] = useState(apiConfig.apiKey);
   const [folderId, setFolderId] = useState(apiConfig.folderId);
   const [title, setTitle] = useState(settings.title);
   const [showTitle, setShowTitle] = useState(settings.showTitle);
   const [qrCodeSize, setQrCodeSize] = useState(settings.qrCodeSize);
+  const [headerQRCodeSize, setHeaderQRCodeSize] = useState(settings.headerQRCodeSize || 48);
   const [refreshInterval, setRefreshInterval] = useState(settings.refreshInterval);
   const [titleFont, setTitleFont] = useState(settings.font.id);
   const [titleSize, setTitleSize] = useState(settings.titleSize);
@@ -47,6 +49,11 @@ const SettingsDialog: React.FC = () => {
   const [themeMode, setThemeMode] = useState(settings.themeMode);
   const [language, setLanguage] = useState(settings.language);
   const [previewDevice, setPreviewDevice] = useState<'desktop' | 'tablet' | 'mobile'>('desktop');
+  
+  // Grid Layout settings
+  const [gridLayout, setGridLayout] = useState(settings.gridLayout || "auto");
+  const [gridColumns, setGridColumns] = useState(settings.gridColumns || 4);
+  const [gridRows, setGridRows] = useState(settings.gridRows || 0);
   
   // Settings for QR code and logo
   const [qrCodePosition, setQrCodePosition] = useState(settings.qrCodePosition);
@@ -96,6 +103,7 @@ const SettingsDialog: React.FC = () => {
         body: bodySize,
       },
       qrCodeSize,
+      headerQRCodeSize,
       refreshInterval,
       qrCodePosition,
       showHeaderQR,
@@ -111,6 +119,10 @@ const SettingsDialog: React.FC = () => {
       autoScrollEnabled,
       autoScrollDirection,
       autoScrollSpeed,
+      // Grid layout settings
+      gridLayout,
+      gridColumns,
+      gridRows,
     });
     
     setIsSettingsOpen(false);
@@ -135,6 +147,7 @@ const SettingsDialog: React.FC = () => {
       setSubtitleSize(16);
       setBodySize(14);
       setQrCodeSize(64);
+      setHeaderQRCodeSize(48);
       setRefreshInterval(5);
       setQrCodePosition("bottomRight");
       setShowHeaderQR(false);
@@ -148,6 +161,9 @@ const SettingsDialog: React.FC = () => {
       setAutoScrollEnabled(false);
       setAutoScrollDirection("down");
       setAutoScrollSpeed(10);
+      setGridLayout("auto");
+      setGridColumns(4);
+      setGridRows(0);
       
       toast({
         title: t("toast.settings.reset"),
@@ -294,6 +310,15 @@ const SettingsDialog: React.FC = () => {
     );
   };
 
+  // Predefined grid layout presets
+  const gridPresets = [
+    { name: "1 x 1", columns: 1, rows: 1 },
+    { name: "2 x 2", columns: 2, rows: 2 },
+    { name: "3 x 3", columns: 3, rows: 3 },
+    { name: "4 x 3", columns: 4, rows: 3 },
+    { name: "5 x 4", columns: 5, rows: 4 },
+  ];
+
   return (
     <Dialog open={isSettingsOpen} onOpenChange={setIsSettingsOpen}>
       <DialogContent className="sm:max-w-[600px] max-h-[90vh] p-0">
@@ -304,9 +329,10 @@ const SettingsDialog: React.FC = () => {
         <ScrollArea className="px-4 max-h-[calc(90vh-8rem)]">
           <div className="p-1 pb-4">
             <Tabs defaultValue="appearance">
-              <TabsList className="grid grid-cols-3 mb-4">
+              <TabsList className="grid grid-cols-4 mb-4">
                 <TabsTrigger value="connection">{t("settings.tabs.connection")}</TabsTrigger>
                 <TabsTrigger value="appearance">{t("settings.tabs.appearance")}</TabsTrigger>
+                <TabsTrigger value="layout">{t("settings.tabs.layout") || "หน้าจอ"}</TabsTrigger>
                 <TabsTrigger value="advanced">{t("settings.tabs.advanced")}</TabsTrigger>
               </TabsList>
               
@@ -442,68 +468,326 @@ const SettingsDialog: React.FC = () => {
                 
                 <FontPreview />
               </TabsContent>
-              
-              <TabsContent value="advanced" className="space-y-6">
-                {/* Auto-scroll Settings */}
-                <div className="space-y-4 border p-4 rounded-md bg-muted/10">
-                  <h3 className="text-lg font-medium">{t("settings.advanced.autoScroll")}</h3>
-                  
-                  <div className="flex items-center space-x-2">
-                    <Switch
-                      id="auto-scroll"
-                      checked={autoScrollEnabled}
-                      onCheckedChange={setAutoScrollEnabled}
-                    />
-                    <Label htmlFor="auto-scroll">{t("settings.advanced.autoScrollEnabled")}</Label>
-                  </div>
-                  
-                  {autoScrollEnabled && (
-                    <div className="space-y-3 pl-6 border-l-2 border-primary/20 mt-2">
-                      <div className="space-y-2">
-                        <Label>{t("settings.advanced.autoScrollDirection")}</Label>
-                        <div className="flex gap-2">
-                          <Button
-                            type="button"
-                            variant={autoScrollDirection === 'down' ? 'default' : 'outline'}
-                            onClick={() => setAutoScrollDirection('down')}
+
+              {/* New Layout Tab */}
+              <TabsContent value="layout" className="space-y-6">
+                <Card>
+                  <CardHeader>
+                    <CardTitle>{t("settings.layout.gridTitle") || "การจัดเรียงรูปภาพ"}</CardTitle>
+                    <CardDescription>
+                      {t("settings.layout.gridDescription") || "กำหนดจำนวนรูปภาพต่อแถวและคอลัมน์"}
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div className="space-y-2">
+                      <Label>{t("settings.layout.layoutType") || "รูปแบบเลย์เอาท์"}</Label>
+                      <div className="flex gap-2">
+                        <Button
+                          type="button"
+                          variant={gridLayout === "auto" ? "default" : "outline"}
+                          onClick={() => setGridLayout("auto")}
+                          className="flex-1"
+                        >
+                          <Image className="h-4 w-4 mr-2" /> 
+                          {t("settings.layout.auto") || "อัตโนมัติ"}
+                        </Button>
+                        <Button
+                          type="button"
+                          variant={gridLayout === "fixed" ? "default" : "outline"}
+                          onClick={() => setGridLayout("fixed")}
+                          className="flex-1"
+                        >
+                          <Grid2x2 className="h-4 w-4 mr-2" /> 
+                          {t("settings.layout.fixed") || "คงที่"}
+                        </Button>
+                        <Button
+                          type="button"
+                          variant={gridLayout === "custom" ? "default" : "outline"}
+                          onClick={() => setGridLayout("custom")}
+                          className="flex-1"
+                        >
+                          <Grid3x3 className="h-4 w-4 mr-2" /> 
+                          {t("settings.layout.custom") || "กำหนดเอง"}
+                        </Button>
+                      </div>
+                    </div>
+
+                    {gridLayout === "fixed" && (
+                      <div className="space-y-4 pt-2 pb-2">
+                        <Label>{t("settings.layout.presets") || "เลย์เอาท์สำเร็จรูป"}</Label>
+                        <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+                          {gridPresets.map((preset, index) => (
+                            <Button
+                              key={index}
+                              variant={(gridColumns === preset.columns && gridRows === preset.rows) ? "default" : "outline"}
+                              onClick={() => {
+                                setGridColumns(preset.columns);
+                                setGridRows(preset.rows);
+                              }}
+                              className="flex items-center justify-center"
+                            >
+                              {preset.name}
+                            </Button>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {gridLayout === "custom" && (
+                      <div className="space-y-4 pt-2 pb-2 border-l-2 pl-4 border-primary/20">
+                        <div className="space-y-2">
+                          <Label htmlFor="grid-columns">
+                            {t("settings.layout.columnsValue", { columns: gridColumns }) || `คอลัมน์: ${gridColumns}`}
+                          </Label>
+                          <div className="flex items-center gap-3">
+                            <Columns2 className="h-4 w-4 text-muted-foreground" />
+                            <Slider
+                              id="grid-columns"
+                              value={[gridColumns]}
+                              min={1}
+                              max={12}
+                              step={1}
+                              className="flex-1"
+                              onValueChange={(value) => setGridColumns(value[0])}
+                            />
+                            <Columns4 className="h-4 w-4 text-muted-foreground" />
+                          </div>
+                          <Input 
+                            type="number" 
+                            min={1} 
+                            max={12} 
+                            value={gridColumns}
+                            className="mt-1 w-24"
+                            onChange={(e) => setGridColumns(parseInt(e.target.value) || 1)}
+                          />
+                        </div>
+
+                        <div className="space-y-2">
+                          <Label htmlFor="grid-rows">
+                            {t("settings.layout.rowsValue", { rows: gridRows === 0 ? "Auto" : gridRows }) || 
+                              `แถว: ${gridRows === 0 ? "อัตโนมัติ" : gridRows}`}
+                          </Label>
+                          <div className="flex items-center gap-3">
+                            <Columns2 className="h-4 w-4 text-muted-foreground rotate-90" />
+                            <Slider
+                              id="grid-rows"
+                              value={[gridRows]}
+                              min={0}
+                              max={12}
+                              step={1}
+                              className="flex-1"
+                              onValueChange={(value) => setGridRows(value[0])}
+                            />
+                            <Columns4 className="h-4 w-4 text-muted-foreground rotate-90" />
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <Input 
+                              type="number" 
+                              min={0} 
+                              max={12} 
+                              value={gridRows}
+                              className="mt-1 w-24"
+                              onChange={(e) => setGridRows(parseInt(e.target.value) || 0)}
+                            />
+                            <span className="text-xs text-muted-foreground">
+                              {t("settings.layout.autoRows") || "(0 = อัตโนมัติ)"}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+
+                <Card>
+                  <CardHeader>
+                    <CardTitle>{t("settings.qrcode.settings") || "ตั้งค่า QR Code"}</CardTitle>
+                    <CardDescription>
+                      {t("settings.qrcode.description") || "กำหนดขนาดและตำแหน่งของ QR Code"}
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="space-y-2 border p-3 rounded-md">
+                        <Label htmlFor="qr-size">
+                          {t("settings.qrcode.mainSize", { size: qrCodeSize }) || `QR Code หลัก (${qrCodeSize}px)`}
+                        </Label>
+                        <div className="flex items-center gap-2">
+                          <QrCode className="h-4 w-4 text-muted-foreground" />
+                          <Slider
+                            id="qr-size"
+                            value={[qrCodeSize]}
+                            min={32}
+                            max={180}
+                            step={8}
+                            onValueChange={(value) => setQrCodeSize(value[0])}
                             className="flex-1"
+                          />
+                        </div>
+                        <Input 
+                          type="number" 
+                          min={32} 
+                          max={180} 
+                          value={qrCodeSize}
+                          className="mt-1 w-full"
+                          onChange={(e) => setQrCodeSize(parseInt(e.target.value) || 64)}
+                        />
+                        
+                        <div className="mt-3">
+                          <Label>{t("settings.qrcode.position") || "ตำแหน่ง QR Code"}</Label>
+                          <RadioGroup 
+                            value={qrCodePosition} 
+                            onValueChange={(value: "bottomRight" | "bottomLeft" | "topRight" | "topLeft" | "center") => setQrCodePosition(value)} 
+                            className="grid grid-cols-2 gap-2 mt-2"
                           >
-                            <ArrowDown className="h-4 w-4 mr-2" /> {t("settings.advanced.autoScrollDown")}
-                          </Button>
-                          
-                          <Button
-                            type="button"
-                            variant={autoScrollDirection === 'up' ? 'default' : 'outline'}
-                            onClick={() => setAutoScrollDirection('up')}
-                            className="flex-1"
-                          >
-                            <ArrowUp className="h-4 w-4 mr-2" /> {t("settings.advanced.autoScrollUp")}
-                          </Button>
+                            <div className="flex items-center space-x-2">
+                              <RadioGroupItem value="bottomRight" id="qr-br" />
+                              <Label htmlFor="qr-br">{t("settings.banner.bottomRight")}</Label>
+                            </div>
+                            <div className="flex items-center space-x-2">
+                              <RadioGroupItem value="bottomLeft" id="qr-bl" />
+                              <Label htmlFor="qr-bl">{t("settings.banner.bottomLeft")}</Label>
+                            </div>
+                            <div className="flex items-center space-x-2">
+                              <RadioGroupItem value="topRight" id="qr-tr" />
+                              <Label htmlFor="qr-tr">{t("settings.banner.topRight")}</Label>
+                            </div>
+                            <div className="flex items-center space-x-2">
+                              <RadioGroupItem value="topLeft" id="qr-tl" />
+                              <Label htmlFor="qr-tl">{t("settings.banner.topLeft")}</Label>
+                            </div>
+                            <div className="flex items-center space-x-2">
+                              <RadioGroupItem value="center" id="qr-c" />
+                              <Label htmlFor="qr-c">กลาง</Label>
+                            </div>
+                          </RadioGroup>
                         </div>
                       </div>
                       
-                      <div className="space-y-2">
-                        <Label htmlFor="scroll-speed">
-                          {t("settings.advanced.autoScrollSpeed", { speed: autoScrollSpeed })}
-                        </Label>
-                        <div className="flex gap-2 items-center">
-                          <span className="text-sm">{t("settings.advanced.slow")}</span>
-                          <Slider
-                            id="scroll-speed"
-                            value={[autoScrollSpeed]}
-                            min={1}
-                            max={20}
-                            step={1}
-                            onValueChange={(value) => setAutoScrollSpeed(value[0])}
-                            className="flex-1"
+                      <div className="space-y-2 border p-3 rounded-md">
+                        <div className="flex items-center space-x-2 mb-3">
+                          <Switch 
+                            id="show-header-qr" 
+                            checked={showHeaderQR}
+                            onCheckedChange={setShowHeaderQR}
                           />
-                          <span className="text-sm">{t("settings.advanced.fast")}</span>
+                          <Label htmlFor="show-header-qr">{t("settings.qrcode.showHeader") || "แสดง QR Code ที่ส่วนหัว"}</Label>
                         </div>
+                        
+                        {showHeaderQR && (
+                          <>
+                            <Label htmlFor="header-qr-size">
+                              {t("settings.qrcode.headerSize", { size: headerQRCodeSize }) || `QR Code ส่วนหัว (${headerQRCodeSize}px)`}
+                            </Label>
+                            <div className="flex items-center gap-2">
+                              <QrCode className="h-4 w-4 text-muted-foreground" />
+                              <Slider
+                                id="header-qr-size"
+                                value={[headerQRCodeSize]}
+                                min={32}
+                                max={180}
+                                step={8}
+                                onValueChange={(value) => setHeaderQRCodeSize(value[0])}
+                                className="flex-1"
+                              />
+                            </div>
+                            <Input 
+                              type="number" 
+                              min={32} 
+                              max={180} 
+                              value={headerQRCodeSize}
+                              className="mt-1 w-full"
+                              onChange={(e) => setHeaderQRCodeSize(parseInt(e.target.value) || 48)}
+                            />
+                          </>
+                        )}
                       </div>
                     </div>
-                  )}
-                </div>
+                  </CardContent>
+                </Card>
+              </TabsContent>
+              
+              <TabsContent value="advanced" className="space-y-6">
+                {/* Auto-scroll Settings */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle>{t("settings.advanced.autoScroll") || "การเลื่อนอัตโนมัติ"}</CardTitle>
+                    <CardDescription>
+                      {t("settings.advanced.autoScrollDesc") || "ปรับการตั้งค่าการเลื่อนหน้าจออัตโนมัติ"}
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div className="flex items-center space-x-2">
+                      <Switch
+                        id="auto-scroll"
+                        checked={autoScrollEnabled}
+                        onCheckedChange={setAutoScrollEnabled}
+                      />
+                      <Label htmlFor="auto-scroll">{t("settings.advanced.autoScrollEnabled") || "เปิดใช้การเลื่อนอัตโนมัติ"}</Label>
+                    </div>
+                    
+                    {autoScrollEnabled && (
+                      <div className="space-y-3 pl-6 border-l-2 border-primary/20 mt-2">
+                        <div className="space-y-2">
+                          <Label>{t("settings.advanced.autoScrollDirection") || "ทิศทางการเลื่อน"}</Label>
+                          <div className="flex gap-2">
+                            <Button
+                              type="button"
+                              variant={autoScrollDirection === 'down' ? 'default' : 'outline'}
+                              onClick={() => setAutoScrollDirection('down')}
+                              className="flex-1"
+                            >
+                              <ArrowDown className="h-4 w-4 mr-2" /> {t("settings.advanced.autoScrollDown") || "เลื่อนลง"}
+                            </Button>
+                            
+                            <Button
+                              type="button"
+                              variant={autoScrollDirection === 'up' ? 'default' : 'outline'}
+                              onClick={() => setAutoScrollDirection('up')}
+                              className="flex-1"
+                            >
+                              <ArrowUp className="h-4 w-4 mr-2" /> {t("settings.advanced.autoScrollUp") || "เลื่อนขึ้น"}
+                            </Button>
+                          </div>
+                        </div>
+                        
+                        <div className="space-y-2">
+                          <Label htmlFor="scroll-speed">
+                            {t("settings.advanced.autoScrollSpeed", { speed: autoScrollSpeed }) || `ความเร็วในการเลื่อน: ${autoScrollSpeed}`}
+                          </Label>
+                          <div className="flex gap-2 items-center">
+                            <span className="text-sm">{t("settings.advanced.slow") || "ช้า"}</span>
+                            <Slider
+                              id="scroll-speed"
+                              value={[autoScrollSpeed]}
+                              min={1}
+                              max={20}
+                              step={1}
+                              onValueChange={(value) => setAutoScrollSpeed(value[0])}
+                              className="flex-1"
+                            />
+                            <span className="text-sm">{t("settings.advanced.fast") || "เร็ว"}</span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <Input 
+                              type="number" 
+                              min={1} 
+                              max={20} 
+                              value={autoScrollSpeed}
+                              className="mt-1 w-24"
+                              onChange={(e) => setAutoScrollSpeed(parseInt(e.target.value) || 5)}
+                            />
+                            <span className="text-xs text-muted-foreground">
+                              {t("settings.advanced.pixelsPerInterval") || "(พิกเซลต่อการเลื่อน)"}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
                 
+                {/* Keep other advanced settings */}
                 <div className="space-y-4 border p-4 rounded-md bg-muted/10">
                   <h3 className="text-lg font-medium">{t("settings.logo.upload")}</h3>
                   <div className="space-y-2">
@@ -678,62 +962,6 @@ const SettingsDialog: React.FC = () => {
                           <Label htmlFor="banner-tr">{t("settings.banner.topRight")}</Label>
                         </div>
                       </RadioGroup>
-                    </div>
-                  </div>
-                </div>
-                
-                <div className="space-y-4 border p-4 rounded-md bg-muted/10">
-                  <h3 className="text-lg font-medium">QR Code</h3>
-                  <div className="space-y-2">
-                    <Label htmlFor="qr-size">
-                      {t("settings.qrcode.size", { size: qrCodeSize })}
-                    </Label>
-                    <Slider
-                      id="qr-size"
-                      value={[qrCodeSize]}
-                      min={32}
-                      max={180}
-                      step={8}
-                      onValueChange={(value) => setQrCodeSize(value[0])}
-                    />
-                    
-                    <div className="mt-4">
-                      <Label>{t("settings.qrcode.position")}</Label>
-                      <RadioGroup 
-                        value={qrCodePosition} 
-                        onValueChange={(value: "bottomRight" | "bottomLeft" | "topRight" | "topLeft" | "center") => setQrCodePosition(value)} 
-                        className="grid grid-cols-2 gap-2 mt-2"
-                      >
-                        <div className="flex items-center space-x-2">
-                          <RadioGroupItem value="bottomRight" id="qr-br" />
-                          <Label htmlFor="qr-br">{t("settings.banner.bottomRight")}</Label>
-                        </div>
-                        <div className="flex items-center space-x-2">
-                          <RadioGroupItem value="bottomLeft" id="qr-bl" />
-                          <Label htmlFor="qr-bl">{t("settings.banner.bottomLeft")}</Label>
-                        </div>
-                        <div className="flex items-center space-x-2">
-                          <RadioGroupItem value="topRight" id="qr-tr" />
-                          <Label htmlFor="qr-tr">{t("settings.banner.topRight")}</Label>
-                        </div>
-                        <div className="flex items-center space-x-2">
-                          <RadioGroupItem value="topLeft" id="qr-tl" />
-                          <Label htmlFor="qr-tl">{t("settings.banner.topLeft")}</Label>
-                        </div>
-                        <div className="flex items-center space-x-2">
-                          <RadioGroupItem value="center" id="qr-c" />
-                          <Label htmlFor="qr-c">กลาง</Label>
-                        </div>
-                      </RadioGroup>
-                    </div>
-                    
-                    <div className="flex items-center space-x-2 mt-4">
-                      <Switch 
-                        id="show-header-qr" 
-                        checked={showHeaderQR}
-                        onCheckedChange={setShowHeaderQR}
-                      />
-                      <Label htmlFor="show-header-qr">{t("settings.qrcode.showHeader")}</Label>
                     </div>
                   </div>
                 </div>

@@ -1,4 +1,3 @@
-
 export interface ApiConfig {
   apiKey: string;
   folderId: string;
@@ -47,7 +46,8 @@ export interface AppSettings {
     subtitle: number;
     body: number;
   };
-  qrCodeSize: number;
+  qrCodeSize: number; // Main QR code size (for images)
+  headerQRCodeSize: number; // New property for header QR code size
   refreshInterval: number;
   qrCodePosition: "bottomRight" | "bottomLeft" | "topRight" | "topLeft" | "center";
   showHeaderQR: boolean;
@@ -60,7 +60,10 @@ export interface AppSettings {
   autoScrollEnabled: boolean;
   autoScrollDirection: "up" | "down";
   autoScrollSpeed: number;
-  // Removed settingsLocked property
+  // New grid layout options
+  gridLayout: "auto" | "fixed" | "custom";
+  gridColumns: number;
+  gridRows: number;
 }
 
 // Add interface for photo fetch result to fix the context errors
