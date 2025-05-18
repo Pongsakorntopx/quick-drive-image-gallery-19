@@ -104,25 +104,6 @@ const ImageViewer: React.FC = () => {
       window.removeEventListener('keydown', handleKeyDown);
     };
   }, [handleKeyDown]);
-  
-  const getQRPosition = () => {
-    const baseClasses = "z-10 bg-white/90 p-2 rounded-lg shadow-lg backdrop-blur-sm";
-    
-    switch (settings.qrCodePosition) {
-      case "bottomRight":
-        return `${baseClasses} absolute bottom-4 right-4`;
-      case "bottomLeft":
-        return `${baseClasses} absolute bottom-4 left-4`;
-      case "topRight":
-        return `${baseClasses} absolute top-4 right-4`;
-      case "topLeft":
-        return `${baseClasses} absolute top-4 left-4`;
-      case "center":
-        return `${baseClasses} absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2`;
-      default:
-        return `${baseClasses} absolute bottom-4 right-4`;
-    }
-  };
 
   return (
     <div className="fixed inset-0 bg-black/90 backdrop-blur-sm z-50 flex items-center justify-center">
@@ -174,7 +155,7 @@ const ImageViewer: React.FC = () => {
         </div>
         
         <div className="flex-shrink-0 md:w-1/4 flex flex-col items-center justify-center">
-          <div className={getQRPosition().replace("absolute", "")}>
+          <div className="bg-white/90 p-2 rounded-lg shadow-lg backdrop-blur-sm">
             <QRCode 
               url={selectedPhoto.webContentLink || selectedPhoto.url} 
               size={settings.qrCodeSize * 2} 

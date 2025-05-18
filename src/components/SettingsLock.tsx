@@ -1,6 +1,6 @@
 
 import React, { useState } from "react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Lock, Unlock } from "lucide-react";
 import { useTranslation } from "../hooks/useTranslation";
@@ -164,6 +164,11 @@ const SettingsLock: React.FC<SettingsLockProps> = ({
               {mode === "set" && t("settings.lock.setPin")}
               {mode === "change" && t("settings.lock.changePin")}
             </DialogTitle>
+            <DialogDescription>
+              {mode === "unlock" && t("settings.lock.enterPinDescription")}
+              {mode === "set" && t("settings.lock.setPinDescription")}
+              {mode === "change" && t("settings.lock.changePinDescription")}
+            </DialogDescription>
           </DialogHeader>
           
           {(mode === "unlock" || mode === "change") && (
