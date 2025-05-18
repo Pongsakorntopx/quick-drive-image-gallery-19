@@ -2,8 +2,16 @@
 import { ApiConfig, Photo } from "../types";
 
 const DRIVE_API_BASE_URL = "https://www.googleapis.com/drive/v3";
-const DEFAULT_FIELDS = "files(id,name,mimeType,thumbnailLink,webContentLink,createdTime,modifiedTime,size)";
+const DEFAULT_FIELDS = "files(id,name,mimeType,thumbnailLink,webContentLink,createdTime,modifiedTime,size,iconLink)";
 const MAX_RESULTS = 1000; // Increase max results
+const CACHE_TIMEOUT = 300000; // 5 minutes cache for API responses
+
+// Cache for API responses to reduce API calls
+let photosCache = {
+  timestamp: 0,
+  photos: [] as Photo[],
+  folderId: ''
+};
 
 export const fetchPhotosFromDrive = async (config: ApiConfig): Promise<Photo[]> => {
   try {
@@ -11,7 +19,19 @@ export const fetchPhotosFromDrive = async (config: ApiConfig): Promise<Photo[]> 
       console.error("API Key or Folder ID is missing");
       return [];
     }
+    
+    // Check if we have a valid recent cache for this folder
+    const now = Date.now();
+    if (
+      photosCache.folderId === config.folderId &&
+      photosCache.photos.length > 0 &&
+      now - photosCache.timestamp < CACHE_TIMEOUT
+    ) {
+      console.log(`Using cached photos (${photosCache.photos.length} items), cache age: ${Math.round((now - photosCache.timestamp) / 1000)}s`);
+      return photosCache.photos;
+    }
 
+    console.log("Fetching fresh photos from Google Drive API");
     let allPhotos: any[] = [];
     let pageToken: string | null = null;
     
@@ -52,10 +72,8 @@ export const fetchPhotosFromDrive = async (config: ApiConfig): Promise<Photo[]> 
       }
     } while (pageToken);
     
-    // Only log when there's an actual change in the number of photos
-    console.log(`Fetched ${allPhotos.length} photos from Google Drive`);
-    
-    return allPhotos.map((file: any) => ({
+    // Transform API response into Photo objects with multiple URL options
+    const processedPhotos = allPhotos.map((file: any) => ({
       id: file.id,
       name: file.name,
       // Improved URL generation with multiple fallbacks and timestamp to prevent caching
@@ -72,12 +90,30 @@ export const fetchPhotosFromDrive = async (config: ApiConfig): Promise<Photo[]> 
       // Add direct download link that doesn't require login
       directDownloadUrl: getDirectDownloadUrl(file.id)
     }));
+    
+    // Only log when there's an actual change in the number of photos
+    console.log(`Fetched ${processedPhotos.length} photos from Google Drive`);
+    
+    // Update cache
+    photosCache = {
+      timestamp: now,
+      photos: processedPhotos,
+      folderId: config.folderId
+    };
+    
+    return processedPhotos;
   } catch (error) {
     console.error("Error fetching photos from Google Drive:", error);
+    // Return cached photos if available in case of API error
+    if (photosCache.photos.length > 0) {
+      console.log("Returning cached photos due to API error");
+      return photosCache.photos;
+    }
     return [];
   }
 };
 
+// Get different types of URLs for photos for maximum compatibility
 export const getPhotoUrl = (photoId: string): string => {
   // Direct link with caching prevention
   return `https://drive.google.com/uc?export=view&id=${photoId}&t=${Date.now()}`;
@@ -101,4 +137,19 @@ export const getDirectDownloadUrl = (photoId: string): string => {
 // Get the folder URL from folder ID
 export const getFolderUrl = (folderId: string): string => {
   return `https://drive.google.com/drive/folders/${folderId}`;
+};
+
+// Pre-fetch image to improve rendering performance
+export const preloadImage = (url: string): Promise<boolean> => {
+  return new Promise((resolve) => {
+    const img = new Image();
+    img.onload = () => resolve(true);
+    img.onerror = () => resolve(false);
+    img.src = url;
+  });
+};
+
+// Helper to get best available image URL with fallbacks
+export const getBestImageUrl = (photo: Photo): string => {
+  return photo.fullSizeUrl || photo.webContentLink || photo.url;
 };
