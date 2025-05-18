@@ -1,5 +1,4 @@
 
-
 export interface ApiConfig {
   apiKey: string;
   folderId: string;
@@ -61,7 +60,7 @@ export interface AppSettings {
   autoScrollEnabled: boolean;
   autoScrollDirection: "up" | "down";
   autoScrollSpeed: number;
-  settingsLocked: boolean; // Setting for locking settings
+  // Removed settingsLocked property
 }
 
 // Add interface for photo fetch result to fix the context errors

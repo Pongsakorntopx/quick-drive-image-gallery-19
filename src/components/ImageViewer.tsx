@@ -11,41 +11,6 @@ const ImageViewer: React.FC = () => {
   const [isOpen, setIsOpen] = useState(false);
   const { t } = useTranslation();
   
-  // Touch swiping functionality
-  const [touchStart, setTouchStart] = useState<number | null>(null);
-  const [touchEnd, setTouchEnd] = useState<number | null>(null);
-  
-  // Handle touch gestures
-  const handleTouchStart = (e: React.TouchEvent) => {
-    setTouchStart(e.targetTouches[0].clientX);
-    setTouchEnd(null); // Reset touchEnd
-  };
-  
-  const handleTouchMove = (e: React.TouchEvent) => {
-    setTouchEnd(e.targetTouches[0].clientX);
-  };
-  
-  const handleTouchEnd = () => {
-    if (!touchStart || !touchEnd) return;
-    
-    const distance = touchStart - touchEnd;
-    const isSwipe = Math.abs(distance) > 50; // Minimum distance for a swipe
-    
-    if (isSwipe) {
-      if (distance > 0) {
-        // Swiped left (next)
-        navigateToNextPhoto();
-      } else {
-        // Swiped right (previous)
-        navigateToPreviousPhoto();
-      }
-    }
-    
-    // Reset values
-    setTouchStart(null);
-    setTouchEnd(null);
-  };
-  
   // Open image when photo is selected
   useEffect(() => {
     if (selectedPhoto) {
@@ -85,25 +50,6 @@ const ImageViewer: React.FC = () => {
       setSelectedPhoto(photos[currentIndex + 1]);
     }
   };
-  
-  // Keyboard navigation
-  const handleKeyDown = useCallback((e: KeyboardEvent) => {
-    if (e.key === 'ArrowLeft') {
-      navigateToPreviousPhoto();
-    } else if (e.key === 'ArrowRight') {
-      navigateToNextPhoto();
-    } else if (e.key === 'Escape') {
-      handleClose();
-    }
-  }, [currentIndex, photos]);
-  
-  // Add keyboard event listeners
-  useEffect(() => {
-    window.addEventListener('keydown', handleKeyDown);
-    return () => {
-      window.removeEventListener('keydown', handleKeyDown);
-    };
-  }, [handleKeyDown]);
 
   return (
     <div className="fixed inset-0 bg-black/90 backdrop-blur-sm z-50 flex items-center justify-center">
@@ -139,12 +85,7 @@ const ImageViewer: React.FC = () => {
         </Button>
       )}
       
-      <div 
-        className="w-full max-w-5xl h-full max-h-[85vh] px-4 flex flex-col md:flex-row items-center justify-center gap-6"
-        onTouchStart={handleTouchStart}
-        onTouchMove={handleTouchMove}
-        onTouchEnd={handleTouchEnd}
-      >
+      <div className="w-full max-w-5xl h-full max-h-[85vh] px-4 flex flex-col md:flex-row items-center justify-center gap-6">
         <div className="relative flex-1 h-full max-h-[65vh] md:max-h-[85vh] flex items-center justify-center">
           <img
             src={selectedPhoto.fullSizeUrl || selectedPhoto.url}
