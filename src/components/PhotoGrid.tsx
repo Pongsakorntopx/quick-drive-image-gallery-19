@@ -1,3 +1,4 @@
+
 import React, { useEffect, useRef, useState, useMemo } from "react";
 import { useAppContext } from "../context/AppContext";
 import ImageCard from "./ImageCard";
@@ -284,8 +285,9 @@ const PhotoGrid: React.FC = () => {
         </>
       )}
       
-      {/* เพิ่ม CSS สำหรับ masonry grid ให้สวยงามยิ่งขึ้น */}
-      <style jsx global>{`
+      {/* Adding CSS styles correctly */}
+      <style>
+        {`
         .masonry-grid {
           display: grid;
           grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
@@ -336,9 +338,11 @@ const PhotoGrid: React.FC = () => {
             grid-template-columns: repeat(6, 1fr);
           }
         }
-      `}</style>
+        `}
+      </style>
     </div>
   );
 };
 
 export default PhotoGrid;
+
