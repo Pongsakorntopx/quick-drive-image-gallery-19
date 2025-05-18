@@ -60,11 +60,6 @@ const ViewerMode = () => {
     }
   }
 
-  function getBannerSize() {
-    // bannerSize is now a number (pixels)
-    return `max-w-[${settings.bannerSize}px] max-h-[${settings.bannerSize}px]`;
-  }
-
   return (
     <div className={`min-h-screen flex flex-col bg-background ${settings.font.class}`}>
       <header className="w-full px-4 md:px-6 py-3 bg-background/90 backdrop-blur-sm border-b sticky top-0 z-10">

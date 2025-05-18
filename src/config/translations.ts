@@ -77,6 +77,10 @@ export const translations: Translation = {
     th: "การแสดงผล",
     en: "Appearance"
   },
+  "settings.tabs.layout": {
+    th: "เค้าโครง",
+    en: "Layout"
+  },
   "settings.tabs.advanced": {
     th: "ขั้นสูง",
     en: "Advanced"
@@ -148,6 +152,40 @@ export const translations: Translation = {
     en: "Additional Fonts"
   },
   
+  // Layout settings
+  "settings.layout.title": {
+    th: "เค้าโครงรูปภาพ",
+    en: "Photo Layout"
+  },
+  "settings.layout.type": {
+    th: "รูปแบบการแสดงผล",
+    en: "Display Type"
+  },
+  "settings.layout.googlePhotos": {
+    th: "Google Photos",
+    en: "Google Photos"
+  },
+  "settings.layout.fixed": {
+    th: "ตารางคงที่",
+    en: "Fixed Grid"
+  },
+  "settings.layout.custom": {
+    th: "กำหนดเอง",
+    en: "Custom"
+  },
+  "settings.layout.columns": {
+    th: "จำนวนคอลัมน์: {columns}",
+    en: "Columns: {columns}"
+  },
+  "settings.layout.rows": {
+    th: "จำนวนแถว: {rows}",
+    en: "Rows: {rows}"
+  },
+  "settings.layout.preset": {
+    th: "เค้าโครงสำเร็จรูป",
+    en: "Layout Preset"
+  },
+  
   // Advanced settings
   "settings.advanced.autoScroll": {
     th: "เลื่อนหน้าเว็บอัตโนมัติ",
@@ -209,22 +247,6 @@ export const translations: Translation = {
     th: "ขนาด",
     en: "Size"
   },
-  "settings.banner.small": {
-    th: "เล็ก",
-    en: "Small"
-  },
-  "settings.banner.medium": {
-    th: "กลาง",
-    en: "Medium"
-  },
-  "settings.banner.large": {
-    th: "ใหญ่",
-    en: "Large"
-  },
-  "settings.banner.custom": {
-    th: "กำหนดเอง",
-    en: "Custom"
-  },
   "settings.banner.width": {
     th: "ความกว้าง: {width}px",
     en: "Width: {width}px"
@@ -255,9 +277,21 @@ export const translations: Translation = {
   },
   
   // QR Code settings
-  "settings.qrcode.size": {
-    th: "ขนาด QR Code: {size}px",
-    en: "QR Code Size: {size}px"
+  "settings.qrcode.title": {
+    th: "ตั้งค่า QR Code",
+    en: "QR Code Settings"
+  },
+  "settings.qrcode.mainSize": {
+    th: "ขนาด QR Code หลัก: {size}px",
+    en: "Main QR Code Size: {size}px"
+  },
+  "settings.qrcode.headerSize": {
+    th: "ขนาด QR Code บนหัวเว็บ: {size}px",
+    en: "Header QR Code Size: {size}px"
+  },
+  "settings.qrcode.viewerSize": {
+    th: "ขนาด QR Code บนรูปภาพ: {size}px",
+    en: "Viewer QR Code Size: {size}px"
   },
   "settings.qrcode.position": {
     th: "ตำแหน่ง QR Code บนรูปภาพ",

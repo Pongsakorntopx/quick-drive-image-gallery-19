@@ -84,7 +84,7 @@ const PhotoGrid: React.FC = () => {
 
   // Create the masonry layout
   useEffect(() => {
-    // Don't use masonry layout if using fixed grid or custom grid
+    // Only apply masonry layout for Google Photos or auto layout
     if (settings.gridLayout !== "googlePhotos" && settings.gridLayout !== "auto") {
       return;
     }
@@ -226,7 +226,16 @@ const PhotoGrid: React.FC = () => {
         </div>
       ) : (
         <>
-          <div ref={gridRef} className={getGridLayoutClass()}>
+          <div 
+            ref={gridRef} 
+            className={getGridLayoutClass()}
+            style={settings.gridLayout === "googlePhotos" ? { 
+              display: "grid", 
+              gridTemplateColumns: "repeat(auto-fill, minmax(250px, 1fr))",
+              gridAutoRows: "10px",
+              gridGap: "16px"
+            } : {}}
+          >
             {virtualizedPhotos.map((vPhoto) => {
               const photo = photoMap.get(vPhoto.id);
               const gridItemProps = getGridItemClass();
@@ -262,6 +271,22 @@ const PhotoGrid: React.FC = () => {
           )}
         </>
       )}
+      
+      {/* Add some global CSS for the masonry grid */}
+      <style jsx global>{`
+        .masonry-grid {
+          display: grid;
+          grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+          grid-auto-rows: 10px;
+          grid-gap: 16px;
+        }
+        .masonry-item {
+          margin-bottom: 0;
+        }
+        .masonry-content {
+          width: 100%;
+        }
+      `}</style>
     </div>
   );
 };

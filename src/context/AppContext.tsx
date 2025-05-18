@@ -1,3 +1,4 @@
+
 import React, { createContext, useContext, useState, useEffect } from "react";
 import { ApiConfig, Photo, AppSettings, Theme, Font, PhotoFetchResult, Language, ThemeMode } from "../types";
 import { fetchPhotosFromDrive } from "../services/googleDriveService";
@@ -83,7 +84,7 @@ const defaultSettings: AppSettings = {
   autoScrollEnabled: false,
   autoScrollDirection: "down",
   autoScrollSpeed: 10,
-  gridLayout: "googlePhotos", // Changed default to googlePhotos
+  gridLayout: "googlePhotos", // Set to googlePhotos as the default layout
   gridColumns: 4,
   gridRows: 0,
 };
