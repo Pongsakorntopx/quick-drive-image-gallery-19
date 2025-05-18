@@ -63,7 +63,7 @@ const defaultSettings: AppSettings = {
   titleSize: 24,
   theme: predefinedThemes[0],
   themeMode: "light" as ThemeMode,
-  language: "th" as Language,
+  language: "th" as Language, // Keep default as Thai
   font: allFonts[0],
   fontSize: {
     subtitle: 16,
@@ -170,6 +170,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           ...parsed,
           // For backward compatibility
           titleSize: parsed.titleSize || defaultSettings.titleSize,
+          // Force language to Thai (as we're removing language selection)
+          language: "th",
           // For new properties
           headerQRCodeSize: parsed.headerQRCodeSize || defaultSettings.headerQRCodeSize,
           viewerQRCodeSize: parsed.viewerQRCodeSize || defaultSettings.viewerQRCodeSize,
@@ -209,28 +211,15 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setSelectedPhoto(null);
     
     toast({
-      title: settings.language === "th" ? "ล้างข้อมูลทั้งหมดสำเร็จ" : "All data has been reset successfully",
-      description: settings.language === "th" 
-        ? "การตั้งค่าทั้งหมดถูกรีเซ็ตเป็นค่าเริ่มต้น" 
-        : "All settings have been reset to defaults",
+      title: "ล้างข้อมูลทั้งหมดสำเร็จ",
+      description: "การตั้งค่าทั้งหมดถูกรีเซ็ตเป็นค่าเริ่มต้น"
     });
-  };
-
-  // Helper function to check if photos array has actually changed
-  const checkIfPhotosChanged = (oldPhotos: Photo[], newPhotos: Photo[]): boolean => {
-    if (oldPhotos.length !== newPhotos.length) {
-      return true;
-    }
-    
-    // Check if any IDs are different
-    const oldIds = new Set(oldPhotos.map(p => p.id));
-    return newPhotos.some(p => !oldIds.has(p.id));
   };
 
   // Modified refresh photos function to always place new photos at the top
   const refreshPhotos = async (): Promise<boolean> => {
     if (!apiConfig.apiKey || !apiConfig.folderId) {
-      setError(settings.language === "th" ? "กรุณาระบุ API Key และ Folder ID" : "Please provide API Key and Folder ID");
+      setError("กรุณาระบุ API Key และ Folder ID");
       return false;
     }
     
@@ -257,53 +246,65 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           return 0;
         });
         
-        // Find new photos (not in the current photos array)
+        // Find new photos that weren't in the previous array
         if (photos.length > 0) {
-          const currentIds = new Set(photos.map(p => p.id));
-          const newPhotos = sortedPhotos.filter(p => !currentIds.has(p.id));
-          const existingPhotos = sortedPhotos.filter(p => currentIds.has(p.id));
+          const existingIds = new Set(photos.map(p => p.id));
+          const newPhotos = sortedPhotos.filter(p => !existingIds.has(p.id));
           
-          // If we have new photos, place them at the beginning
           if (newPhotos.length > 0) {
-            setPhotos([...newPhotos, ...existingPhotos]);
+            console.log(`Found ${newPhotos.length} new photos. Placing them at the top.`);
+            // Place new photos at the top, followed by existing photos in their current order
+            // This preserves the existing order while adding new photos at the top
+            setPhotos(prevPhotos => [...newPhotos, ...prevPhotos]);
           } else {
-            setPhotos(sortedPhotos);
+            // If no new photos, just check for any changes in the existing ones (like modified time)
+            const updatedPhotos = sortedPhotos.map(newPhoto => {
+              const existingPhoto = photos.find(p => p.id === newPhoto.id);
+              // If the photo has been modified, use the new version, otherwise keep the existing
+              return existingPhoto && 
+                     existingPhoto.modifiedTime === newPhoto.modifiedTime ? 
+                     existingPhoto : newPhoto;
+            });
+            setPhotos(updatedPhotos);
           }
         } else {
+          // Initial load
           setPhotos(sortedPhotos);
         }
         
         setError(null);
         return true;
       } else {
-        setError(settings.language === "th" ? 
-          "ไม่สามารถดึงข้อมูลรูปภาพได้" : 
-          "Could not fetch images"
-        );
+        setError("ไม่สามารถดึงข้อมูลรูปภาพได้");
         return false;
       }
     } catch (err) {
       console.error("Error fetching photos:", err);
-      setError(settings.language === "th" ? 
-        "เกิดข้อผิดพลาดในการดึงข้อมูลรูปภาพ" : 
-        "Error fetching images"
-      );
+      setError("เกิดข้อผิดพลาดในการดึงข้อมูลรูปภาพ");
       return false;
     } finally {
       setIsLoading(false);
     }
   };
 
-  // Refresh photos periodically
+  // Background refresh photos every 5 seconds
   useEffect(() => {
     if (apiConfig.apiKey && apiConfig.folderId) {
+      // Initial load
+      refreshPhotos();
+      
+      // Setup interval for background updates
       const interval = setInterval(() => {
-        refreshPhotos();
-      }, settings.refreshInterval * 1000);
+        refreshPhotos().then(success => {
+          if (success) {
+            console.log("Background photo refresh completed successfully");
+          }
+        });
+      }, 5000); // refresh every 5 seconds
       
       return () => clearInterval(interval);
     }
-  }, [apiConfig, settings.refreshInterval]);
+  }, [apiConfig.apiKey, apiConfig.folderId]);
 
   // Apply theme mode
   useEffect(() => {

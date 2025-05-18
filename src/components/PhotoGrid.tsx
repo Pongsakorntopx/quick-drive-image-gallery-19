@@ -1,3 +1,4 @@
+
 import React, { useEffect, useRef, useState, useMemo } from "react";
 import { useAppContext } from "../context/AppContext";
 import ImageCard from "./ImageCard";
@@ -23,38 +24,40 @@ const PhotoGrid: React.FC = () => {
 
   // Previous photos ref to prevent unnecessary updates
   const prevPhotosLength = useRef<number>(0);
+  const prevPhotosIds = useRef<Set<string>>(new Set());
 
   // Batch size for virtualization - increased for better initial load
   const batchSize = 24; 
   
-  // Calculate optimized layout for masonry grid
+  // Update virtual photos whenever the main photos array changes
   useEffect(() => {
-    if (photos.length > 0 && prevPhotosLength.current !== photos.length) {
-      // Only update when the photos array actually changes
-      if (virtualizedPhotos.length === 0) {
-        // Initial batch of photos
-        const initialBatch = photos.slice(0, batchSize).map((photo, index) => ({
-          id: photo.id,
-          index,
-        }));
-        setVirtualizedPhotos(initialBatch);
-      } else {
-        // Keep existing photos and add any new ones if needed
-        const existingIds = new Set(virtualizedPhotos.map(vp => vp.id));
-        const newBatch = photos
-          .slice(0, Math.max(virtualizedPhotos.length, batchSize))
+    if (photos.length > 0) {
+      // Get current IDs in virtualizedPhotos
+      const currentIds = new Set(virtualizedPhotos.map(vp => vp.id));
+      
+      // Get IDs from the actual photos array
+      const newPhotoIds = new Set(photos.map(p => p.id));
+      
+      // Check if we have any new photos
+      const hasNewPhotos = photos.some(photo => !prevPhotosIds.current.has(photo.id));
+      
+      // Reset virtualized photos if we have new entries or significant changes
+      if (hasNewPhotos || photos.length !== prevPhotosLength.current) {
+        console.log("Photos updated. Rebuilding virtualized photo list.");
+        
+        // Take initial batch from the most recent photos array
+        const initialBatch = photos.slice(0, Math.max(virtualizedPhotos.length, batchSize))
           .map((photo, index) => ({
             id: photo.id,
             index,
-          }))
-          .filter(vp => !existingIds.has(vp.id));
+          }));
           
-        if (newBatch.length > 0) {
-          setVirtualizedPhotos(prev => [...newBatch, ...prev]); // New photos at the beginning
-        }
+        setVirtualizedPhotos(initialBatch);
       }
       
+      // Update references
       prevPhotosLength.current = photos.length;
+      prevPhotosIds.current = newPhotoIds;
     }
   }, [photos]);
 
@@ -225,7 +228,7 @@ const PhotoGrid: React.FC = () => {
         <div className="text-lg mb-4 text-destructive">{error}</div>
         <Button onClick={() => refreshPhotos()}>
           <RefreshCw className="mr-2 h-4 w-4" />
-          Try Again
+          ลองอีกครั้ง
         </Button>
       </div>
     );
@@ -298,7 +301,7 @@ const PhotoGrid: React.FC = () => {
           {/* Show when all photos are loaded */}
           {virtualizedPhotos.length === photos.length && photos.length > 0 && (
             <div className="w-full flex items-center justify-center mt-6 mb-2 text-muted-foreground text-sm">
-              <p>{settings.language === "th" ? `แสดงรูปภาพทั้งหมด (${photos.length} รูป)` : `Showing all photos (${photos.length})`}</p>
+              <p>แสดงรูปภาพทั้งหมด ({photos.length} รูป)</p>
             </div>
           )}
         </>
@@ -319,6 +322,7 @@ const PhotoGrid: React.FC = () => {
         }
         .masonry-content {
           width: 100%;
+          height: 100%;
           border-radius: 8px;
           overflow: hidden;
           box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
