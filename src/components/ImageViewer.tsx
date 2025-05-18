@@ -72,11 +72,11 @@ const ImageViewer: React.FC = () => {
     <Dialog open={!!selectedPhoto} onOpenChange={(open) => !open && setSelectedPhoto(null)}>
       <DialogContent className="max-w-[95vw] max-h-[95vh] p-0 bg-background/95 backdrop-blur-md border-2 shadow-xl">
         <div className="relative flex flex-col w-full h-full p-2 md:p-4">
-          {/* Close button */}
+          {/* Close button - Fixed position and styling */}
           <Button
             variant="ghost"
             size="icon"
-            className="absolute top-2 right-2 z-50"
+            className="absolute top-2 right-2 z-50 bg-background/50 hover:bg-background/80 backdrop-blur-sm rounded-full"
             onClick={() => setSelectedPhoto(null)}
           >
             <X className="h-5 w-5" />
@@ -144,8 +144,6 @@ const ImageViewer: React.FC = () => {
               <ChevronRight className="h-6 w-6" />
             </Button>
           </div>
-          
-          {/* Removed the image counter text as requested */}
         </div>
       </DialogContent>
     </Dialog>

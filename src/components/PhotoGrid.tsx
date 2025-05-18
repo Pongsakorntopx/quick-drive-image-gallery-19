@@ -1,4 +1,3 @@
-
 import React, { useEffect, useRef, useState, useMemo } from "react";
 import { useAppContext } from "../context/AppContext";
 import ImageCard from "./ImageCard";
@@ -254,11 +253,11 @@ const PhotoGrid: React.FC = () => {
           <div 
             ref={gridRef} 
             className={getGridLayoutClass()}
-            style={settings.gridLayout === "googlePhotos" ? { 
+            style={settings.gridLayout === "googlePhotos" || settings.gridLayout === "auto" ? { 
               display: "grid", 
               gridTemplateColumns: "repeat(auto-fill, minmax(250px, 1fr))",
               gridAutoRows: "10px",
-              gridGap: "8px"
+              gridGap: "16px"
             } : {}}
           >
             {virtualizedPhotos.map((vPhoto, idx) => {
@@ -305,7 +304,6 @@ const PhotoGrid: React.FC = () => {
         </>
       )}
       
-      {/* Adding CSS styles correctly */}
       <style>
         {`
         .masonry-grid {

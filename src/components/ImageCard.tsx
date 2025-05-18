@@ -72,13 +72,13 @@ const ImageCard: React.FC<ImageCardProps> = ({ photo, onClick }) => {
       onClick={onClick}
     >
       {/* Image and overlay */}
-      <div className="relative overflow-hidden w-full h-full">
+      <div className="relative overflow-hidden w-full h-full flex items-center justify-center">
         {/* Use thumbnailLink for grid display with fallback options */}
         <img
           src={photo.thumbnailLink || `https://drive.google.com/thumbnail?id=${photo.id}`}
           alt={photo.name}
           loading="lazy"
-          className={`w-full h-full object-cover transition-transform duration-500 group-hover:scale-105 ${imageLoaded ? 'opacity-100' : 'opacity-0'}`}
+          className={`w-full h-auto object-contain transition-transform duration-500 group-hover:scale-105 ${imageLoaded ? 'opacity-100' : 'opacity-0'}`}
           onLoad={handleImageLoad}
           onError={(e) => {
             // Fallback chain if thumbnail fails
