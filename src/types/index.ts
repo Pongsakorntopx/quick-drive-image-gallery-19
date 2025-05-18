@@ -1,3 +1,4 @@
+
 export interface ApiConfig {
   apiKey: string;
   folderId: string;
@@ -47,7 +48,8 @@ export interface AppSettings {
     body: number;
   };
   qrCodeSize: number; // Main QR code size (for images)
-  headerQRCodeSize: number; // New property for header QR code size
+  headerQRCodeSize: number; // Header QR code size
+  viewerQRCodeSize: number; // New property for image viewer QR code size
   refreshInterval: number;
   qrCodePosition: "bottomRight" | "bottomLeft" | "topRight" | "topLeft" | "center";
   showHeaderQR: boolean;
@@ -60,7 +62,7 @@ export interface AppSettings {
   autoScrollEnabled: boolean;
   autoScrollDirection: "up" | "down";
   autoScrollSpeed: number;
-  // New grid layout options
+  // Grid layout options
   gridLayout: "auto" | "fixed" | "custom";
   gridColumns: number;
   gridRows: number;

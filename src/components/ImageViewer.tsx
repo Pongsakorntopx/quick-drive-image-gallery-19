@@ -1,176 +1,160 @@
 
-import React, { useEffect, useState, useCallback, useRef } from "react";
+import React, { useEffect, useState } from "react";
 import { useAppContext } from "../context/AppContext";
-import { X, ChevronLeft, ChevronRight } from "lucide-react";
+import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
+import { ChevronLeft, ChevronRight, X, Download } from "lucide-react";
 import QRCode from "./QRCode";
 import { useTranslation } from "../hooks/useTranslation";
 
 const ImageViewer: React.FC = () => {
-  const { photos, selectedPhoto, setSelectedPhoto, settings } = useAppContext();
-  const [isOpen, setIsOpen] = useState(false);
+  const { selectedPhoto, setSelectedPhoto, photos, settings } = useAppContext();
+  const [currentPhotoIndex, setCurrentPhotoIndex] = useState<number>(0);
   const { t } = useTranslation();
-  const viewerRef = useRef<HTMLDivElement>(null);
   
-  // Open image when photo is selected
   useEffect(() => {
     if (selectedPhoto) {
-      setIsOpen(true);
-      // Prevent scrolling of background when viewer is open
-      document.body.style.overflow = "hidden";
-    } else {
-      setIsOpen(false);
-      document.body.style.overflow = "";
+      const index = photos.findIndex(photo => photo.id === selectedPhoto.id);
+      if (index !== -1) {
+        setCurrentPhotoIndex(index);
+      }
     }
-    
-    return () => {
-      document.body.style.overflow = "";
-    };
-  }, [selectedPhoto]);
-  
-  // Get current photo index
-  const currentIndex = selectedPhoto ? photos.findIndex(photo => photo.id === selectedPhoto.id) : -1;
-  
-  // Navigation functions
-  const navigateToPreviousPhoto = useCallback(() => {
-    if (currentIndex > 0) {
-      setSelectedPhoto(photos[currentIndex - 1]);
-    }
-  }, [currentIndex, photos, setSelectedPhoto]);
-  
-  const navigateToNextPhoto = useCallback(() => {
-    if (currentIndex < photos.length - 1) {
-      setSelectedPhoto(photos[currentIndex + 1]);
-    }
-  }, [currentIndex, photos, photos.length, setSelectedPhoto]);
+  }, [selectedPhoto, photos]);
 
-  // Keyboard navigation
+  const handleNext = () => {
+    if (currentPhotoIndex < photos.length - 1) {
+      setSelectedPhoto(photos[currentPhotoIndex + 1]);
+    } else {
+      setSelectedPhoto(photos[0]); // Loop back to the first photo
+    }
+  };
+
+  const handlePrevious = () => {
+    if (currentPhotoIndex > 0) {
+      setSelectedPhoto(photos[currentPhotoIndex - 1]);
+    } else {
+      setSelectedPhoto(photos[photos.length - 1]); // Loop to the last photo
+    }
+  };
+
+  // Handle keyboard navigation
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (!isOpen) return;
-      
+      if (!selectedPhoto) return;
+
       switch (e.key) {
-        case "ArrowLeft":
-          navigateToPreviousPhoto();
+        case 'ArrowRight':
+          handleNext();
           break;
-        case "ArrowRight":
-          navigateToNextPhoto();
+        case 'ArrowLeft':
+          handlePrevious();
           break;
-        case "Escape":
+        case 'Escape':
           setSelectedPhoto(null);
           break;
-        // Space to toggle play/pause if we add slideshow in the future
+        default:
+          break;
       }
     };
-    
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [isOpen, navigateToNextPhoto, navigateToPreviousPhoto, setSelectedPhoto]);
-  
-  if (!isOpen || !selectedPhoto) {
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [currentPhotoIndex, photos, selectedPhoto]);
+
+  if (!selectedPhoto) {
     return null;
   }
 
-  const handleClose = () => {
-    setSelectedPhoto(null);
-  };
+  const photoUrl = selectedPhoto.fullSizeUrl || selectedPhoto.url;
+  const downloadUrl = selectedPhoto.directDownloadUrl || selectedPhoto.webContentLink;
 
   return (
-    <div
-      ref={viewerRef}
-      className="fixed inset-0 bg-black/95 backdrop-blur-xl z-50 flex items-center justify-center"
-    >
-      <Button
-        size="icon"
-        className="absolute top-4 right-4 bg-white/10 backdrop-blur-sm text-white hover:bg-white/20 transition-colors z-10"
-        onClick={handleClose}
-      >
-        <X className="h-6 w-6" />
-      </Button>
-      
-      {/* Navigation buttons - Previous */}
-      {currentIndex > 0 && (
-        <Button
-          size="icon"
-          variant="ghost"
-          className="absolute left-4 top-1/2 -translate-y-1/2 h-12 w-12 rounded-full bg-black/40 hover:bg-black/60 text-white"
-          onClick={navigateToPreviousPhoto}
-        >
-          <ChevronLeft className="h-8 w-8" />
-        </Button>
-      )}
-      
-      {/* Navigation buttons - Next */}
-      {currentIndex < photos.length - 1 && (
-        <Button
-          size="icon"
-          variant="ghost"
-          className="absolute right-4 top-1/2 -translate-y-1/2 h-12 w-12 rounded-full bg-black/40 hover:bg-black/60 text-white"
-          onClick={navigateToNextPhoto}
-        >
-          <ChevronRight className="h-8 w-8" />
-        </Button>
-      )}
-      
-      <div className="w-full max-w-6xl h-full max-h-[85vh] px-4 flex flex-col md:flex-row items-center justify-center gap-6">
-        <div className="relative flex-1 h-full max-h-[65vh] md:max-h-[85vh] flex items-center justify-center">
-          {/* Enhanced decorative frame around the image */}
-          <div className="relative rounded-xl overflow-hidden shadow-2xl bg-gradient-to-r from-gray-800 to-gray-900 p-2">
-            {/* Gradient border effect */}
-            <div className="absolute inset-0 bg-gradient-to-br from-purple-500/30 to-blue-500/30 opacity-80 z-0 animate-pulse"></div>
-            
-            <div className="viewer-image-container relative z-10">
-              <img
-                src={selectedPhoto.fullSizeUrl || selectedPhoto.url}
-                alt={t("viewer.imageAlt")}
-                className="viewer-image max-w-full max-h-[60vh] md:max-h-[80vh] object-contain"
-                draggable={false}
-              />
-              
-              {/* Add photo name overlay at bottom */}
-              <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-3 text-center">
-                <h3 className="text-white font-medium truncate">{selectedPhoto.name}</h3>
-              </div>
-            </div>
-          </div>
-        </div>
-        
-        <div className="flex-shrink-0 md:w-1/4 flex flex-col items-center justify-center">
-          <div className="bg-gradient-to-br from-white/95 to-white/85 dark:from-gray-800/95 dark:to-gray-900/85 p-4 rounded-xl shadow-2xl backdrop-blur-sm transform transition-all duration-200 hover:scale-105 border border-white/20 dark:border-gray-700/30">
-            <div className="mb-3 text-center text-gray-800 dark:text-gray-200 font-medium">
-              <p>{t("viewer.scanQR")}</p>
-            </div>
-            <QRCode 
-              url={selectedPhoto.webContentLink || selectedPhoto.url} 
-              size={settings.qrCodeSize * 2} 
-              className="shadow-md"
-            />
-            <div className="mt-3 text-center text-xs text-gray-600 dark:text-gray-400">
-              <p>{t("viewer.scanToDownload")}</p>
-            </div>
+    <Dialog open={!!selectedPhoto} onOpenChange={(open) => !open && setSelectedPhoto(null)}>
+      <DialogContent className="max-w-[95vw] max-h-[95vh] p-0 bg-background/95 backdrop-blur-md border-2 shadow-xl">
+        <div className="relative flex flex-col w-full h-full p-2 md:p-4">
+          {/* Close button */}
+          <Button
+            variant="ghost"
+            size="icon"
+            className="absolute top-2 right-2 z-50"
+            onClick={() => setSelectedPhoto(null)}
+          >
+            <X className="h-5 w-5" />
+          </Button>
+          
+          {/* Image name/caption */}
+          <div className="text-center mb-2 font-semibold">
+            {selectedPhoto.name}
           </div>
           
-          <div className="mt-4 text-white/70 text-sm text-center">
-            <p>{t("viewer.keyboardTip")}</p>
+          <div className="flex-1 flex items-center justify-center relative overflow-hidden">
+            {/* Main content container */}
+            <div className="flex flex-col md:flex-row items-center justify-center gap-4 p-4 rounded-xl bg-black/10 dark:bg-white/5 backdrop-blur-sm border border-black/10 dark:border-white/10 shadow-lg w-full h-full">
+              {/* Image container */}
+              <div className="flex-1 h-full flex items-center justify-center overflow-hidden">
+                <img
+                  src={photoUrl}
+                  alt={selectedPhoto.name}
+                  className="max-w-full max-h-[70vh] object-contain rounded-lg shadow-md viewer-image"
+                />
+              </div>
+              
+              {/* QR code container - only on medium screens and up */}
+              <div className="md:w-1/4 p-3 flex flex-col items-center justify-center">
+                <div className="mb-2 text-sm font-medium text-center">
+                  {t("viewer.scanQrCode")}
+                </div>
+                <div className="bg-white/95 dark:bg-black/50 p-3 rounded-lg shadow-md">
+                  <QRCode
+                    url={photoUrl}
+                    size={settings.viewerQRCodeSize}
+                    className="mx-auto"
+                  />
+                </div>
+                {downloadUrl && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="mt-4"
+                    onClick={() => window.open(downloadUrl, "_blank")}
+                  >
+                    <Download className="mr-2 h-4 w-4" />
+                    {t("viewer.download")}
+                  </Button>
+                )}
+              </div>
+            </div>
+            
+            {/* Navigation buttons */}
+            <Button
+              variant="ghost"
+              size="icon"
+              className="absolute left-2 top-1/2 -translate-y-1/2 h-10 w-10 rounded-full bg-background/80 shadow-md hover:bg-background"
+              onClick={handlePrevious}
+            >
+              <ChevronLeft className="h-6 w-6" />
+            </Button>
+            
+            <Button
+              variant="ghost"
+              size="icon"
+              className="absolute right-2 top-1/2 -translate-y-1/2 h-10 w-10 rounded-full bg-background/80 shadow-md hover:bg-background"
+              onClick={handleNext}
+            >
+              <ChevronRight className="h-6 w-6" />
+            </Button>
+          </div>
+          
+          {/* Navigation indicator */}
+          <div className="text-center text-sm text-muted-foreground mt-2">
+            {t("viewer.imageCounter", { 
+              current: currentPhotoIndex + 1, 
+              total: photos.length 
+            })}
           </div>
         </div>
-      </div>
-      
-      {/* Pagination indicator */}
-      <div className="absolute bottom-4 left-1/2 -translate-x-1/2 bg-black/50 backdrop-blur-sm rounded-full px-4 py-1 text-white">
-        {currentIndex + 1} / {photos.length}
-      </div>
-      
-      {/* Keyboard navigation hints */}
-      <div className="absolute bottom-4 left-4 flex items-center gap-2 text-white/70 bg-black/30 backdrop-blur-sm rounded-full px-3 py-1">
-        <kbd className="px-2 py-0.5 bg-gray-700 rounded text-xs">←</kbd>
-        <span className="text-xs">{t("viewer.previous")}</span>
-        <kbd className="px-2 py-0.5 bg-gray-700 rounded text-xs ml-2">→</kbd>
-        <span className="text-xs">{t("viewer.next")}</span>
-        <kbd className="px-2 py-0.5 bg-gray-700 rounded text-xs ml-2">ESC</kbd>
-        <span className="text-xs">{t("viewer.close")}</span>
-      </div>
-    </div>
+      </DialogContent>
+    </Dialog>
   );
 };
 

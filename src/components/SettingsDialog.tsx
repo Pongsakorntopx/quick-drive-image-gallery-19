@@ -1,3 +1,4 @@
+
 import React, { useState, useRef, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -40,6 +41,7 @@ const SettingsDialog: React.FC = () => {
   const [showTitle, setShowTitle] = useState(settings.showTitle);
   const [qrCodeSize, setQrCodeSize] = useState(settings.qrCodeSize);
   const [headerQRCodeSize, setHeaderQRCodeSize] = useState(settings.headerQRCodeSize || 48);
+  const [viewerQRCodeSize, setViewerQRCodeSize] = useState(settings.viewerQRCodeSize || 80);
   const [refreshInterval, setRefreshInterval] = useState(settings.refreshInterval);
   const [titleFont, setTitleFont] = useState(settings.font.id);
   const [titleSize, setTitleSize] = useState(settings.titleSize);
@@ -77,6 +79,12 @@ const SettingsDialog: React.FC = () => {
   const [logoPreview, setLogoPreview] = useState<string | null>(settings.logoUrl);
   const [bannerPreview, setBannerPreview] = useState<string | null>(settings.bannerUrl);
 
+  // Update API settings when apiConfig changes from context
+  useEffect(() => {
+    setApiKey(apiConfig.apiKey);
+    setFolderId(apiConfig.folderId);
+  }, [apiConfig]);
+
   const handleSaveApiSettings = () => {
     setApiConfig({
       apiKey,
@@ -104,6 +112,7 @@ const SettingsDialog: React.FC = () => {
       },
       qrCodeSize,
       headerQRCodeSize,
+      viewerQRCodeSize,
       refreshInterval,
       qrCodePosition,
       showHeaderQR,
@@ -148,6 +157,7 @@ const SettingsDialog: React.FC = () => {
       setBodySize(14);
       setQrCodeSize(64);
       setHeaderQRCodeSize(48);
+      setViewerQRCodeSize(80);
       setRefreshInterval(5);
       setQrCodePosition("bottomRight");
       setShowHeaderQR(false);
@@ -229,7 +239,7 @@ const SettingsDialog: React.FC = () => {
             onClick={() => setPreviewDevice('desktop')}
             className="px-2"
           >
-            <Monitor className="h-4 w-4 mr-1" /> {t("settings.appearance.desktop")}
+            <Monitor className="h-4 w-4 mr-1" /> Desktop
           </Button>
           <Button 
             variant={previewDevice === 'tablet' ? "default" : "outline"} 
@@ -237,7 +247,7 @@ const SettingsDialog: React.FC = () => {
             onClick={() => setPreviewDevice('tablet')}
             className="px-2"
           >
-            <Tablet className="h-4 w-4 mr-1" /> {t("settings.appearance.tablet")}
+            <Tablet className="h-4 w-4 mr-1" /> Tablet
           </Button>
           <Button 
             variant={previewDevice === 'mobile' ? "default" : "outline"} 
@@ -245,7 +255,7 @@ const SettingsDialog: React.FC = () => {
             onClick={() => setPreviewDevice('mobile')}
             className="px-2"
           >
-            <Smartphone className="h-4 w-4 mr-1" /> {t("settings.appearance.mobile")}
+            <Smartphone className="h-4 w-4 mr-1" /> Mobile
           </Button>
         </div>
         
@@ -332,7 +342,7 @@ const SettingsDialog: React.FC = () => {
               <TabsList className="grid grid-cols-4 mb-4">
                 <TabsTrigger value="connection">{t("settings.tabs.connection")}</TabsTrigger>
                 <TabsTrigger value="appearance">{t("settings.tabs.appearance")}</TabsTrigger>
-                <TabsTrigger value="layout">{t("settings.tabs.layout") || "หน้าจอ"}</TabsTrigger>
+                <TabsTrigger value="layout">Layout</TabsTrigger>
                 <TabsTrigger value="advanced">{t("settings.tabs.advanced")}</TabsTrigger>
               </TabsList>
               
@@ -469,18 +479,18 @@ const SettingsDialog: React.FC = () => {
                 <FontPreview />
               </TabsContent>
 
-              {/* New Layout Tab */}
+              {/* Layout Tab */}
               <TabsContent value="layout" className="space-y-6">
                 <Card>
                   <CardHeader>
-                    <CardTitle>{t("settings.layout.gridTitle") || "การจัดเรียงรูปภาพ"}</CardTitle>
+                    <CardTitle>Grid Layout</CardTitle>
                     <CardDescription>
-                      {t("settings.layout.gridDescription") || "กำหนดจำนวนรูปภาพต่อแถวและคอลัมน์"}
+                      Configure the grid layout for displaying images
                     </CardDescription>
                   </CardHeader>
                   <CardContent className="space-y-4">
                     <div className="space-y-2">
-                      <Label>{t("settings.layout.layoutType") || "รูปแบบเลย์เอาท์"}</Label>
+                      <Label>Layout Type</Label>
                       <div className="flex gap-2">
                         <Button
                           type="button"
@@ -489,7 +499,7 @@ const SettingsDialog: React.FC = () => {
                           className="flex-1"
                         >
                           <Image className="h-4 w-4 mr-2" /> 
-                          {t("settings.layout.auto") || "อัตโนมัติ"}
+                          Auto
                         </Button>
                         <Button
                           type="button"
@@ -498,7 +508,7 @@ const SettingsDialog: React.FC = () => {
                           className="flex-1"
                         >
                           <Grid2x2 className="h-4 w-4 mr-2" /> 
-                          {t("settings.layout.fixed") || "คงที่"}
+                          Fixed
                         </Button>
                         <Button
                           type="button"
@@ -507,14 +517,14 @@ const SettingsDialog: React.FC = () => {
                           className="flex-1"
                         >
                           <Grid3x3 className="h-4 w-4 mr-2" /> 
-                          {t("settings.layout.custom") || "กำหนดเอง"}
+                          Custom
                         </Button>
                       </div>
                     </div>
 
                     {gridLayout === "fixed" && (
                       <div className="space-y-4 pt-2 pb-2">
-                        <Label>{t("settings.layout.presets") || "เลย์เอาท์สำเร็จรูป"}</Label>
+                        <Label>Layout Presets</Label>
                         <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
                           {gridPresets.map((preset, index) => (
                             <Button
@@ -537,7 +547,7 @@ const SettingsDialog: React.FC = () => {
                       <div className="space-y-4 pt-2 pb-2 border-l-2 pl-4 border-primary/20">
                         <div className="space-y-2">
                           <Label htmlFor="grid-columns">
-                            {t("settings.layout.columnsValue", { columns: gridColumns }) || `คอลัมน์: ${gridColumns}`}
+                            Columns: {gridColumns}
                           </Label>
                           <div className="flex items-center gap-3">
                             <Columns2 className="h-4 w-4 text-muted-foreground" />
@@ -564,8 +574,7 @@ const SettingsDialog: React.FC = () => {
 
                         <div className="space-y-2">
                           <Label htmlFor="grid-rows">
-                            {t("settings.layout.rowsValue", { rows: gridRows === 0 ? "Auto" : gridRows }) || 
-                              `แถว: ${gridRows === 0 ? "อัตโนมัติ" : gridRows}`}
+                            Rows: {gridRows === 0 ? "Auto" : gridRows}
                           </Label>
                           <div className="flex items-center gap-3">
                             <Columns2 className="h-4 w-4 text-muted-foreground rotate-90" />
@@ -590,7 +599,7 @@ const SettingsDialog: React.FC = () => {
                               onChange={(e) => setGridRows(parseInt(e.target.value) || 0)}
                             />
                             <span className="text-xs text-muted-foreground">
-                              {t("settings.layout.autoRows") || "(0 = อัตโนมัติ)"}
+                              (0 = Auto)
                             </span>
                           </div>
                         </div>
@@ -601,16 +610,16 @@ const SettingsDialog: React.FC = () => {
 
                 <Card>
                   <CardHeader>
-                    <CardTitle>{t("settings.qrcode.settings") || "ตั้งค่า QR Code"}</CardTitle>
+                    <CardTitle>QR Code Settings</CardTitle>
                     <CardDescription>
-                      {t("settings.qrcode.description") || "กำหนดขนาดและตำแหน่งของ QR Code"}
+                      Configure QR code sizes and positions
                     </CardDescription>
                   </CardHeader>
                   <CardContent className="space-y-4">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div className="space-y-2 border p-3 rounded-md">
                         <Label htmlFor="qr-size">
-                          {t("settings.qrcode.mainSize", { size: qrCodeSize }) || `QR Code หลัก (${qrCodeSize}px)`}
+                          Main QR Code ({qrCodeSize}px)
                         </Label>
                         <div className="flex items-center gap-2">
                           <QrCode className="h-4 w-4 text-muted-foreground" />
@@ -634,7 +643,7 @@ const SettingsDialog: React.FC = () => {
                         />
                         
                         <div className="mt-3">
-                          <Label>{t("settings.qrcode.position") || "ตำแหน่ง QR Code"}</Label>
+                          <Label>QR Code Position</Label>
                           <RadioGroup 
                             value={qrCodePosition} 
                             onValueChange={(value: "bottomRight" | "bottomLeft" | "topRight" | "topLeft" | "center") => setQrCodePosition(value)} 
@@ -642,65 +651,95 @@ const SettingsDialog: React.FC = () => {
                           >
                             <div className="flex items-center space-x-2">
                               <RadioGroupItem value="bottomRight" id="qr-br" />
-                              <Label htmlFor="qr-br">{t("settings.banner.bottomRight")}</Label>
+                              <Label htmlFor="qr-br">Bottom Right</Label>
                             </div>
                             <div className="flex items-center space-x-2">
                               <RadioGroupItem value="bottomLeft" id="qr-bl" />
-                              <Label htmlFor="qr-bl">{t("settings.banner.bottomLeft")}</Label>
+                              <Label htmlFor="qr-bl">Bottom Left</Label>
                             </div>
                             <div className="flex items-center space-x-2">
                               <RadioGroupItem value="topRight" id="qr-tr" />
-                              <Label htmlFor="qr-tr">{t("settings.banner.topRight")}</Label>
+                              <Label htmlFor="qr-tr">Top Right</Label>
                             </div>
                             <div className="flex items-center space-x-2">
                               <RadioGroupItem value="topLeft" id="qr-tl" />
-                              <Label htmlFor="qr-tl">{t("settings.banner.topLeft")}</Label>
+                              <Label htmlFor="qr-tl">Top Left</Label>
                             </div>
                             <div className="flex items-center space-x-2">
                               <RadioGroupItem value="center" id="qr-c" />
-                              <Label htmlFor="qr-c">กลาง</Label>
+                              <Label htmlFor="qr-c">Center</Label>
                             </div>
                           </RadioGroup>
                         </div>
                       </div>
                       
-                      <div className="space-y-2 border p-3 rounded-md">
-                        <div className="flex items-center space-x-2 mb-3">
-                          <Switch 
-                            id="show-header-qr" 
-                            checked={showHeaderQR}
-                            onCheckedChange={setShowHeaderQR}
-                          />
-                          <Label htmlFor="show-header-qr">{t("settings.qrcode.showHeader") || "แสดง QR Code ที่ส่วนหัว"}</Label>
-                        </div>
-                        
-                        {showHeaderQR && (
-                          <>
-                            <Label htmlFor="header-qr-size">
-                              {t("settings.qrcode.headerSize", { size: headerQRCodeSize }) || `QR Code ส่วนหัว (${headerQRCodeSize}px)`}
-                            </Label>
-                            <div className="flex items-center gap-2">
-                              <QrCode className="h-4 w-4 text-muted-foreground" />
-                              <Slider
-                                id="header-qr-size"
-                                value={[headerQRCodeSize]}
-                                min={32}
-                                max={180}
-                                step={8}
-                                onValueChange={(value) => setHeaderQRCodeSize(value[0])}
-                                className="flex-1"
-                              />
-                            </div>
-                            <Input 
-                              type="number" 
-                              min={32} 
-                              max={180} 
-                              value={headerQRCodeSize}
-                              className="mt-1 w-full"
-                              onChange={(e) => setHeaderQRCodeSize(parseInt(e.target.value) || 48)}
+                      <div className="space-y-4 border p-3 rounded-md">
+                        <div className="space-y-2">
+                          <Label htmlFor="viewer-qr-size">
+                            Image Viewer QR Code ({viewerQRCodeSize}px)
+                          </Label>
+                          <div className="flex items-center gap-2">
+                            <QrCode className="h-4 w-4 text-muted-foreground" />
+                            <Slider
+                              id="viewer-qr-size"
+                              value={[viewerQRCodeSize]}
+                              min={32}
+                              max={180}
+                              step={8}
+                              onValueChange={(value) => setViewerQRCodeSize(value[0])}
+                              className="flex-1"
                             />
-                          </>
-                        )}
+                          </div>
+                          <Input 
+                            type="number" 
+                            min={32} 
+                            max={180} 
+                            value={viewerQRCodeSize}
+                            className="mt-1 w-full"
+                            onChange={(e) => setViewerQRCodeSize(parseInt(e.target.value) || 80)}
+                          />
+                        </div>
+
+                        <Separator className="my-3" />
+                        
+                        <div className="space-y-2">
+                          <div className="flex items-center space-x-2 mb-3">
+                            <Switch 
+                              id="show-header-qr" 
+                              checked={showHeaderQR}
+                              onCheckedChange={setShowHeaderQR}
+                            />
+                            <Label htmlFor="show-header-qr">Show Header QR Code</Label>
+                          </div>
+                          
+                          {showHeaderQR && (
+                            <>
+                              <Label htmlFor="header-qr-size">
+                                Header QR Code ({headerQRCodeSize}px)
+                              </Label>
+                              <div className="flex items-center gap-2">
+                                <QrCode className="h-4 w-4 text-muted-foreground" />
+                                <Slider
+                                  id="header-qr-size"
+                                  value={[headerQRCodeSize]}
+                                  min={32}
+                                  max={180}
+                                  step={8}
+                                  onValueChange={(value) => setHeaderQRCodeSize(value[0])}
+                                  className="flex-1"
+                                />
+                              </div>
+                              <Input 
+                                type="number" 
+                                min={32} 
+                                max={180} 
+                                value={headerQRCodeSize}
+                                className="mt-1 w-full"
+                                onChange={(e) => setHeaderQRCodeSize(parseInt(e.target.value) || 48)}
+                              />
+                            </>
+                          )}
+                        </div>
                       </div>
                     </div>
                   </CardContent>
@@ -711,9 +750,9 @@ const SettingsDialog: React.FC = () => {
                 {/* Auto-scroll Settings */}
                 <Card>
                   <CardHeader>
-                    <CardTitle>{t("settings.advanced.autoScroll") || "การเลื่อนอัตโนมัติ"}</CardTitle>
+                    <CardTitle>Auto Scroll</CardTitle>
                     <CardDescription>
-                      {t("settings.advanced.autoScrollDesc") || "ปรับการตั้งค่าการเลื่อนหน้าจออัตโนมัติ"}
+                      Configure automatic scrolling settings
                     </CardDescription>
                   </CardHeader>
                   <CardContent className="space-y-4">
@@ -723,13 +762,13 @@ const SettingsDialog: React.FC = () => {
                         checked={autoScrollEnabled}
                         onCheckedChange={setAutoScrollEnabled}
                       />
-                      <Label htmlFor="auto-scroll">{t("settings.advanced.autoScrollEnabled") || "เปิดใช้การเลื่อนอัตโนมัติ"}</Label>
+                      <Label htmlFor="auto-scroll">Enable Auto Scroll</Label>
                     </div>
                     
                     {autoScrollEnabled && (
                       <div className="space-y-3 pl-6 border-l-2 border-primary/20 mt-2">
                         <div className="space-y-2">
-                          <Label>{t("settings.advanced.autoScrollDirection") || "ทิศทางการเลื่อน"}</Label>
+                          <Label>Scroll Direction</Label>
                           <div className="flex gap-2">
                             <Button
                               type="button"
@@ -737,7 +776,7 @@ const SettingsDialog: React.FC = () => {
                               onClick={() => setAutoScrollDirection('down')}
                               className="flex-1"
                             >
-                              <ArrowDown className="h-4 w-4 mr-2" /> {t("settings.advanced.autoScrollDown") || "เลื่อนลง"}
+                              <ArrowDown className="h-4 w-4 mr-2" /> Down
                             </Button>
                             
                             <Button
@@ -746,17 +785,17 @@ const SettingsDialog: React.FC = () => {
                               onClick={() => setAutoScrollDirection('up')}
                               className="flex-1"
                             >
-                              <ArrowUp className="h-4 w-4 mr-2" /> {t("settings.advanced.autoScrollUp") || "เลื่อนขึ้น"}
+                              <ArrowUp className="h-4 w-4 mr-2" /> Up
                             </Button>
                           </div>
                         </div>
                         
                         <div className="space-y-2">
                           <Label htmlFor="scroll-speed">
-                            {t("settings.advanced.autoScrollSpeed", { speed: autoScrollSpeed }) || `ความเร็วในการเลื่อน: ${autoScrollSpeed}`}
+                            Scroll Speed: {autoScrollSpeed}
                           </Label>
                           <div className="flex gap-2 items-center">
-                            <span className="text-sm">{t("settings.advanced.slow") || "ช้า"}</span>
+                            <span className="text-sm">Slow</span>
                             <Slider
                               id="scroll-speed"
                               value={[autoScrollSpeed]}
@@ -766,7 +805,7 @@ const SettingsDialog: React.FC = () => {
                               onValueChange={(value) => setAutoScrollSpeed(value[0])}
                               className="flex-1"
                             />
-                            <span className="text-sm">{t("settings.advanced.fast") || "เร็ว"}</span>
+                            <span className="text-sm">Fast</span>
                           </div>
                           <div className="flex items-center gap-2">
                             <Input 
@@ -778,7 +817,7 @@ const SettingsDialog: React.FC = () => {
                               onChange={(e) => setAutoScrollSpeed(parseInt(e.target.value) || 5)}
                             />
                             <span className="text-xs text-muted-foreground">
-                              {t("settings.advanced.pixelsPerInterval") || "(พิกเซลต่อการเลื่อน)"}
+                              (pixels per interval)
                             </span>
                           </div>
                         </div>

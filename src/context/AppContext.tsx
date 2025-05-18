@@ -71,6 +71,7 @@ const defaultSettings: AppSettings = {
   },
   qrCodeSize: 64,
   headerQRCodeSize: 48,
+  viewerQRCodeSize: 80, // Default size for image viewer QR code
   refreshInterval: 5,
   qrCodePosition: "bottomRight",
   showHeaderQR: false,
@@ -172,6 +173,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           titleSize: parsed.titleSize || defaultSettings.titleSize,
           // For new properties
           headerQRCodeSize: parsed.headerQRCodeSize || defaultSettings.headerQRCodeSize,
+          viewerQRCodeSize: parsed.viewerQRCodeSize || defaultSettings.viewerQRCodeSize,
           gridLayout: parsed.gridLayout || defaultSettings.gridLayout,
           gridColumns: parsed.gridColumns || defaultSettings.gridColumns,
           gridRows: parsed.gridRows || defaultSettings.gridRows,

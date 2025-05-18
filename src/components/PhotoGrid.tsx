@@ -151,7 +151,7 @@ const PhotoGrid: React.FC = () => {
   const getGridLayoutClass = () => {
     if (settings.gridLayout === "fixed" || settings.gridLayout === "custom") {
       const columns = settings.gridColumns || 4;
-      return `grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-${Math.min(columns, 12)}`;
+      return `grid grid-cols-1 ${columns === 1 ? '' : 'sm:grid-cols-2'} ${columns <= 2 ? '' : 'md:grid-cols-3'} ${columns <= 3 ? '' : `lg:grid-cols-${Math.min(columns, 12)}`}`;
     }
     return "masonry-grid";
   };
@@ -179,13 +179,27 @@ const PhotoGrid: React.FC = () => {
     return "masonry-content";
   };
 
+  // Calculate aspect ratio for fixed grid
+  const getImageContainerStyle = () => {
+    if ((settings.gridLayout === "fixed" || settings.gridLayout === "custom") && 
+        settings.gridRows && settings.gridRows > 0) {
+      // Calculate aspect ratio based on columns and rows
+      const ratio = settings.gridColumns / settings.gridRows;
+      return { 
+        aspectRatio: ratio, 
+        height: '100%'
+      };
+    }
+    return {};
+  };
+
   if (error) {
     return (
       <div className="flex flex-col items-center justify-center p-4 sm:p-8 min-h-[400px]">
         <div className="text-lg mb-4 text-destructive">{error}</div>
         <Button onClick={() => refreshPhotos()}>
           <RefreshCw className="mr-2 h-4 w-4" />
-          ลองอีกครั้ง
+          Try Again
         </Button>
       </div>
     );
@@ -218,7 +232,10 @@ const PhotoGrid: React.FC = () => {
                   className={gridItemProps.className}
                   style={gridItemProps.style}
                 >
-                  <div className={getContentClass()}>
+                  <div 
+                    className={getContentClass()}
+                    style={getImageContainerStyle()}
+                  >
                     <ImageCard 
                       photo={photo} 
                       onClick={() => setSelectedPhoto(photo)} 
