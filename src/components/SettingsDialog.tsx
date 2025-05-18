@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { useAppContext } from "../context/AppContext";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
@@ -15,7 +14,7 @@ import { Separator } from "@/components/ui/separator";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Check, Palette, Upload, X } from "lucide-react";
 import { useTranslation } from "../hooks/useTranslation";
-import { Font, ThemeMode } from "../types"; // Import ThemeMode type
+import { Font, ThemeMode, Language } from "../types"; // Import Language type
 
 const SettingsDialog: React.FC = () => {
   const { t } = useTranslation();
@@ -119,7 +118,7 @@ const SettingsDialog: React.FC = () => {
       titleSize: 24,
       theme: themes[0],
       themeMode: "light" as ThemeMode, // Cast string literal to ThemeMode
-      language: "th",
+      language: "th" as Language, // Cast string literal to Language
       font: fonts[0],
       fontSize: {
         subtitle: 16,
@@ -700,10 +699,11 @@ const SettingsDialog: React.FC = () => {
                         onValueChange={(value) =>
                           setLocalSettings({ ...localSettings, gridRows: value[0] })
                         }
-                      />
-                      <div className="text-xs text-muted-foreground">
-                        * 0 = Auto height
-                      </div>
+                      >
+                        <div className="text-xs text-muted-foreground">
+                          * 0 = Auto height
+                        </div>
+                      </Slider>
                     </div>
                   </>
                 )}
