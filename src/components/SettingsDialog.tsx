@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { useAppContext } from "../context/AppContext";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
@@ -14,7 +15,7 @@ import { Separator } from "@/components/ui/separator";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Check, Palette, Upload, X } from "lucide-react";
 import { useTranslation } from "../hooks/useTranslation";
-import { Font } from "../types";
+import { Font, ThemeMode } from "../types"; // Import ThemeMode type
 
 const SettingsDialog: React.FC = () => {
   const { t } = useTranslation();
@@ -117,7 +118,7 @@ const SettingsDialog: React.FC = () => {
       showTitle: true,
       titleSize: 24,
       theme: themes[0],
-      themeMode: "light",
+      themeMode: "light" as ThemeMode, // Cast string literal to ThemeMode
       language: "th",
       font: fonts[0],
       fontSize: {
@@ -356,7 +357,7 @@ const SettingsDialog: React.FC = () => {
                       variant={localSettings.themeMode === "light" ? "default" : "outline"}
                       className="flex-1"
                       onClick={() =>
-                        setLocalSettings({ ...localSettings, themeMode: "light" })
+                        setLocalSettings({ ...localSettings, themeMode: "light" as ThemeMode })
                       }
                     >
                       {t("settings.appearance.light")}
@@ -366,7 +367,7 @@ const SettingsDialog: React.FC = () => {
                       variant={localSettings.themeMode === "dark" ? "default" : "outline"}
                       className="flex-1"
                       onClick={() =>
-                        setLocalSettings({ ...localSettings, themeMode: "dark" })
+                        setLocalSettings({ ...localSettings, themeMode: "dark" as ThemeMode })
                       }
                     >
                       {t("settings.appearance.dark")}
