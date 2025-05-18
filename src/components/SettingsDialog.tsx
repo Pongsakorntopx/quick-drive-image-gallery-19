@@ -1,3 +1,4 @@
+
 import React, { useState, useRef, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -17,6 +18,16 @@ import { fontCategories } from "../config/fonts";
 import { useTranslation } from "../hooks/useTranslation";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+
+// Define grid presets for layout options
+const gridPresets = [
+  { name: "1×1", columns: 1, rows: 1 },
+  { name: "2×2", columns: 2, rows: 2 },
+  { name: "3×2", columns: 3, rows: 2 },
+  { name: "3×3", columns: 3, rows: 3 },
+  { name: "4×3", columns: 4, rows: 3 },
+  { name: "4×4", columns: 4, rows: 4 }
+];
 
 const SettingsDialog: React.FC = () => {
   const { t } = useTranslation();
