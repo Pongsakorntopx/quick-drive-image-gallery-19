@@ -1,6 +1,6 @@
 
 import React, { createContext, useContext, useState, useEffect } from "react";
-import { ApiConfig, Photo, AppSettings, Theme, Font } from "../types";
+import { ApiConfig, Photo, AppSettings, Theme, Font, PhotoFetchResult } from "../types";
 import { fetchPhotosFromDrive } from "../services/googleDriveService";
 import { useToast } from "@/components/ui/use-toast";
 
@@ -250,7 +250,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         setIsLoading(true);
       }
       
-      const result = await fetchPhotosFromDrive(apiConfig);
+      const result: PhotoFetchResult = await fetchPhotosFromDrive(apiConfig);
       
       if (result.success && result.data) {
         // Only update the state if the photos have actually changed
@@ -281,7 +281,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }
   };
 
-  // Refresh photos periodically - moved after refreshPhotos function is defined
+  // Refresh photos periodically
   useEffect(() => {
     if (apiConfig.apiKey && apiConfig.folderId) {
       const interval = setInterval(() => {

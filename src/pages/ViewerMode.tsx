@@ -4,6 +4,7 @@ import { useAppContext } from "../context/AppContext";
 import PhotoGrid from "../components/PhotoGrid";
 import ImageViewer from "../components/ImageViewer";
 import AutoScroll from "../components/AutoScroll";
+import QRCode from "../components/QRCode"; // Added missing import
 
 const ViewerMode = () => {
   const { apiConfig, refreshPhotos, settings } = useAppContext();

@@ -78,6 +78,7 @@ const ImageCard: React.FC<ImageCardProps> = ({ photo, onClick }) => {
           if (imgElement.src !== `https://drive.google.com/thumbnail?id=${photo.id}`) {
             imgElement.src = `https://drive.google.com/thumbnail?id=${photo.id}`;
           } else if (photo.iconLink) {
+            // Only use iconLink if it exists
             imgElement.src = photo.iconLink;
           }
         }}

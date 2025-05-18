@@ -1,3 +1,4 @@
+
 export interface ApiConfig {
   apiKey: string;
   folderId: string;
@@ -12,6 +13,7 @@ export interface Photo {
   directDownloadUrl?: string;
   fullSizeUrl?: string;
   modifiedTime?: string;
+  iconLink?: string; // Added iconLink property
 }
 
 export interface Theme {
@@ -55,4 +57,11 @@ export interface AppSettings {
   autoScrollDirection: "up" | "down";
   autoScrollSpeed: number;
   slideShowEffect: "none" | "fade" | "slide" | "zoom";
+}
+
+// Add interface for photo fetch result to fix the context errors
+export interface PhotoFetchResult {
+  success: boolean;
+  data?: Photo[];
+  error?: string;
 }

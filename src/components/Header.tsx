@@ -2,12 +2,12 @@
 import React from "react";
 import { useAppContext } from "../context/AppContext";
 import { Button } from "@/components/ui/button";
-import { Settings, Play, QrCode } from "lucide-react";
+import { Settings, QrCode } from "lucide-react";
 import QRCode from "./QRCode";
 import { getFolderUrl } from "../services/googleDriveService";
 
 const Header: React.FC = () => {
-  const { settings, setIsSettingsOpen, setIsSlideshowOpen, photos, apiConfig } = useAppContext();
+  const { settings, setIsSettingsOpen, photos, apiConfig } = useAppContext();
   
   // Generate the Google Drive folder URL
   const folderUrl = apiConfig.folderId ? getFolderUrl(apiConfig.folderId) : "";
@@ -39,10 +39,6 @@ const Header: React.FC = () => {
         </div>
         
         <div className="flex items-center gap-2 mt-2 md:mt-0 w-full md:w-auto justify-center md:justify-end">
-          <Button variant="outline" size="icon" onClick={() => setIsSlideshowOpen(true)} disabled={photos.length === 0}>
-            <Play className="h-4 w-4" />
-          </Button>
-
           <div className="relative">
             {settings.showHeaderQR ? (
               <div className="flex items-center">
