@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useState, useEffect } from "react";
 import { ApiConfig, Photo, AppSettings, Theme, Font, PhotoFetchResult } from "../types";
 import { fetchPhotosFromDrive } from "../services/googleDriveService";
@@ -250,7 +249,14 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         setIsLoading(true);
       }
       
-      const result: PhotoFetchResult = await fetchPhotosFromDrive(apiConfig);
+      // Convert the response to match our PhotoFetchResult interface
+      const photosData = await fetchPhotosFromDrive(apiConfig);
+      
+      // Create a PhotoFetchResult object from the photos array
+      const result: PhotoFetchResult = {
+        success: true,
+        data: photosData as Photo[]
+      };
       
       if (result.success && result.data) {
         // Only update the state if the photos have actually changed
