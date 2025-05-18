@@ -60,24 +60,22 @@ const Header: React.FC = () => {
         </div>
         
         <div className="flex items-center gap-2 mt-2 md:mt-0 w-full md:w-auto justify-center md:justify-end">
-          {/* QR Code - Only in hover menu if not shown in header */}
-          {!settings.showHeaderQR && (
-            <div className="relative group">
-              <Button variant="outline" size="icon">
-                <QrCode className="h-4 w-4" />
-              </Button>
-              <div className="absolute right-0 top-full mt-1 hidden group-hover:block">
-                <QRCode url={folderUrl} size={settings.qrCodeSize * 1.5} />
-              </div>
+          {/* QR Code for header - uses headerQRCodeSize */}
+          <div className="relative group">
+            <Button variant="outline" size="icon">
+              <QrCode className="h-4 w-4" />
+            </Button>
+            <div className="absolute right-0 top-full mt-1 hidden group-hover:block">
+              <QRCode url={folderUrl} size={settings.headerQRCodeSize} className="shadow-lg bg-white/90 backdrop-blur-sm" />
             </div>
-          )}
+          </div>
 
           {/* Theme Mode Toggle */}
           <Button 
             variant="outline" 
             size="icon"
             onClick={toggleThemeMode}
-            title={settings.themeMode === "light" ? t("settings.appearance.dark") : t("settings.appearance.light")}
+            title={settings.themeMode === "light" ? "Dark Mode" : "Light Mode"}
           >
             {settings.themeMode === "light" ? (
               <Moon className="h-4 w-4" />
@@ -90,7 +88,7 @@ const Header: React.FC = () => {
             variant="outline" 
             size="icon" 
             onClick={() => setIsSettingsOpen(true)}
-            title={t("settings.title")}
+            title="Settings"
           >
             <Settings className="h-4 w-4" />
           </Button>

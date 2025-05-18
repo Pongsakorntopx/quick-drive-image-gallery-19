@@ -56,14 +56,13 @@ export interface AppSettings {
   logoUrl: string | null;
   logoSize: number;
   bannerUrl: string | null;
-  bannerSize: "small" | "medium" | "large" | "custom"; // Added custom option
-  customBannerSize: { width: number; height: number }; // For custom banner size
+  bannerSize: number; // Changed from string to number for pixel-based sizing
   bannerPosition: "bottomLeft" | "bottomRight" | "topLeft" | "topRight";
   autoScrollEnabled: boolean;
   autoScrollDirection: "up" | "down";
   autoScrollSpeed: number;
   // Grid layout options
-  gridLayout: "auto" | "fixed" | "custom";
+  gridLayout: "googlePhotos" | "auto" | "fixed" | "custom";
   gridColumns: number;
   gridRows: number;
 }

@@ -1,4 +1,3 @@
-
 import React, { useState, useRef, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -8,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
 import { useAppContext } from "../context/AppContext";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { RotateCw, Monitor, Smartphone, Tablet, Image, QrCode, ArrowDown, ArrowUp, Columns2, Columns3, Columns4, Grid2x2, Grid3x3 } from "lucide-react";
+import { RotateCw, Monitor, Smartphone, Tablet, Image, QrCode, ArrowDown, ArrowUp, Columns2, Columns3, Columns4, Grid2x2, Grid3x3, LayoutGrid } from "lucide-react";
 import { toast } from "@/components/ui/use-toast";
 import { Separator } from "@/components/ui/separator";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -53,7 +52,7 @@ const SettingsDialog: React.FC = () => {
   const [previewDevice, setPreviewDevice] = useState<'desktop' | 'tablet' | 'mobile'>('desktop');
   
   // Grid Layout settings
-  const [gridLayout, setGridLayout] = useState(settings.gridLayout || "auto");
+  const [gridLayout, setGridLayout] = useState(settings.gridLayout || "googlePhotos");
   const [gridColumns, setGridColumns] = useState(settings.gridColumns || 4);
   const [gridRows, setGridRows] = useState(settings.gridRows || 0);
   
@@ -63,9 +62,7 @@ const SettingsDialog: React.FC = () => {
   const [logoSize, setLogoSize] = useState(settings.logoSize || 100);
   
   // Banner settings
-  const [bannerSize, setBannerSize] = useState(settings.bannerSize);
-  const [customBannerWidth, setCustomBannerWidth] = useState(settings.customBannerSize?.width || 200);
-  const [customBannerHeight, setCustomBannerHeight] = useState(settings.customBannerSize?.height || 200);
+  const [bannerSize, setBannerSize] = useState(settings.bannerSize || 200);
   const [bannerPosition, setBannerPosition] = useState(settings.bannerPosition);
   
   // Auto-scroll settings
@@ -120,10 +117,6 @@ const SettingsDialog: React.FC = () => {
       logoSize,
       bannerUrl: bannerPreview,
       bannerSize,
-      customBannerSize: {
-        width: customBannerWidth,
-        height: customBannerHeight
-      },
       bannerPosition,
       autoScrollEnabled,
       autoScrollDirection,
@@ -164,14 +157,12 @@ const SettingsDialog: React.FC = () => {
       setLogoPreview(null);
       setLogoSize(100);
       setBannerPreview(null);
-      setBannerSize("medium");
-      setCustomBannerWidth(200);
-      setCustomBannerHeight(200);
+      setBannerSize(200);
       setBannerPosition("bottomLeft");
       setAutoScrollEnabled(false);
       setAutoScrollDirection("down");
       setAutoScrollSpeed(10);
-      setGridLayout("auto");
+      setGridLayout("googlePhotos");
       setGridColumns(4);
       setGridRows(0);
       
@@ -320,15 +311,6 @@ const SettingsDialog: React.FC = () => {
     );
   };
 
-  // Predefined grid layout presets
-  const gridPresets = [
-    { name: "1 x 1", columns: 1, rows: 1 },
-    { name: "2 x 2", columns: 2, rows: 2 },
-    { name: "3 x 3", columns: 3, rows: 3 },
-    { name: "4 x 3", columns: 4, rows: 3 },
-    { name: "5 x 4", columns: 5, rows: 4 },
-  ];
-
   return (
     <Dialog open={isSettingsOpen} onOpenChange={setIsSettingsOpen}>
       <DialogContent className="sm:max-w-[600px] max-h-[90vh] p-0">
@@ -340,30 +322,30 @@ const SettingsDialog: React.FC = () => {
           <div className="p-1 pb-4">
             <Tabs defaultValue="appearance">
               <TabsList className="grid grid-cols-4 mb-4">
-                <TabsTrigger value="connection">{t("settings.tabs.connection")}</TabsTrigger>
-                <TabsTrigger value="appearance">{t("settings.tabs.appearance")}</TabsTrigger>
+                <TabsTrigger value="connection">Connection</TabsTrigger>
+                <TabsTrigger value="appearance">Appearance</TabsTrigger>
                 <TabsTrigger value="layout">Layout</TabsTrigger>
-                <TabsTrigger value="advanced">{t("settings.tabs.advanced")}</TabsTrigger>
+                <TabsTrigger value="advanced">Advanced</TabsTrigger>
               </TabsList>
               
               <TabsContent value="connection" className="space-y-4">
                 <div className="space-y-2">
-                  <Label htmlFor="apiKey">{t("setup.apiKey")}</Label>
+                  <Label htmlFor="apiKey">API Key</Label>
                   <Input
                     id="apiKey"
                     value={apiKey}
                     onChange={(e) => setApiKey(e.target.value)}
-                    placeholder={t("setup.apiKeyPlaceholder")}
+                    placeholder="Enter your Google API Key"
                   />
                 </div>
                 
                 <div className="space-y-2">
-                  <Label htmlFor="folderId">{t("setup.folderId")}</Label>
+                  <Label htmlFor="folderId">Folder ID</Label>
                   <Input
                     id="folderId"
                     value={folderId}
                     onChange={(e) => setFolderId(e.target.value)}
-                    placeholder={t("setup.folderIdPlaceholder")}
+                    placeholder="Enter your Google Drive Folder ID"
                   />
                 </div>
                 
@@ -373,11 +355,11 @@ const SettingsDialog: React.FC = () => {
                     onClick={handleResetAllData}
                     className="border-destructive text-destructive hover:bg-destructive/10"
                   >
-                    {t("setup.reset")}
+                    Reset All Data
                   </Button>
                   
                   <Button onClick={handleSaveApiSettings}>
-                    {t("settings.connection.save")}
+                    Save Connection Settings
                   </Button>
                 </div>
               </TabsContent>
@@ -386,7 +368,7 @@ const SettingsDialog: React.FC = () => {
                 {/* Language & Theme Mode Settings */}
                 <div className="flex flex-col md:flex-row gap-4 p-3 bg-muted/30 rounded-lg">
                   <div className="flex-1 space-y-1">
-                    <Label>{t("settings.language")}</Label>
+                    <Label>Language</Label>
                     <div className="flex gap-2 mt-1">
                       <Button
                         type="button"
@@ -395,7 +377,7 @@ const SettingsDialog: React.FC = () => {
                         onClick={() => setLanguage("th")}
                         className="flex-1"
                       >
-                        {t("settings.language.thai")}
+                        Thai
                       </Button>
                       <Button
                         type="button"
@@ -404,13 +386,13 @@ const SettingsDialog: React.FC = () => {
                         onClick={() => setLanguage("en")}
                         className="flex-1"
                       >
-                        {t("settings.language.english")}
+                        English
                       </Button>
                     </div>
                   </div>
                   
                   <div className="flex-1 space-y-1">
-                    <Label>{t("settings.appearance.themeMode")}</Label>
+                    <Label>Theme Mode</Label>
                     <div className="flex gap-2 mt-1">
                       <Button
                         type="button"
@@ -419,7 +401,7 @@ const SettingsDialog: React.FC = () => {
                         onClick={() => setThemeMode("light")}
                         className="flex-1"
                       >
-                        {t("settings.appearance.light")}
+                        Light
                       </Button>
                       <Button
                         type="button"
@@ -428,7 +410,7 @@ const SettingsDialog: React.FC = () => {
                         onClick={() => setThemeMode("dark")}
                         className="flex-1"
                       >
-                        {t("settings.appearance.dark")}
+                        Dark
                       </Button>
                     </div>
                   </div>
@@ -439,7 +421,7 @@ const SettingsDialog: React.FC = () => {
                 {/* Title Settings */}
                 <div className="space-y-3">
                   <div className="space-y-2">
-                    <Label htmlFor="title">{t("settings.appearance.siteName")}</Label>
+                    <Label htmlFor="title">Site Name</Label>
                     <Input
                       id="title"
                       value={title}
@@ -453,12 +435,12 @@ const SettingsDialog: React.FC = () => {
                       checked={showTitle}
                       onCheckedChange={setShowTitle}
                     />
-                    <Label htmlFor="showTitle">{t("settings.appearance.showTitle")}</Label>
+                    <Label htmlFor="showTitle">Show Title</Label>
                   </div>
                 
                   <div className="space-y-2">
                     <Label htmlFor="title-size">
-                      {t("settings.appearance.titleSize", { size: titleSize })}
+                      Title Size ({titleSize}px)
                     </Label>
                     <Slider
                       id="title-size"
@@ -491,7 +473,16 @@ const SettingsDialog: React.FC = () => {
                   <CardContent className="space-y-4">
                     <div className="space-y-2">
                       <Label>Layout Type</Label>
-                      <div className="flex gap-2">
+                      <div className="flex flex-wrap gap-2">
+                        <Button
+                          type="button"
+                          variant={gridLayout === "googlePhotos" ? "default" : "outline"}
+                          onClick={() => setGridLayout("googlePhotos")}
+                          className="flex-1"
+                        >
+                          <LayoutGrid className="h-4 w-4 mr-2" /> 
+                          Google Photos
+                        </Button>
                         <Button
                           type="button"
                           variant={gridLayout === "auto" ? "default" : "outline"}
@@ -499,7 +490,7 @@ const SettingsDialog: React.FC = () => {
                           className="flex-1"
                         >
                           <Image className="h-4 w-4 mr-2" /> 
-                          Auto
+                          Auto Masonry
                         </Button>
                         <Button
                           type="button"
@@ -543,7 +534,7 @@ const SettingsDialog: React.FC = () => {
                       </div>
                     )}
 
-                    {gridLayout === "custom" && (
+                    {(gridLayout === "fixed" || gridLayout === "custom") && (
                       <div className="space-y-4 pt-2 pb-2 border-l-2 pl-4 border-primary/20">
                         <div className="space-y-2">
                           <Label htmlFor="grid-columns">
@@ -768,7 +759,7 @@ const SettingsDialog: React.FC = () => {
                     {autoScrollEnabled && (
                       <div className="space-y-3 pl-6 border-l-2 border-primary/20 mt-2">
                         <div className="space-y-2">
-                          <Label>Scroll Direction</Label>
+                          <Label>Initial Scroll Direction</Label>
                           <div className="flex gap-2">
                             <Button
                               type="button"
@@ -826,9 +817,9 @@ const SettingsDialog: React.FC = () => {
                   </CardContent>
                 </Card>
                 
-                {/* Keep other advanced settings */}
+                {/* Logo settings */}
                 <div className="space-y-4 border p-4 rounded-md bg-muted/10">
-                  <h3 className="text-lg font-medium">{t("settings.logo.upload")}</h3>
+                  <h3 className="text-lg font-medium">Logo Upload</h3>
                   <div className="space-y-2">
                     <div className="flex items-center gap-2">
                       <input
@@ -843,7 +834,7 @@ const SettingsDialog: React.FC = () => {
                         variant="outline"
                         onClick={() => logoFileRef.current?.click()}
                       >
-                        <Image className="h-4 w-4 mr-2" /> {t("settings.logo.choose")}
+                        <Image className="h-4 w-4 mr-2" /> Choose Logo
                       </Button>
                       {logoPreview && (
                         <Button
@@ -852,7 +843,7 @@ const SettingsDialog: React.FC = () => {
                           className="border-destructive text-destructive"
                           onClick={() => setLogoPreview(null)}
                         >
-                          {t("settings.logo.remove")}
+                          Remove Logo
                         </Button>
                       )}
                     </div>
@@ -871,7 +862,7 @@ const SettingsDialog: React.FC = () => {
                     
                     <div className="mt-3">
                       <Label htmlFor="logo-size">
-                        {t("settings.logo.size", { size: logoSize })}
+                        Logo Size: {logoSize}px
                       </Label>
                       <Slider
                         id="logo-size"
@@ -881,12 +872,21 @@ const SettingsDialog: React.FC = () => {
                         step={4}
                         onValueChange={(value) => setLogoSize(value[0])}
                       />
+                      <Input 
+                        type="number" 
+                        min={32} 
+                        max={200} 
+                        value={logoSize}
+                        className="mt-1 w-24"
+                        onChange={(e) => setLogoSize(parseInt(e.target.value) || 100)}
+                      />
                     </div>
                   </div>
                 </div>
                 
+                {/* Banner settings */}
                 <div className="space-y-4 border p-4 rounded-md bg-muted/10">
-                  <h3 className="text-lg font-medium">{t("settings.banner.upload")}</h3>
+                  <h3 className="text-lg font-medium">Banner Upload</h3>
                   <div className="space-y-2">
                     <div className="flex items-center gap-2">
                       <input
@@ -901,7 +901,7 @@ const SettingsDialog: React.FC = () => {
                         variant="outline"
                         onClick={() => bannerFileRef.current?.click()}
                       >
-                        <Image className="h-4 w-4 mr-2" /> {t("settings.logo.choose")}
+                        <Image className="h-4 w-4 mr-2" /> Choose Banner
                       </Button>
                       {bannerPreview && (
                         <Button
@@ -910,7 +910,7 @@ const SettingsDialog: React.FC = () => {
                           className="border-destructive text-destructive"
                           onClick={() => setBannerPreview(null)}
                         >
-                          {t("settings.logo.remove")}
+                          Remove Banner
                         </Button>
                       )}
                     </div>
@@ -928,57 +928,32 @@ const SettingsDialog: React.FC = () => {
                     )}
                     
                     <div className="mt-2">
-                      <Label>{t("settings.banner.size")}</Label>
-                      <Select 
-                        value={bannerSize} 
-                        onValueChange={(value: "small" | "medium" | "large" | "custom") => setBannerSize(value)}
-                      >
-                        <SelectTrigger>
-                          <SelectValue placeholder={t("settings.banner.size")} />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="small">{t("settings.banner.small")}</SelectItem>
-                          <SelectItem value="medium">{t("settings.banner.medium")}</SelectItem>
-                          <SelectItem value="large">{t("settings.banner.large")}</SelectItem>
-                          <SelectItem value="custom">{t("settings.banner.custom")}</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    
-                    {bannerSize === "custom" && (
-                      <div className="space-y-2 mt-2 pl-4 border-l-2 border-primary/20">
-                        <div className="space-y-1">
-                          <Label htmlFor="banner-width">
-                            {t("settings.banner.width", { width: customBannerWidth })}
-                          </Label>
+                      <Label>Banner Size (pixels)</Label>
+                      <div className="flex gap-4 mt-2">
+                        <div className="flex-1">
+                          <Label htmlFor="banner-size">Width: {bannerSize}px</Label>
                           <Slider
-                            id="banner-width"
-                            value={[customBannerWidth]}
+                            id="banner-size"
+                            value={[bannerSize]}
                             min={50}
                             max={600}
                             step={10}
-                            onValueChange={(value) => setCustomBannerWidth(value[0])}
+                            onValueChange={(value) => setBannerSize(value[0])}
                           />
-                        </div>
-                        
-                        <div className="space-y-1">
-                          <Label htmlFor="banner-height">
-                            {t("settings.banner.height", { height: customBannerHeight })}
-                          </Label>
-                          <Slider
-                            id="banner-height"
-                            value={[customBannerHeight]}
-                            min={50}
-                            max={600}
-                            step={10}
-                            onValueChange={(value) => setCustomBannerHeight(value[0])}
+                          <Input 
+                            type="number" 
+                            min={50} 
+                            max={600} 
+                            value={bannerSize}
+                            className="mt-1 w-full"
+                            onChange={(e) => setBannerSize(parseInt(e.target.value) || 200)}
                           />
                         </div>
                       </div>
-                    )}
+                    </div>
                     
                     <div className="mt-2">
-                      <Label>{t("settings.banner.position")}</Label>
+                      <Label>Banner Position</Label>
                       <RadioGroup 
                         value={bannerPosition} 
                         onValueChange={(value: "bottomLeft" | "bottomRight" | "topLeft" | "topRight") => setBannerPosition(value)} 
@@ -986,19 +961,19 @@ const SettingsDialog: React.FC = () => {
                       >
                         <div className="flex items-center space-x-2">
                           <RadioGroupItem value="bottomLeft" id="banner-bl" />
-                          <Label htmlFor="banner-bl">{t("settings.banner.bottomLeft")}</Label>
+                          <Label htmlFor="banner-bl">Bottom Left</Label>
                         </div>
                         <div className="flex items-center space-x-2">
                           <RadioGroupItem value="bottomRight" id="banner-br" />
-                          <Label htmlFor="banner-br">{t("settings.banner.bottomRight")}</Label>
+                          <Label htmlFor="banner-br">Bottom Right</Label>
                         </div>
                         <div className="flex items-center space-x-2">
                           <RadioGroupItem value="topLeft" id="banner-tl" />
-                          <Label htmlFor="banner-tl">{t("settings.banner.topLeft")}</Label>
+                          <Label htmlFor="banner-tl">Top Left</Label>
                         </div>
                         <div className="flex items-center space-x-2">
                           <RadioGroupItem value="topRight" id="banner-tr" />
-                          <Label htmlFor="banner-tr">{t("settings.banner.topRight")}</Label>
+                          <Label htmlFor="banner-tr">Top Right</Label>
                         </div>
                       </RadioGroup>
                     </div>
@@ -1016,15 +991,15 @@ const SettingsDialog: React.FC = () => {
             className="flex items-center gap-2 border-destructive text-destructive hover:bg-destructive/10"
           >
             <RotateCw className="h-4 w-4" />
-            {t("settings.reset")}
+            Reset Settings
           </Button>
           
           <div className="flex gap-2">
             <Button variant="outline" onClick={() => setIsSettingsOpen(false)}>
-              {t("settings.cancel")}
+              Cancel
             </Button>
             <Button onClick={handleSaveAppSettings}>
-              {t("settings.save")}
+              Save
             </Button>
           </div>
         </div>

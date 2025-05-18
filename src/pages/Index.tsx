@@ -51,7 +51,7 @@ const Index = () => {
     
   }, [apiConfig.apiKey, apiConfig.folderId, refreshPhotos, isInitialLoad]);
 
-  // Helper functions for banner positioning and sizing
+  // Helper functions for banner positioning
   function getBannerPosition() {
     switch (settings.bannerPosition) {
       case "bottomLeft":
@@ -64,23 +64,6 @@ const Index = () => {
         return "top-20 right-8"; // Adjusted to be below header
       default:
         return "bottom-8 left-8";
-    }
-  }
-
-  function getBannerSize() {
-    if (settings.bannerSize === "custom" && settings.customBannerSize) {
-      return `max-w-[${settings.customBannerSize.width}px] max-h-[${settings.customBannerSize.height}px]`;
-    }
-    
-    switch (settings.bannerSize) {
-      case "small":
-        return "max-w-[100px] max-h-[100px]";
-      case "medium":
-        return "max-w-[200px] max-h-[200px]";
-      case "large":
-        return "max-w-[300px] max-h-[300px]";
-      default:
-        return "max-w-[200px] max-h-[200px]";
     }
   }
 
@@ -100,14 +83,10 @@ const Index = () => {
       {settings.bannerUrl && (
         <div 
           className={`fixed ${getBannerPosition()} z-10`}
-          style={
-            settings.bannerSize === "custom" && settings.customBannerSize
-              ? { 
-                  maxWidth: `${settings.customBannerSize.width}px`, 
-                  maxHeight: `${settings.customBannerSize.height}px` 
-                }
-              : {}
-          }
+          style={{ 
+            maxWidth: `${settings.bannerSize}px`, 
+            maxHeight: `${settings.bannerSize}px` 
+          }}
         >
           <img 
             src={settings.bannerUrl} 
@@ -117,12 +96,12 @@ const Index = () => {
         </div>
       )}
       
-      {/* Header QR code if enabled - only show when banner isn't at topRight position */}
+      {/* Header QR code if enabled */}
       {settings.showHeaderQR && (!settings.bannerUrl || settings.bannerPosition !== "topRight") && (
         <div className="fixed top-24 right-24 z-40">
           <QRCode 
             url={window.location.href} 
-            size={settings.headerQRCodeSize || settings.qrCodeSize} 
+            size={settings.headerQRCodeSize} 
             className="shadow-lg bg-white/90 backdrop-blur-sm"
           />
         </div>

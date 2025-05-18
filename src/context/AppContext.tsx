@@ -78,13 +78,12 @@ const defaultSettings: AppSettings = {
   logoUrl: null,
   logoSize: 100,
   bannerUrl: null,
-  bannerSize: "medium",
-  customBannerSize: { width: 200, height: 200 },
+  bannerSize: 200, // Changed from string to number (pixels)
   bannerPosition: "bottomLeft",
   autoScrollEnabled: false,
   autoScrollDirection: "down",
   autoScrollSpeed: 10,
-  gridLayout: "auto",
+  gridLayout: "googlePhotos", // Changed default to googlePhotos
   gridColumns: 4,
   gridRows: 0,
 };
@@ -228,7 +227,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     return newPhotos.some(p => !oldIds.has(p.id));
   };
 
-  // Modified refresh photos function to prevent flickering
+  // Modified refresh photos function to always place new photos at the top
   const refreshPhotos = async (): Promise<boolean> => {
     if (!apiConfig.apiKey || !apiConfig.folderId) {
       setError("กรุณาระบุ API Key และ Folder ID");
@@ -250,19 +249,15 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       };
       
       if (result.success && result.data) {
-        // Only update the state if the photos have actually changed
-        if (checkIfPhotosChanged(photos, result.data)) {
-          // Sort photos by modified time (newest first)
-          const sortedPhotos = [...result.data].sort((a, b) => {
-            if (a.modifiedTime && b.modifiedTime) {
-              return new Date(b.modifiedTime).getTime() - new Date(a.modifiedTime).getTime();
-            }
-            return 0;
-          });
-          
-          setPhotos(sortedPhotos);
-        }
+        // Always sort by modified time (newest first)
+        const sortedPhotos = [...result.data].sort((a, b) => {
+          if (a.modifiedTime && b.modifiedTime) {
+            return new Date(b.modifiedTime).getTime() - new Date(a.modifiedTime).getTime();
+          }
+          return 0;
+        });
         
+        setPhotos(sortedPhotos);
         setError(null);
         return true;
       } else {

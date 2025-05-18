@@ -84,8 +84,8 @@ const PhotoGrid: React.FC = () => {
 
   // Create the masonry layout
   useEffect(() => {
-    // Don't use masonry layout if using fixed grid
-    if (settings.gridLayout === "fixed" || settings.gridLayout === "custom") {
+    // Don't use masonry layout if using fixed grid or custom grid
+    if (settings.gridLayout !== "googlePhotos" && settings.gridLayout !== "auto") {
       return;
     }
     
@@ -149,9 +149,13 @@ const PhotoGrid: React.FC = () => {
 
   // Get grid layout class based on settings
   const getGridLayoutClass = () => {
-    if (settings.gridLayout === "fixed" || settings.gridLayout === "custom") {
+    if (settings.gridLayout === "googlePhotos") {
+      return "masonry-grid"; // Google Photos style layout (original masonry)
+    } else if (settings.gridLayout === "auto") {
+      return "masonry-grid"; // Auto masonry (same as Google Photos)
+    } else if (settings.gridLayout === "fixed" || settings.gridLayout === "custom") {
       const columns = settings.gridColumns || 4;
-      return `grid grid-cols-1 ${columns === 1 ? '' : 'sm:grid-cols-2'} ${columns <= 2 ? '' : 'md:grid-cols-3'} ${columns <= 3 ? '' : `lg:grid-cols-${Math.min(columns, 12)}`}`;
+      return `grid grid-cols-1 ${columns === 1 ? '' : 'sm:grid-cols-2'} ${columns <= 2 ? '' : 'md:grid-cols-3'} ${columns <= 3 ? '' : `lg:grid-cols-${Math.min(columns, 12)}`} gap-4`;
     }
     return "masonry-grid";
   };
@@ -161,7 +165,7 @@ const PhotoGrid: React.FC = () => {
     if (settings.gridLayout === "fixed" || settings.gridLayout === "custom") {
       if (settings.gridRows && settings.gridRows > 0) {
         const gridRowStyles = {
-          height: `calc(100vh / ${settings.gridRows + 1})`,
+          height: settings.gridRows === 1 ? "calc(100vh - 120px)" : `calc((100vh - 120px) / ${settings.gridRows})`,
           minHeight: "100px"
         };
         return { className: "", style: gridRowStyles };
@@ -186,8 +190,9 @@ const PhotoGrid: React.FC = () => {
       // Calculate aspect ratio based on columns and rows
       const ratio = settings.gridColumns / settings.gridRows;
       return { 
-        aspectRatio: ratio, 
-        height: '100%'
+        aspectRatio: ratio.toString(),
+        height: '100%',
+        objectFit: 'cover' as const
       };
     }
     return {};
