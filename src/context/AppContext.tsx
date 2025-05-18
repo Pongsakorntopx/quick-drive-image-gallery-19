@@ -1,3 +1,4 @@
+
 import React, { createContext, useContext, useState, useEffect } from "react";
 import { ApiConfig, Photo, AppSettings, Theme, Font, PhotoFetchResult, Language, ThemeMode } from "../types";
 import { fetchPhotosFromDrive } from "../services/googleDriveService";
@@ -82,7 +83,7 @@ const defaultSettings: AppSettings = {
   autoScrollEnabled: false,
   autoScrollDirection: "down",
   autoScrollSpeed: 10,
-  settingsLocked: false,
+  // Removing settingsLocked property since it no longer exists in the AppSettings interface
 };
 
 // Context interface
@@ -167,8 +168,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           ...parsed,
           // For backward compatibility, use titleSize directly or fallback to default
           titleSize: parsed.titleSize || defaultSettings.titleSize,
-          // Add settings lock property if not present
-          settingsLocked: parsed.settingsLocked ?? defaultSettings.settingsLocked,
         };
       } catch (e) {
         console.error("Error parsing saved settings:", e);
