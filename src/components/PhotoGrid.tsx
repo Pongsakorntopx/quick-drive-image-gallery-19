@@ -1,4 +1,3 @@
-
 import React, { useEffect, useRef, useState, useMemo } from "react";
 import { useAppContext } from "../context/AppContext";
 import ImageCard from "./ImageCard";
@@ -25,8 +24,8 @@ const PhotoGrid: React.FC = () => {
   // Previous photos ref to prevent unnecessary updates
   const prevPhotosLength = useRef<number>(0);
 
-  // Batch size for virtualization
-  const batchSize = 12; 
+  // Batch size for virtualization - ปรับเพิ่มเพื่อโหลดรูปมากขึ้นใน��รั้งแรก
+  const batchSize = 24; 
   
   // Calculate optimized layout for masonry grid
   useEffect(() => {
@@ -82,9 +81,9 @@ const PhotoGrid: React.FC = () => {
     return map;
   }, [photos]);
 
-  // Create the masonry layout
+  // Create the masonry layout - ปรับปรุงให้มีประสิทธิภาพและสวยงามมากขึ้น
   useEffect(() => {
-    // Only apply masonry layout for Google Photos or auto layout
+    // เฉพาะ layout แบบ masonry เท่านั้นที่ต้องคำนวณ
     if (settings.gridLayout !== "googlePhotos" && settings.gridLayout !== "auto") {
       return;
     }
@@ -96,7 +95,7 @@ const PhotoGrid: React.FC = () => {
           allItems.forEach((item) => {
             const itemElement = item as HTMLElement;
             const rowHeight = 10;
-            const rowGap = 16; // make sure this matches the grid-gap in CSS
+            const rowGap = 16; // ต้องตรงกับ grid-gap ใน CSS
             const contentElement = itemElement.querySelector(".masonry-content");
             
             if (contentElement) {
@@ -105,27 +104,27 @@ const PhotoGrid: React.FC = () => {
                   (rowHeight + rowGap)
               );
               itemElement.style.gridRowEnd = `span ${rowSpan}`;
+              
+              // เพิ่มเอฟเฟกต์เฟดอินเมื่อโหลดเสร็จ
+              setTimeout(() => {
+                itemElement.style.opacity = "1";
+                itemElement.style.transform = "translateY(0)";
+              }, 50 * parseInt(itemElement.dataset.index || "0"));
             }
           });
         }
       };
 
-      // Debounce the resize function for performance
-      let resizeTimeout: number | undefined;
-      const debouncedResize = () => {
-        if (resizeTimeout) {
-          clearTimeout(resizeTimeout);
-        }
-        resizeTimeout = window.setTimeout(resizeAllGridItems, 100);
-      };
+      // ใช้ ResizeObserver สำหรับอัพเดทเมื่อขนาดหน้าจอเปลี่ยน
+      const observer = new ResizeObserver(() => {
+        resizeAllGridItems();
+      });
 
-      // Initial resize
-      resizeAllGridItems();
+      if (gridRef.current) {
+        observer.observe(gridRef.current);
+      }
 
-      // Resize on window resize
-      window.addEventListener("resize", debouncedResize);
-
-      // Resize when images are loaded
+      // Resize เมื่อรูปโหลดเสร็จ
       const allImages = gridRef.current.querySelectorAll("img");
       allImages.forEach((img) => {
         if (img.complete) {
@@ -135,14 +134,16 @@ const PhotoGrid: React.FC = () => {
         }
       });
 
+      // Initial resize
+      resizeAllGridItems();
+
       return () => {
-        window.removeEventListener("resize", debouncedResize);
+        if (gridRef.current) {
+          observer.unobserve(gridRef.current);
+        }
         allImages.forEach((img) => {
           img.removeEventListener("load", resizeAllGridItems);
         });
-        if (resizeTimeout) {
-          clearTimeout(resizeTimeout);
-        }
       };
     }
   }, [virtualizedPhotos, settings.gridLayout]);
@@ -172,7 +173,7 @@ const PhotoGrid: React.FC = () => {
       }
       return { className: "", style: {} };
     }
-    return { className: "masonry-item", style: {} };
+    return { className: "masonry-item", style: { opacity: 0, transform: "translateY(20px)", transition: "opacity 0.3s ease, transform 0.3s ease" } };
   };
 
   // Get content class based on settings
@@ -211,12 +212,15 @@ const PhotoGrid: React.FC = () => {
   }
 
   return (
-    <div className="px-2 py-4 md:px-4 md:py-8 responsive-container">
+    <div className="px-2 py-4 md:px-4 md:py-6 responsive-container">
       {isLoading && photos.length === 0 ? (
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-6">
-          {Array.from({ length: 8 }).map((_, index) => (
-            <div key={index} className="rounded-lg overflow-hidden">
-              <Skeleton className="aspect-square" />
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-2 sm:gap-3 md:gap-4">
+          {Array.from({ length: 12 }).map((_, index) => (
+            <div key={index} className="rounded-lg overflow-hidden shadow-sm group hover:shadow-md transition-shadow duration-200">
+              <Skeleton className="aspect-[3/2] w-full" />
+              <div className="p-2">
+                <Skeleton className="h-4 w-3/4" />
+              </div>
             </div>
           ))}
         </div>
@@ -233,10 +237,10 @@ const PhotoGrid: React.FC = () => {
               display: "grid", 
               gridTemplateColumns: "repeat(auto-fill, minmax(250px, 1fr))",
               gridAutoRows: "10px",
-              gridGap: "16px"
+              gridGap: "8px"
             } : {}}
           >
-            {virtualizedPhotos.map((vPhoto) => {
+            {virtualizedPhotos.map((vPhoto, idx) => {
               const photo = photoMap.get(vPhoto.id);
               const gridItemProps = getGridItemClass();
               
@@ -245,6 +249,7 @@ const PhotoGrid: React.FC = () => {
                   key={vPhoto.id} 
                   className={gridItemProps.className}
                   style={gridItemProps.style}
+                  data-index={idx}
                 >
                   <div 
                     className={getContentClass()}
@@ -260,7 +265,7 @@ const PhotoGrid: React.FC = () => {
             })}
           </div>
           
-          {/* Load more trigger element */}
+          {/* Load more trigger element - ปรับปรุงตัวโหลดข้อมูลเพิ่ม */}
           {virtualizedPhotos.length < photos.length && (
             <div 
               ref={loadMoreRef} 
@@ -269,22 +274,67 @@ const PhotoGrid: React.FC = () => {
               <div className="rounded-full h-8 w-8 border-4 border-t-transparent border-primary animate-spin"></div>
             </div>
           )}
+
+          {/* แสดงเมื่อโหลดรูปทั้งหมดแล้ว */}
+          {virtualizedPhotos.length === photos.length && photos.length > 0 && (
+            <div className="w-full flex items-center justify-center mt-6 mb-2 text-muted-foreground text-sm">
+              <p>แสดงรูปภาพทั้งหมด ({photos.length} รูป)</p>
+            </div>
+          )}
         </>
       )}
       
-      {/* Add some global CSS for the masonry grid */}
+      {/* เพิ่ม CSS สำหรับ masonry grid ให้สวยงามยิ่งขึ้น */}
       <style jsx global>{`
         .masonry-grid {
           display: grid;
           grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
           grid-auto-rows: 10px;
-          grid-gap: 16px;
+          grid-gap: 8px;
         }
         .masonry-item {
           margin-bottom: 0;
+          overflow: hidden;
+          border-radius: 8px;
         }
         .masonry-content {
           width: 100%;
+          border-radius: 8px;
+          overflow: hidden;
+          box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
+          transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+        .masonry-content:hover {
+          transform: translateY(-2px);
+          box-shadow: 0 5px 15px rgba(0, 0, 0, 0.12);
+        }
+
+        /* ปรับ responsive grid สำหรับหน้าจอขนาดต่างๆ */
+        @media (max-width: 640px) {
+          .masonry-grid {
+            grid-template-columns: repeat(2, 1fr);
+            grid-gap: 6px;
+          }
+        }
+        @media (min-width: 641px) and (max-width: 768px) {
+          .masonry-grid {
+            grid-template-columns: repeat(3, 1fr);
+          }
+        }
+        @media (min-width: 769px) and (max-width: 1024px) {
+          .masonry-grid {
+            grid-template-columns: repeat(4, 1fr);
+          }
+        }
+        @media (min-width: 1025px) and (max-width: 1280px) {
+          .masonry-grid {
+            grid-template-columns: repeat(5, 1fr);
+          }
+        }
+        @media (min-width: 1281px) {
+          .masonry-grid {
+            grid-template-columns: repeat(6, 1fr);
+          }
         }
       `}</style>
     </div>

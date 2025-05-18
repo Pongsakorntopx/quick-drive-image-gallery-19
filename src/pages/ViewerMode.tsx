@@ -62,25 +62,27 @@ const ViewerMode = () => {
 
   return (
     <div className={`min-h-screen flex flex-col bg-background ${settings.font.class}`}>
-      <header className="w-full px-4 md:px-6 py-3 bg-background/90 backdrop-blur-sm border-b sticky top-0 z-10">
+      <header className="w-full px-4 md:px-6 py-3 bg-background/90 backdrop-blur-sm border-b sticky top-0 z-10 shadow-sm">
         <div className="flex items-center justify-center">
-          {settings.logoUrl && (
-            <div className="mb-2 mt-1">
-              <img 
-                src={settings.logoUrl} 
-                alt="Logo" 
-                className="max-h-16 max-w-[200px] mx-auto" 
-                style={{ maxHeight: `${settings.logoSize}px` }}
-              />
-            </div>
-          )}
-          
-          {settings.showTitle && (
-            <h1 className={`text-center font-bold text-xl md:text-2xl font-styled`}
-                style={{ fontSize: `${settings.titleSize}px` }}>
-              {settings.title}
-            </h1>
-          )}
+          <div className="flex flex-col items-center">
+            {settings.logoUrl && (
+              <div className="mb-1 mt-1">
+                <img 
+                  src={settings.logoUrl} 
+                  alt="Logo" 
+                  className="max-h-16 max-w-[200px] mx-auto transition-transform duration-300 hover:scale-105" 
+                  style={{ maxHeight: `${settings.logoSize}px` }}
+                />
+              </div>
+            )}
+            
+            {settings.showTitle && (
+              <h1 className={`text-center font-bold text-xl md:text-2xl font-styled`}
+                  style={{ fontSize: `${settings.titleSize}px` }}>
+                {settings.title}
+              </h1>
+            )}
+          </div>
         </div>
       </header>
       
@@ -91,32 +93,32 @@ const ViewerMode = () => {
       <ImageViewer />
       <AutoScroll />
       
-      {/* Banner */}
+      {/* Banner with improved animation */}
       {settings.bannerUrl && (
         <div 
-          className={`fixed ${getBannerPosition()} z-10`}
+          className={`fixed ${getBannerPosition()} z-10 transition-all duration-300 hover:scale-105 transform`}
           style={{ maxWidth: `${settings.bannerSize}px`, maxHeight: `${settings.bannerSize}px` }}
         >
           <img 
             src={settings.bannerUrl} 
             alt="Banner" 
-            className="max-w-full max-h-full object-contain"
+            className="max-w-full max-h-full object-contain rounded-lg shadow-lg"
           />
         </div>
       )}
       
       {/* Header QR code if enabled - only show when banner isn't at topRight position */}
       {settings.showHeaderQR && (!settings.bannerUrl || settings.bannerPosition !== "topRight") && (
-        <div className="fixed top-24 right-24 z-40">
+        <div className="fixed top-24 right-8 z-40 qr-code-container">
           <QRCode 
             url={window.location.href} 
             size={settings.headerQRCodeSize} 
-            className="shadow-lg bg-white/90 backdrop-blur-sm"
+            className="shadow-lg bg-white/90 backdrop-blur-sm rounded-lg"
           />
         </div>
       )}
       
-      <footer className="py-2 px-4 text-center text-sm text-muted-foreground">
+      <footer className="py-2 px-4 text-center text-sm text-muted-foreground border-t">
         <p>{t("app.footer", { year: new Date().getFullYear() })}</p>
       </footer>
     </div>

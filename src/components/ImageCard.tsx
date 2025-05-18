@@ -63,45 +63,51 @@ const ImageCard: React.FC<ImageCardProps> = ({ photo, onClick }) => {
 
   return (
     <div 
-      className="image-container relative rounded-lg overflow-hidden shadow-lg transition-all duration-300 hover:shadow-xl cursor-pointer group"
+      className="relative rounded-lg overflow-hidden shadow-sm transition-all duration-300 hover:shadow-md cursor-pointer group h-full"
       onClick={onClick}
     >
-      {/* Use thumbnailLink for grid display with fallback options */}
-      <img
-        src={photo.thumbnailLink || `https://drive.google.com/thumbnail?id=${photo.id}`}
-        alt={photo.name}
-        loading="lazy"
-        className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
-        onError={(e) => {
-          // Fallback chain if thumbnail fails
-          const imgElement = e.target as HTMLImageElement;
-          if (imgElement.src !== `https://drive.google.com/thumbnail?id=${photo.id}`) {
-            imgElement.src = `https://drive.google.com/thumbnail?id=${photo.id}`;
-          } else if (photo.iconLink) {
-            // Only use iconLink if it exists
-            imgElement.src = photo.iconLink;
-          }
-        }}
-      />
-      
-      <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-        <div className="absolute bottom-0 w-full p-4 text-white">
-          <h3 className="truncate font-medium" style={{fontSize: `${settings.fontSize.subtitle}px`}}>{photo.name}</h3>
+      {/* ภาพและโอเวอร์เลย์ */}
+      <div className="relative overflow-hidden w-full h-full">
+        {/* Use thumbnailLink for grid display with fallback options */}
+        <img
+          src={photo.thumbnailLink || `https://drive.google.com/thumbnail?id=${photo.id}`}
+          alt={photo.name}
+          loading="lazy"
+          className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+          onError={(e) => {
+            // Fallback chain if thumbnail fails
+            const imgElement = e.target as HTMLImageElement;
+            if (imgElement.src !== `https://drive.google.com/thumbnail?id=${photo.id}`) {
+              imgElement.src = `https://drive.google.com/thumbnail?id=${photo.id}`;
+            } else if (photo.iconLink) {
+              // Only use iconLink if it exists
+              imgElement.src = photo.iconLink;
+            }
+          }}
+        />
+        
+        {/* Overlay with gradient effect */}
+        <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/30 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+          <div className="absolute bottom-0 w-full p-3">
+            <h3 className="truncate font-medium text-white" style={{fontSize: `${settings.fontSize.subtitle}px`}}>{photo.name}</h3>
+          </div>
         </div>
       </div>
 
-      <div className={`absolute ${getQrCodePosition()} z-10 opacity-0 group-hover:opacity-100 transition-opacity duration-300`}>
+      {/* QR Code with improved appearance */}
+      <div className={`absolute ${getQrCodePosition()} z-10 opacity-0 group-hover:opacity-100 transition-opacity duration-300 transform scale-90 group-hover:scale-100`}>
         <QRCode 
           url={photo.directDownloadUrl || photo.webContentLink} 
           size={settings.qrCodeSize} 
-          className="shadow-lg bg-white/90 backdrop-blur-sm"
+          className="shadow-lg bg-white/90 backdrop-blur-sm rounded-lg"
         />
       </div>
 
+      {/* Download button with improved styling */}
       <Button 
         size="icon" 
         onClick={handleDownload}
-        className="absolute top-2 left-2 z-10 opacity-0 group-hover:opacity-100 transition-opacity duration-300 bg-white/20 hover:bg-white/40 backdrop-blur-sm"
+        className="absolute top-2 left-2 z-10 opacity-0 group-hover:opacity-100 transition-all duration-300 bg-white/20 hover:bg-white/40 backdrop-blur-sm transform -translate-y-2 group-hover:translate-y-0"
       >
         <Download className="h-4 w-4" />
       </Button>
