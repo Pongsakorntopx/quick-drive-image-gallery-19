@@ -1,137 +1,95 @@
 
-import React, { useEffect, useState, useRef } from 'react';
-import { useAppContext } from '../context/AppContext';
-import { Button } from './ui/button';
-import { X, ArrowDown, ArrowUp } from 'lucide-react';
+import { useEffect, useState } from "react";
+import { useAppContext } from "../context/AppContext";
+import { Button } from "@/components/ui/button";
+import { X, Pause, Play } from "lucide-react";
+import { useTranslation } from "../hooks/useTranslation";
 
-const AutoScroll: React.FC = () => {
-  const { settings } = useAppContext();
-  const [isActive, setIsActive] = useState<boolean>(false);
-  const [scrollProgress, setScrollProgress] = useState<number>(0);
-  const intervalRef = useRef<NodeJS.Timeout | null>(null);
-  const startTimeRef = useRef<number | null>(null);
-  const documentHeight = useRef<number>(0);
+const AutoScroll = () => {
+  const { settings, setSettings } = useAppContext();
+  const { t } = useTranslation();
+  const [isPaused, setIsPaused] = useState(false);
+  const [isControlsVisible, setIsControlsVisible] = useState(true);
+  const [hideTimeout, setHideTimeout] = useState<NodeJS.Timeout | null>(null);
 
-  // Set initial state based on settings
+  // Setup the autoscroll
   useEffect(() => {
-    if (settings.autoScrollEnabled) {
-      startScrolling();
-    }
+    if (!settings.autoScrollEnabled || isPaused) return;
     
-    return () => {
-      stopScrolling();
-    };
-  }, [settings.autoScrollEnabled, settings.autoScrollDirection, settings.autoScrollSpeed]);
-
-  // Calculate the document height and scroll position
+    const interval = setInterval(() => {
+      const scrollAmount = settings.autoScrollDirection === "down" ? 1 : -1;
+      window.scrollBy(0, scrollAmount * settings.autoScrollSpeed);
+    }, 100);
+    
+    return () => clearInterval(interval);
+  }, [settings.autoScrollEnabled, settings.autoScrollDirection, settings.autoScrollSpeed, isPaused]);
+  
+  // Handle mouse movement or touch to show controls
   useEffect(() => {
-    const updateDocumentHeight = () => {
-      documentHeight.current = document.documentElement.scrollHeight - window.innerHeight;
-    };
-
-    const updateScrollProgress = () => {
-      const scrollPosition = window.scrollY;
-      const progress = (scrollPosition / documentHeight.current) * 100;
-      setScrollProgress(Math.min(100, Math.max(0, progress)));
-    };
-
-    // Update height on mount and resize
-    updateDocumentHeight();
-    updateScrollProgress();
-
-    window.addEventListener('resize', updateDocumentHeight);
-    window.addEventListener('scroll', updateScrollProgress);
+    if (!settings.autoScrollEnabled) return;
     
-    return () => {
-      window.removeEventListener('resize', updateDocumentHeight);
-      window.removeEventListener('scroll', updateScrollProgress);
-    };
-  }, []);
-
-  const startScrolling = () => {
-    if (intervalRef.current) return;
-    
-    setIsActive(true);
-    startTimeRef.current = Date.now();
-    documentHeight.current = document.documentElement.scrollHeight - window.innerHeight;
-    
-    // Speed factor: 21 - speed so that higher number = slower scroll
-    const speed = 21 - settings.autoScrollSpeed; 
-    const step = settings.autoScrollDirection === 'down' ? 1 : -1;
-    
-    intervalRef.current = setInterval(() => {
-      window.scrollBy({
-        top: step,
-        behavior: 'auto'
-      });
+    const showControls = () => {
+      setIsControlsVisible(true);
       
-      const currentScroll = window.scrollY;
-      
-      // Reset to top or bottom when reached the end
-      if (settings.autoScrollDirection === 'down' && currentScroll >= documentHeight.current - 5) {
-        window.scrollTo({
-          top: 0,
-          behavior: 'auto'
-        });
-      } else if (settings.autoScrollDirection === 'up' && currentScroll <= 0) {
-        window.scrollTo({
-          top: documentHeight.current,
-          behavior: 'auto'
-        });
+      // Clear any existing timeout
+      if (hideTimeout) {
+        clearTimeout(hideTimeout);
       }
-    }, speed * 5); // Adjust timing based on speed setting
-  };
-
-  const stopScrolling = () => {
-    if (intervalRef.current) {
-      clearInterval(intervalRef.current);
-      intervalRef.current = null;
-    }
-    setIsActive(false);
-    startTimeRef.current = null;
-  };
-
-  const toggleScrolling = () => {
-    if (isActive) {
-      stopScrolling();
-    } else {
-      startScrolling();
-    }
-  };
-
-  if (!settings.autoScrollEnabled && !isActive) {
-    return null;
-  }
-
-  return (
-    <div className="fixed top-4 left-1/2 -translate-x-1/2 z-50 flex flex-col items-center">
-      <div className="bg-black/70 text-white px-4 py-2 rounded-full backdrop-blur-md border border-white/20 shadow-lg flex items-center gap-2">
-        <div className="flex items-center gap-1">
-          {settings.autoScrollDirection === 'down' ? (
-            <ArrowDown className="h-4 w-4 animate-bounce" />
-          ) : (
-            <ArrowUp className="h-4 w-4 animate-bounce" />
-          )}
-          <span className="text-sm">เลื่อนอัตโนมัติ</span>
-        </div>
-        
-        <Button 
-          variant="ghost" 
-          size="icon" 
-          className="h-6 w-6 rounded-full hover:bg-white/20 text-white"
-          onClick={toggleScrolling}
-        >
-          <X className="h-4 w-4" />
-          <span className="sr-only">ปิดการเลื่อนอัตโนมัติ</span>
-        </Button>
-      </div>
       
-      {/* Progress bar */}
-      <div className="w-32 h-1 bg-white/20 rounded-full mt-1 overflow-hidden">
-        <div 
-          className="h-full bg-white transition-all duration-300"
-          style={{ width: `${scrollProgress}%` }}
-        ></div>
+      // Set a new timeout to hide controls after 3 seconds
+      const timeout = setTimeout(() => {
+        setIsControlsVisible(false);
+      }, 3000);
+      
+      setHideTimeout(timeout);
+    };
+    
+    window.addEventListener("mousemove", showControls);
+    window.addEventListener("touchstart", showControls);
+    
+    // Initial timeout to hide controls
+    showControls();
+    
+    return () => {
+      window.removeEventListener("mousemove", showControls);
+      window.removeEventListener("touchstart", showControls);
+      if (hideTimeout) {
+        clearTimeout(hideTimeout);
+      }
+    };
+  }, [settings.autoScrollEnabled]);
+  
+  if (!settings.autoScrollEnabled) return null;
+  
+  const togglePause = () => {
+    setIsPaused(prev => !prev);
+  };
+  
+  const disableAutoScroll = () => {
+    setSettings(prev => ({
+      ...prev,
+      autoScrollEnabled: false
+    }));
+  };
+  
+  return (
+    <div 
+      className={`fixed top-0 left-0 right-0 z-40 transition-opacity duration-300 ${isControlsVisible ? 'opacity-100' : 'opacity-0'}`}
+    >
+      <div className="flex justify-center">
+        <div className="bg-background/80 backdrop-blur-sm shadow-md rounded-b-lg px-3 py-2 flex items-center gap-2 border border-t-0">
+          <span className="text-sm font-medium">
+            {isPaused ? t("autoScroll.paused") : t("autoScroll.scrolling")} ({settings.autoScrollDirection === "down" ? t("autoScroll.down") : t("autoScroll.up")})
+          </span>
+          
+          <Button size="icon" variant="ghost" onClick={togglePause} className="h-8 w-8">
+            {isPaused ? <Play className="h-4 w-4" /> : <Pause className="h-4 w-4" />}
+          </Button>
+          
+          <Button size="icon" variant="ghost" onClick={disableAutoScroll} className="h-8 w-8 text-destructive">
+            <X className="h-4 w-4" />
+          </Button>
+        </div>
       </div>
     </div>
   );

@@ -2,21 +2,28 @@
 import React from "react";
 import { useAppContext } from "../context/AppContext";
 import { Button } from "@/components/ui/button";
-import { Settings, QrCode, Globe } from "lucide-react";
+import { Settings, QrCode, Moon, Sun } from "lucide-react";
 import QRCode from "./QRCode";
 import { getFolderUrl } from "../services/googleDriveService";
 import { useTranslation } from "../hooks/useTranslation";
 
 const Header: React.FC = () => {
-  const { settings, setIsSettingsOpen, apiConfig } = useAppContext();
+  const { settings, setIsSettingsOpen, apiConfig, setSettings } = useAppContext();
   const { t } = useTranslation();
   
   // Generate the Google Drive folder URL
   const folderUrl = apiConfig.folderId ? getFolderUrl(apiConfig.folderId) : "";
 
-  // Toggle dark/light mode locally (will be properly handled by context)
+  // Toggle dark/light mode
+  const toggleThemeMode = () => {
+    setSettings(prev => ({
+      ...prev,
+      themeMode: prev.themeMode === "light" ? "dark" : "light"
+    }));
+  };
+
+  // Toggle language
   const toggleLanguage = () => {
-    const { setSettings } = useAppContext();
     setSettings(prev => ({
       ...prev,
       language: prev.language === "th" ? "en" : "th"
@@ -53,30 +60,30 @@ const Header: React.FC = () => {
         </div>
         
         <div className="flex items-center gap-2 mt-2 md:mt-0 w-full md:w-auto justify-center md:justify-end">
-          <div className="relative">
-            {settings.showHeaderQR ? (
-              <div className="flex items-center">
-                <QRCode url={folderUrl} size={36} />
+          {/* QR Code - Only in hover menu if not shown in header */}
+          {!settings.showHeaderQR && (
+            <div className="relative group">
+              <Button variant="outline" size="icon">
+                <QrCode className="h-4 w-4" />
+              </Button>
+              <div className="absolute right-0 top-full mt-1 hidden group-hover:block">
+                <QRCode url={folderUrl} size={settings.qrCodeSize * 1.5} />
               </div>
-            ) : (
-              <div className="relative group">
-                <Button variant="outline" size="icon">
-                  <QrCode className="h-4 w-4" />
-                </Button>
-                <div className="absolute right-0 top-full mt-1 hidden group-hover:block">
-                  <QRCode url={folderUrl} size={settings.qrCodeSize * 1.5} />
-                </div>
-              </div>
-            )}
-          </div>
+            </div>
+          )}
 
+          {/* Theme Mode Toggle */}
           <Button 
             variant="outline" 
             size="icon"
-            onClick={toggleLanguage}
-            title={t("settings.language")}
+            onClick={toggleThemeMode}
+            title={settings.themeMode === "light" ? t("settings.appearance.dark") : t("settings.appearance.light")}
           >
-            <Globe className="h-4 w-4" />
+            {settings.themeMode === "light" ? (
+              <Moon className="h-4 w-4" />
+            ) : (
+              <Sun className="h-4 w-4" />
+            )}
           </Button>
           
           <Button 
