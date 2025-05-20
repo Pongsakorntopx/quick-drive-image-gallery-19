@@ -1,5 +1,5 @@
-
-import { AppSettings, Theme, Font } from "../types";
+import { Theme, Font } from "../types";
+import { AppSettings } from "./AppContextTypes";
 import { allFonts } from "../config/fonts";
 
 export const predefinedThemes: Theme[] = [
@@ -92,7 +92,7 @@ export const predefinedThemes: Theme[] = [
   },
 ];
 
-export const defaultSettings = {
+export const defaultSettings: AppSettings = {
   themeMode: "light",
   theme: predefinedThemes[0], // Default to first theme
   font: {
@@ -113,6 +113,8 @@ export const defaultSettings = {
   language: "en",
   galleryName: "Photo Gallery",
   showGalleryName: true,
+  title: "Photo Gallery",
+  showTitle: true,
   logoUrl: "",
   showLogo: false,
   logoSize: 80,
@@ -124,5 +126,8 @@ export const defaultSettings = {
   gridLayout: "googlePhotos",
   gridColumns: 4,
   gridRows: 2,
-  qrCodePosition: "bottomRight"
+  qrCodePosition: "bottomRight",
+  autoScrollEnabled: false,
+  autoScrollDirection: "down",
+  autoScrollSpeed: 5
 };

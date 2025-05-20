@@ -1,9 +1,9 @@
 
 import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from "react";
-import { ApiConfig, Photo, AppSettings } from "../types";
+import { ApiConfig, Photo } from "../types";
 import { useToast } from "@/components/ui/use-toast";
 import { allFonts } from "../config/fonts";
-import { AppContextType, SortOrder, defaultSortOrder } from "./AppContextTypes";
+import { AppContextType, SortOrder, defaultSortOrder, AppSettings } from "./AppContextTypes";
 import { predefinedThemes, defaultSettings } from "./AppDefaults";
 import { fetchAndProcessPhotos, sortPhotos as sortPhotoUtil, findNewPhotos } from "./PhotoUtils";
 

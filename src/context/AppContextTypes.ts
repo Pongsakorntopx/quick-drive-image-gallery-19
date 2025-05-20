@@ -67,4 +67,9 @@ export interface AppSettings {
   gridColumns: number;
   gridRows: number;
   qrCodePosition: "bottomRight" | "bottomLeft" | "topRight" | "topLeft" | "center";
+  title: string;
+  showTitle: boolean;
+  autoScrollEnabled: boolean;
+  autoScrollDirection: "up" | "down";
+  autoScrollSpeed: number;
 }
