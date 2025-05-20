@@ -103,7 +103,9 @@ const Index = () => {
             url={window.location.href} 
             size={settings.headerQRCodeSize} 
             className="shadow-lg bg-white/90 backdrop-blur-sm"
-            padding={4}
+            padding={settings.qrCodePadding || 4}
+            borderRadius={settings.qrCodeBorderRadius || 4}
+            level={settings.qrCodeLevel || "H"}
           />
         </div>
       )}

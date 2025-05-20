@@ -11,6 +11,7 @@ interface QRCodeProps {
   fgColor?: string;
   level?: "L" | "M" | "Q" | "H";
   includeMargin?: boolean;
+  borderRadius?: number;
 }
 
 export const QRCode: React.FC<QRCodeProps> = ({ 
@@ -21,10 +22,20 @@ export const QRCode: React.FC<QRCodeProps> = ({
   bgColor = "#FFFFFF",
   fgColor = "#000000",
   level = "H",
-  includeMargin = false
+  includeMargin = false,
+  borderRadius = 4
 }) => {
   return (
-    <div className={`bg-white ${className}`} style={{ padding: `${padding}px` }}>
+    <div 
+      className={`bg-white ${className}`} 
+      style={{ 
+        padding: `${padding}px`, 
+        borderRadius: `${borderRadius}px`,
+        boxShadow: "0 2px 10px rgba(0,0,0,0.1)",
+        maxWidth: "100%",
+        width: "fit-content"
+      }}
+    >
       <QRCodeCanvas
         value={url}
         size={size}

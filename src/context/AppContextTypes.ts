@@ -1,4 +1,5 @@
-import { ApiConfig, Photo, AppSettings, Theme, Font, PhotoFetchResult, Language, ThemeMode } from "../types";
+
+import { ApiConfig, Photo, Theme, Font, PhotoFetchResult, Language, ThemeMode } from "../types";
 
 // Context interface
 export interface AppContextType {
@@ -66,4 +67,18 @@ export interface AppSettings {
   gridColumns: number;
   gridRows: number;
   qrCodePosition: "bottomRight" | "bottomLeft" | "topRight" | "topLeft" | "center";
+  // เพิ่มคุณสมบัติสำหรับการปรับแต่ง QR code
+  qrCodePadding: number;
+  qrCodeBorderRadius: number;
+  qrCodeLevel: "L" | "M" | "Q" | "H";
+  // เพิ่มสำหรับการอัปเดตอัตโนมัติ
+  autoRefreshEnabled: boolean;
+  autoRefreshInterval: number; // เวลาเป็นวินาทีสำหรับการรีเฟรชอัตโนมัติ
+  // สำหรับ auto scroll
+  autoScrollEnabled: boolean;
+  autoScrollDirection: "up" | "down";
+  autoScrollSpeed: number;
+  // สำหรับ title
+  title: string;
+  showTitle: boolean;
 }
