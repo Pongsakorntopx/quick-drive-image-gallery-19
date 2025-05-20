@@ -1,175 +1,201 @@
-import React, { useState, useEffect } from "react";
-import { useAppContext } from "../context/AppContext";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+
+import React, { useState, useRef, useEffect } from "react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Button } from "@/components/ui/button";
-import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
-import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
+import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
+import { useAppContext } from "../context/AppContext";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { RotateCw, Monitor, Smartphone, Tablet, Image, QrCode, ArrowDown, ArrowUp, Columns2, Columns3, Columns4, Grid2x2, Grid3x3, LayoutGrid } from "lucide-react";
 import { toast } from "@/components/ui/use-toast";
 import { Separator } from "@/components/ui/separator";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Check, Palette, Upload, X } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { fontCategories } from "../config/fonts";
 import { useTranslation } from "../hooks/useTranslation";
-import { Font, ThemeMode, Language } from "../types"; // Import Language type
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+
+// Define grid presets for layout options
+const gridPresets = [
+  { name: "1×1", columns: 1, rows: 1 },
+  { name: "2×2", columns: 2, rows: 2 },
+  { name: "3×2", columns: 3, rows: 2 },
+  { name: "3×3", columns: 3, rows: 3 },
+  { name: "4×3", columns: 4, rows: 3 },
+  { name: "4×4", columns: 4, rows: 4 }
+];
 
 const SettingsDialog: React.FC = () => {
   const { t } = useTranslation();
-  const { 
-    apiConfig, 
-    setApiConfig, 
-    settings, 
-    setSettings, 
-    isSettingsOpen, 
+  const {
+    isSettingsOpen,
     setIsSettingsOpen,
+    settings,
+    setSettings,
     themes,
     fonts,
+    apiConfig,
+    setApiConfig,
     refreshPhotos,
     resetAllData
   } = useAppContext();
 
-  // Local state for form values
-  const [localApiConfig, setLocalApiConfig] = useState({ ...apiConfig });
-  const [localSettings, setLocalSettings] = useState({ ...settings });
-  const [activeTab, setActiveTab] = useState("appearance");
-  const [logoFile, setLogoFile] = useState<File | null>(null);
+  // Basic settings
+  const [apiKey, setApiKey] = useState(apiConfig.apiKey);
+  const [folderId, setFolderId] = useState(apiConfig.folderId);
+  const [title, setTitle] = useState(settings.title);
+  const [showTitle, setShowTitle] = useState(settings.showTitle);
+  const [qrCodeSize, setQrCodeSize] = useState(settings.qrCodeSize);
+  const [headerQRCodeSize, setHeaderQRCodeSize] = useState(settings.headerQRCodeSize || 48);
+  const [viewerQRCodeSize, setViewerQRCodeSize] = useState(settings.viewerQRCodeSize || 80);
+  const [refreshInterval, setRefreshInterval] = useState(settings.refreshInterval);
+  const [titleFont, setTitleFont] = useState(settings.font.id);
+  const [titleSize, setTitleSize] = useState(settings.titleSize);
+  const [subtitleSize, setSubtitleSize] = useState(settings.fontSize.subtitle);
+  const [bodySize, setBodySize] = useState(settings.fontSize.body);
+  const [themeId, setThemeId] = useState(settings.theme.id);
+  const [themeMode, setThemeMode] = useState(settings.themeMode);
+  const [language, setLanguage] = useState(settings.language);
+  const [previewDevice, setPreviewDevice] = useState<'desktop' | 'tablet' | 'mobile'>('desktop');
+  
+  // Grid Layout settings
+  const [gridLayout, setGridLayout] = useState(settings.gridLayout || "googlePhotos");
+  const [gridColumns, setGridColumns] = useState(settings.gridColumns || 4);
+  const [gridRows, setGridRows] = useState(settings.gridRows || 0);
+  
+  // Settings for QR code and logo
+  const [qrCodePosition, setQrCodePosition] = useState(settings.qrCodePosition);
+  const [showHeaderQR, setShowHeaderQR] = useState(settings.showHeaderQR);
+  const [logoSize, setLogoSize] = useState(settings.logoSize || 100);
+  
+  // Banner settings
+  const [bannerSize, setBannerSize] = useState(settings.bannerSize || 200);
+  const [bannerPosition, setBannerPosition] = useState(settings.bannerPosition);
+  
+  // Auto-scroll settings
+  const [autoScrollEnabled, setAutoScrollEnabled] = useState(settings.autoScrollEnabled || false);
+  const [autoScrollDirection, setAutoScrollDirection] = useState(settings.autoScrollDirection || "down");
+  const [autoScrollSpeed, setAutoScrollSpeed] = useState(settings.autoScrollSpeed || 10);
+  
+  // File upload references
+  const logoFileRef = useRef<HTMLInputElement>(null);
+  const bannerFileRef = useRef<HTMLInputElement>(null);
   const [logoPreview, setLogoPreview] = useState<string | null>(settings.logoUrl);
-  const [bannerFile, setBannerFile] = useState<File | null>(null);
   const [bannerPreview, setBannerPreview] = useState<string | null>(settings.bannerUrl);
 
-  // Update local state when settings change
+  // Update API settings when apiConfig changes from context
   useEffect(() => {
-    setLocalApiConfig({ ...apiConfig });
-    setLocalSettings({ ...settings });
-    setLogoPreview(settings.logoUrl);
-    setBannerPreview(settings.bannerUrl);
-  }, [apiConfig, settings, isSettingsOpen]);
+    setApiKey(apiConfig.apiKey);
+    setFolderId(apiConfig.folderId);
+  }, [apiConfig]);
 
-  // Handle form submission
-  const handleSubmit = async () => {
-    // Process logo upload if there's a new file
-    if (logoFile) {
-      try {
-        const logoDataUrl = await readFileAsDataURL(logoFile);
-        localSettings.logoUrl = logoDataUrl;
-      } catch (error) {
-        console.error("Error processing logo:", error);
-        toast({
-          title: "เกิดข้อผิดพลาด",
-          description: "ไม่สามารถอัพโหลดโลโก้ได้",
-          variant: "destructive",
-        });
-      }
-    } else if (logoPreview === null && settings.logoUrl !== null) {
-      // Logo was removed
-      localSettings.logoUrl = null;
-    }
+  const handleSaveApiSettings = () => {
+    setApiConfig({
+      apiKey,
+      folderId,
+    });
+    refreshPhotos();
+  };
 
-    // Process banner upload if there's a new file
-    if (bannerFile) {
-      try {
-        const bannerDataUrl = await readFileAsDataURL(bannerFile);
-        localSettings.bannerUrl = bannerDataUrl;
-      } catch (error) {
-        console.error("Error processing banner:", error);
-        toast({
-          title: "เกิดข้อผิดพลาด",
-          description: "ไม่สามารถอัพโหลดแบนเนอร์ได้",
-          variant: "destructive",
-        });
-      }
-    } else if (bannerPreview === null && settings.bannerUrl !== null) {
-      // Banner was removed
-      localSettings.bannerUrl = null;
-    }
+  const handleSaveAppSettings = () => {
+    const selectedTheme = themes.find((t) => t.id === themeId) || themes[0];
+    const selectedFont = fonts.find((f) => f.id === titleFont) || fonts[0];
 
-    // Update API config if changed
-    if (
-      localApiConfig.apiKey !== apiConfig.apiKey ||
-      localApiConfig.folderId !== apiConfig.folderId
-    ) {
-      setApiConfig(localApiConfig);
-      // Refresh photos with new API config
-      setTimeout(() => {
-        refreshPhotos();
-      }, 500);
-    }
-
-    // Update settings
-    setSettings(localSettings);
+    setSettings({
+      ...settings,
+      title,
+      showTitle,
+      titleSize,
+      theme: selectedTheme,
+      themeMode,
+      language,
+      font: selectedFont,
+      fontSize: {
+        subtitle: subtitleSize,
+        body: bodySize,
+      },
+      qrCodeSize,
+      headerQRCodeSize,
+      viewerQRCodeSize,
+      refreshInterval,
+      qrCodePosition,
+      showHeaderQR,
+      logoUrl: logoPreview,
+      logoSize,
+      bannerUrl: bannerPreview,
+      bannerSize,
+      bannerPosition,
+      autoScrollEnabled,
+      autoScrollDirection,
+      autoScrollSpeed,
+      // Grid layout settings
+      gridLayout,
+      gridColumns,
+      gridRows,
+    });
+    
     setIsSettingsOpen(false);
-
+    
     toast({
       title: t("toast.settings.saved"),
-      description: t("toast.settings.saved"),
+      description: t("toast.settings.saved")
     });
   };
 
-  // Reset settings to defaults
+  // Reset all settings to default values
   const handleResetSettings = () => {
-    // Keep API config but reset other settings
-    const defaultSettings = {
-      ...settings,
-      title: "แกลเลอรี่รูปภาพ Google Drive",
-      showTitle: true,
-      titleSize: 24,
-      theme: themes[0],
-      themeMode: "light" as ThemeMode, // Cast string literal to ThemeMode
-      language: "th" as Language, // Cast string literal to Language
-      font: fonts[0],
-      fontSize: {
-        subtitle: 16,
-        body: 14,
-      },
-      qrCodeSize: 64,
-      headerQRCodeSize: 48,
-      viewerQRCodeSize: 80,
-      refreshInterval: 5,
-      qrCodePosition: "bottomRight" as "bottomRight", // Use a type assertion to specify exact string literal type
-      showHeaderQR: false,
-      logoUrl: null,
-      logoSize: 100,
-      bannerUrl: null,
-      bannerSize: 200,
-      bannerPosition: "bottomLeft" as "bottomLeft", // Fix this one too while we're at it
-      autoScrollEnabled: false,
-      autoScrollDirection: "down" as "down", // Fix this one as well
-      autoScrollSpeed: 10,
-      gridLayout: "googlePhotos" as "googlePhotos", // Fix this one as well
-      gridColumns: 4,
-      gridRows: 0,
-    };
-
-    setLocalSettings(defaultSettings);
-    setLogoPreview(null);
-    setBannerPreview(null);
-    setLogoFile(null);
-    setBannerFile(null);
-
-    toast({
-      title: t("toast.settings.reset"),
-      description: t("toast.settings.reset"),
-    });
+    if (window.confirm(t("settings.reset") + "?")) {
+      // Reset to defaults
+      setTitle("แกลเลอรี่รูปภาพ Google Drive");
+      setShowTitle(true);
+      setThemeId(themes[0].id);
+      setThemeMode("light");
+      setLanguage("th");
+      setTitleFont(fonts[0].id);
+      setTitleSize(24);
+      setSubtitleSize(16);
+      setBodySize(14);
+      setQrCodeSize(64);
+      setHeaderQRCodeSize(48);
+      setViewerQRCodeSize(80);
+      setRefreshInterval(5);
+      setQrCodePosition("bottomRight");
+      setShowHeaderQR(false);
+      setLogoPreview(null);
+      setLogoSize(100);
+      setBannerPreview(null);
+      setBannerSize(200);
+      setBannerPosition("bottomLeft");
+      setAutoScrollEnabled(false);
+      setAutoScrollDirection("down");
+      setAutoScrollSpeed(10);
+      setGridLayout("googlePhotos");
+      setGridColumns(4);
+      setGridRows(0);
+      
+      toast({
+        title: t("toast.settings.reset"),
+        description: t("toast.settings.reset")
+      });
+    }
+  };
+  
+  // Handle reset all data
+  const handleResetAllData = () => {
+    if (window.confirm(t("setup.reset") + "?")) {
+      resetAllData();
+      setIsSettingsOpen(false);
+    }
   };
 
-  // Helper function to read file as data URL
-  const readFileAsDataURL = (file: File): Promise<string> => {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onload = () => resolve(reader.result as string);
-      reader.onerror = reject;
-      reader.readAsDataURL(file);
-    });
-  };
-
-  // Handle logo file selection
-  const handleLogoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files[0]) {
-      const file = e.target.files[0];
-      setLogoFile(file);
+  // Handle logo upload
+  const handleLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
       const reader = new FileReader();
       reader.onload = (event) => {
         setLogoPreview(event.target?.result as string);
@@ -178,11 +204,10 @@ const SettingsDialog: React.FC = () => {
     }
   };
 
-  // Handle banner file selection
-  const handleBannerChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files[0]) {
-      const file = e.target.files[0];
-      setBannerFile(file);
+  // Handle banner upload
+  const handleBannerUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
       const reader = new FileReader();
       reader.onload = (event) => {
         setBannerPreview(event.target?.result as string);
@@ -191,723 +216,804 @@ const SettingsDialog: React.FC = () => {
     }
   };
 
-  // Group fonts by category for better organization
-  const fontCategories = {
-    thai: fonts.filter(font => font.id.startsWith('thai-')),
-    thaiHandwriting: fonts.filter(font => font.id.startsWith('thai-handwriting-')),
-    english: fonts.filter(font => font.id.startsWith('en-')),
-    englishHandwriting: fonts.filter(font => font.id.startsWith('en-handwriting-')),
-    additional: fonts.filter(font => 
-      !font.id.startsWith('thai-') && 
-      !font.id.startsWith('en-') && 
-      !font.id.startsWith('thai-handwriting-') && 
-      !font.id.startsWith('en-handwriting-')
-    )
+  // Preview component to show font styling applied
+  const FontPreview = () => {
+    const selectedFont = fonts.find(f => f.id === titleFont) || fonts[0];
+    
+    // Get device frame class
+    let deviceClass = "w-full h-64 overflow-hidden";
+    let contentClass = "p-4";
+    
+    if (previewDevice === 'mobile') {
+      deviceClass = "w-[320px] h-64 mx-auto overflow-hidden";
+      contentClass = "p-2";
+    } else if (previewDevice === 'tablet') {
+      deviceClass = "w-[500px] h-64 mx-auto overflow-hidden";
+      contentClass = "p-3";
+    }
+
+    return (
+      <div className="mt-6 space-y-4">
+        <div className="flex justify-center gap-4 mb-2">
+          <Button 
+            variant={previewDevice === 'desktop' ? "default" : "outline"} 
+            size="sm" 
+            onClick={() => setPreviewDevice('desktop')}
+            className="px-2"
+          >
+            <Monitor className="h-4 w-4 mr-1" /> Desktop
+          </Button>
+          <Button 
+            variant={previewDevice === 'tablet' ? "default" : "outline"} 
+            size="sm" 
+            onClick={() => setPreviewDevice('tablet')}
+            className="px-2"
+          >
+            <Tablet className="h-4 w-4 mr-1" /> Tablet
+          </Button>
+          <Button 
+            variant={previewDevice === 'mobile' ? "default" : "outline"} 
+            size="sm" 
+            onClick={() => setPreviewDevice('mobile')}
+            className="px-2"
+          >
+            <Smartphone className="h-4 w-4 mr-1" /> Mobile
+          </Button>
+        </div>
+        
+        <div className={`${deviceClass} border rounded-lg shadow-md`}>
+          <div className="bg-background h-full dark:bg-gray-800">
+            <div className={`${contentClass}`}>
+              <div className="rounded-lg p-3 shadow-sm border">
+                <h2 
+                  className={`${selectedFont.class} font-bold`} 
+                  style={{
+                    fontSize: `${titleSize}px`
+                  }}
+                >
+                  {title || t("app.title")}
+                </h2>
+                <p 
+                  className={`${selectedFont.class} mt-2`} 
+                  style={{
+                    fontSize: `${bodySize}px`
+                  }}
+                >
+                  {t("settings.appearance.previewText")}
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  };
+  
+  // Component to handle font selection with categories
+  const FontSelector = () => {
+    return (
+      <div className="space-y-4">
+        <Label htmlFor="font">{t("settings.appearance.font")}</Label>
+        
+        <Accordion type="single" collapsible className="w-full">
+          {Object.entries(fontCategories).map(([categoryId, category]) => (
+            <AccordionItem value={categoryId} key={categoryId}>
+              <AccordionTrigger>
+                {t(`settings.fonts.${categoryId}`)}
+              </AccordionTrigger>
+              <AccordionContent>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-48 overflow-y-auto p-1">
+                  {category.fonts.map((font) => (
+                    <Button
+                      key={font.id}
+                      variant={titleFont === font.id ? "default" : "outline"}
+                      onClick={() => setTitleFont(font.id)}
+                      className={`justify-start overflow-hidden ${font.class}`}
+                    >
+                      <span className="truncate">{font.name}</span>
+                    </Button>
+                  ))}
+                </div>
+              </AccordionContent>
+            </AccordionItem>
+          ))}
+        </Accordion>
+      </div>
+    );
   };
 
   return (
     <Dialog open={isSettingsOpen} onOpenChange={setIsSettingsOpen}>
-      <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-hidden flex flex-col">
-        <DialogHeader>
+      <DialogContent className="sm:max-w-[600px] max-h-[90vh] p-0">
+        <DialogHeader className="p-4 pb-0">
           <DialogTitle>{t("settings.title")}</DialogTitle>
         </DialogHeader>
-
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 overflow-hidden flex flex-col">
-          <TabsList className="grid grid-cols-4 mb-4">
-            <TabsTrigger value="connection">{t("settings.tabs.connection")}</TabsTrigger>
-            <TabsTrigger value="appearance">{t("settings.tabs.appearance")}</TabsTrigger>
-            <TabsTrigger value="layout">{t("settings.tabs.layout")}</TabsTrigger>
-            <TabsTrigger value="advanced">{t("settings.tabs.advanced")}</TabsTrigger>
-          </TabsList>
-
-          <ScrollArea className="flex-1 pr-4">
-            {/* Connection Settings */}
-            <TabsContent value="connection" className="space-y-4">
-              <div className="space-y-4">
+        
+        <ScrollArea className="px-4 max-h-[calc(90vh-8rem)]">
+          <div className="p-1 pb-4">
+            <Tabs defaultValue="appearance">
+              <TabsList className="grid grid-cols-4 mb-4">
+                <TabsTrigger value="connection">Connection</TabsTrigger>
+                <TabsTrigger value="appearance">Appearance</TabsTrigger>
+                <TabsTrigger value="layout">Layout</TabsTrigger>
+                <TabsTrigger value="advanced">Advanced</TabsTrigger>
+              </TabsList>
+              
+              <TabsContent value="connection" className="space-y-4">
                 <div className="space-y-2">
-                  <Label htmlFor="apiKey">{t("setup.apiKey")}</Label>
+                  <Label htmlFor="apiKey">API Key</Label>
                   <Input
                     id="apiKey"
-                    value={localApiConfig.apiKey}
-                    onChange={(e) =>
-                      setLocalApiConfig({ ...localApiConfig, apiKey: e.target.value })
-                    }
-                    placeholder={t("setup.apiKeyPlaceholder")}
+                    value={apiKey}
+                    onChange={(e) => setApiKey(e.target.value)}
+                    placeholder="Enter your Google API Key"
                   />
                 </div>
-
+                
                 <div className="space-y-2">
-                  <Label htmlFor="folderId">{t("setup.folderId")}</Label>
+                  <Label htmlFor="folderId">Folder ID</Label>
                   <Input
                     id="folderId"
-                    value={localApiConfig.folderId}
-                    onChange={(e) =>
-                      setLocalApiConfig({ ...localApiConfig, folderId: e.target.value })
-                    }
-                    placeholder={t("setup.folderIdPlaceholder")}
+                    value={folderId}
+                    onChange={(e) => setFolderId(e.target.value)}
+                    placeholder="Enter your Google Drive Folder ID"
                   />
                 </div>
-
-                <div className="flex justify-between pt-4">
+                
+                <div className="flex justify-between mt-4">
                   <Button 
                     variant="outline" 
-                    onClick={() => resetAllData()}
-                    className="text-destructive hover:text-destructive"
+                    onClick={handleResetAllData}
+                    className="border-destructive text-destructive hover:bg-destructive/10"
                   >
-                    {t("settings.connection.reset")}
+                    Reset All Data
                   </Button>
-                  <Button onClick={() => handleSubmit()}>
-                    {t("settings.connection.save")}
-                  </Button>
-                </div>
-              </div>
-            </TabsContent>
-
-            {/* Appearance Settings */}
-            <TabsContent value="appearance" className="space-y-4">
-              <div className="space-y-4">
-                {/* Site Title */}
-                <div className="space-y-2">
-                  <Label htmlFor="title">{t("settings.appearance.siteName")}</Label>
-                  <Input
-                    id="title"
-                    value={localSettings.title}
-                    onChange={(e) =>
-                      setLocalSettings({ ...localSettings, title: e.target.value })
-                    }
-                  />
-                </div>
-
-                {/* Show Title Toggle */}
-                <div className="flex items-center justify-between">
-                  <Label htmlFor="showTitle">{t("settings.appearance.showTitle")}</Label>
-                  <Switch
-                    id="showTitle"
-                    checked={localSettings.showTitle}
-                    onCheckedChange={(checked) =>
-                      setLocalSettings({ ...localSettings, showTitle: checked })
-                    }
-                  />
-                </div>
-
-                {/* Title Size */}
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between">
-                    <Label htmlFor="titleSize">
-                      {t("settings.appearance.titleSize", { size: localSettings.titleSize })}
-                    </Label>
-                  </div>
-                  <Slider
-                    id="titleSize"
-                    min={16}
-                    max={48}
-                    step={1}
-                    value={[localSettings.titleSize]}
-                    onValueChange={(value) =>
-                      setLocalSettings({ ...localSettings, titleSize: value[0] })
-                    }
-                  />
-                </div>
-
-                <Separator />
-
-                {/* Theme Selection */}
-                <div className="space-y-2">
-                  <Label>Theme</Label>
-                  <div className="grid grid-cols-3 gap-2">
-                    {themes.map((theme) => (
-                      <div
-                        key={theme.id}
-                        className={`relative cursor-pointer rounded-md p-2 flex flex-col items-center ${
-                          localSettings.theme.id === theme.id
-                            ? "ring-2 ring-primary"
-                            : "hover:bg-accent"
-                        }`}
-                        onClick={() => setLocalSettings({ ...localSettings, theme })}
-                      >
-                        <div
-                          className={`w-full h-8 rounded-md mb-1 bg-${theme.colorClass}-100 dark:bg-${theme.colorClass}-900`}
-                          style={{
-                            backgroundColor: theme.isGradient
-                              ? "transparent"
-                              : theme.color,
-                            backgroundImage: theme.isGradient
-                              ? theme.gradient
-                              : "none",
-                          }}
-                        />
-                        <span className="text-xs">{theme.name}</span>
-                        {localSettings.theme.id === theme.id && (
-                          <div className="absolute top-1 right-1 bg-primary text-primary-foreground rounded-full p-0.5">
-                            <Check className="h-3 w-3" />
-                          </div>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Theme Mode */}
-                <div className="space-y-2">
-                  <Label>{t("settings.appearance.themeMode")}</Label>
-                  <div className="flex space-x-2">
-                    <Button
-                      type="button"
-                      variant={localSettings.themeMode === "light" ? "default" : "outline"}
-                      className="flex-1"
-                      onClick={() =>
-                        setLocalSettings({ ...localSettings, themeMode: "light" as ThemeMode })
-                      }
-                    >
-                      {t("settings.appearance.light")}
-                    </Button>
-                    <Button
-                      type="button"
-                      variant={localSettings.themeMode === "dark" ? "default" : "outline"}
-                      className="flex-1"
-                      onClick={() =>
-                        setLocalSettings({ ...localSettings, themeMode: "dark" as ThemeMode })
-                      }
-                    >
-                      {t("settings.appearance.dark")}
-                    </Button>
-                  </div>
-                </div>
-
-                <Separator />
-
-                {/* Font Selection */}
-                <div className="space-y-2">
-                  <Label htmlFor="font">{t("settings.appearance.font")}</Label>
-                  <Select
-                    value={localSettings.font.id}
-                    onValueChange={(value) => {
-                      const selectedFont = fonts.find((f) => f.id === value) || fonts[0];
-                      setLocalSettings({ ...localSettings, font: selectedFont });
-                    }}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder={t("settings.appearance.selectFont")} />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {/* Thai Fonts */}
-                      {fontCategories.thai.length > 0 && (
-                        <>
-                          <div className="text-xs text-muted-foreground px-2 py-1.5">
-                            {t("settings.fonts.thai")}
-                          </div>
-                          {fontCategories.thai.map((font: Font) => (
-                            <SelectItem key={font.id} value={font.id} className={font.class}>
-                              {font.name}
-                            </SelectItem>
-                          ))}
-                        </>
-                      )}
-
-                      {/* Thai Handwriting Fonts */}
-                      {fontCategories.thaiHandwriting.length > 0 && (
-                        <>
-                          <div className="text-xs text-muted-foreground px-2 py-1.5">
-                            {t("settings.fonts.thaiHandwriting")}
-                          </div>
-                          {fontCategories.thaiHandwriting.map((font: Font) => (
-                            <SelectItem key={font.id} value={font.id} className={font.class}>
-                              {font.name}
-                            </SelectItem>
-                          ))}
-                        </>
-                      )}
-
-                      {/* English Fonts */}
-                      {fontCategories.english.length > 0 && (
-                        <>
-                          <div className="text-xs text-muted-foreground px-2 py-1.5">
-                            {t("settings.fonts.english")}
-                          </div>
-                          {fontCategories.english.map((font: Font) => (
-                            <SelectItem key={font.id} value={font.id} className={font.class}>
-                              {font.name}
-                            </SelectItem>
-                          ))}
-                        </>
-                      )}
-
-                      {/* English Handwriting Fonts */}
-                      {fontCategories.englishHandwriting.length > 0 && (
-                        <>
-                          <div className="text-xs text-muted-foreground px-2 py-1.5">
-                            {t("settings.fonts.englishHandwriting")}
-                          </div>
-                          {fontCategories.englishHandwriting.map((font: Font) => (
-                            <SelectItem key={font.id} value={font.id} className={font.class}>
-                              {font.name}
-                            </SelectItem>
-                          ))}
-                        </>
-                      )}
-
-                      {/* Additional Fonts */}
-                      {fontCategories.additional.length > 0 && (
-                        <>
-                          <div className="text-xs text-muted-foreground px-2 py-1.5">
-                            {t("settings.fonts.additional")}
-                          </div>
-                          {fontCategories.additional.map((font: Font) => (
-                            <SelectItem key={font.id} value={font.id} className={font.class}>
-                              {font.name}
-                            </SelectItem>
-                          ))}
-                        </>
-                      )}
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <Separator />
-
-                {/* Logo Upload */}
-                <div className="space-y-2">
-                  <Label>{t("settings.logo.upload")}</Label>
-                  <div className="flex items-center gap-2">
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      className="relative"
-                      onClick={() => document.getElementById("logo-upload")?.click()}
-                    >
-                      <Upload className="h-4 w-4 mr-2" />
-                      {t("settings.logo.choose")}
-                      <input
-                        id="logo-upload"
-                        type="file"
-                        accept="image/*"
-                        className="hidden"
-                        onChange={handleLogoChange}
-                      />
-                    </Button>
-                    {logoPreview && (
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        onClick={() => setLogoPreview(null)}
-                      >
-                        <X className="h-4 w-4 mr-2" />
-                        {t("settings.logo.remove")}
-                      </Button>
-                    )}
-                  </div>
-                  {logoPreview && (
-                    <div className="mt-2 relative">
-                      <img
-                        src={logoPreview}
-                        alt="Logo Preview"
-                        className="max-h-20 rounded-md"
-                      />
-                    </div>
-                  )}
-                </div>
-
-                {/* Logo Size */}
-                {logoPreview && (
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between">
-                      <Label>
-                        {t("settings.logo.size", { size: localSettings.logoSize })}
-                      </Label>
-                    </div>
-                    <Slider
-                      min={30}
-                      max={200}
-                      step={5}
-                      value={[localSettings.logoSize]}
-                      onValueChange={(value) =>
-                        setLocalSettings({ ...localSettings, logoSize: value[0] })
-                      }
-                    />
-                  </div>
-                )}
-
-                <Separator />
-
-                {/* Banner Upload */}
-                <div className="space-y-2">
-                  <Label>{t("settings.banner.upload")}</Label>
-                  <div className="flex items-center gap-2">
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      className="relative"
-                      onClick={() => document.getElementById("banner-upload")?.click()}
-                    >
-                      <Upload className="h-4 w-4 mr-2" />
-                      {t("settings.logo.choose")}
-                      <input
-                        id="banner-upload"
-                        type="file"
-                        accept="image/*"
-                        className="hidden"
-                        onChange={handleBannerChange}
-                      />
-                    </Button>
-                    {bannerPreview && (
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        onClick={() => setBannerPreview(null)}
-                      >
-                        <X className="h-4 w-4 mr-2" />
-                        {t("settings.logo.remove")}
-                      </Button>
-                    )}
-                  </div>
-                  {bannerPreview && (
-                    <div className="mt-2 relative">
-                      <img
-                        src={bannerPreview}
-                        alt="Banner Preview"
-                        className="max-h-32 rounded-md"
-                      />
-                    </div>
-                  )}
-                </div>
-
-                {/* Banner Size */}
-                {bannerPreview && (
-                  <div className="space-y-2">
-                    <Label>{t("settings.banner.size")}</Label>
-                    <div className="space-y-4">
-                      <div>
-                        <div className="flex items-center justify-between">
-                          <span className="text-sm">
-                            {t("settings.banner.width", { width: localSettings.bannerSize })}
-                          </span>
-                        </div>
-                        <Slider
-                          min={50}
-                          max={500}
-                          step={10}
-                          value={[localSettings.bannerSize]}
-                          onValueChange={(value) =>
-                            setLocalSettings({ ...localSettings, bannerSize: value[0] })
-                          }
-                          className="mt-1"
-                        />
-                      </div>
-                    </div>
-                  </div>
-                )}
-
-                {/* Banner Position */}
-                {bannerPreview && (
-                  <div className="space-y-2">
-                    <Label>{t("settings.banner.position")}</Label>
-                    <RadioGroup
-                      value={localSettings.bannerPosition}
-                      onValueChange={(value) =>
-                        setLocalSettings({
-                          ...localSettings,
-                          bannerPosition: value as "bottomLeft" | "bottomRight" | "topLeft" | "topRight",
-                        })
-                      }
-                      className="grid grid-cols-2 gap-2"
-                    >
-                      <div className="flex items-center space-x-2">
-                        <RadioGroupItem value="bottomLeft" id="banner-bl" />
-                        <Label htmlFor="banner-bl">{t("settings.banner.bottomLeft")}</Label>
-                      </div>
-                      <div className="flex items-center space-x-2">
-                        <RadioGroupItem value="bottomRight" id="banner-br" />
-                        <Label htmlFor="banner-br">{t("settings.banner.bottomRight")}</Label>
-                      </div>
-                      <div className="flex items-center space-x-2">
-                        <RadioGroupItem value="topLeft" id="banner-tl" />
-                        <Label htmlFor="banner-tl">{t("settings.banner.topLeft")}</Label>
-                      </div>
-                      <div className="flex items-center space-x-2">
-                        <RadioGroupItem value="topRight" id="banner-tr" />
-                        <Label htmlFor="banner-tr">{t("settings.banner.topRight")}</Label>
-                      </div>
-                    </RadioGroup>
-                  </div>
-                )}
-              </div>
-            </TabsContent>
-
-            {/* Layout Settings */}
-            <TabsContent value="layout" className="space-y-4">
-              <div className="space-y-4">
-                <div className="space-y-2">
-                  <Label>{t("settings.layout.title")}</Label>
-                  <RadioGroup
-                    value={localSettings.gridLayout}
-                    onValueChange={(value) =>
-                      setLocalSettings({
-                        ...localSettings,
-                        gridLayout: value as "googlePhotos" | "auto" | "fixed" | "custom",
-                      })
-                    }
-                  >
-                    <div className="flex items-center space-x-2">
-                      <RadioGroupItem value="googlePhotos" id="layout-google" />
-                      <Label htmlFor="layout-google">{t("settings.layout.googlePhotos")}</Label>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <RadioGroupItem value="fixed" id="layout-fixed" />
-                      <Label htmlFor="layout-fixed">{t("settings.layout.fixed")}</Label>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <RadioGroupItem value="custom" id="layout-custom" />
-                      <Label htmlFor="layout-custom">{t("settings.layout.custom")}</Label>
-                    </div>
-                  </RadioGroup>
-                </div>
-
-                {(localSettings.gridLayout === "fixed" || localSettings.gridLayout === "custom") && (
-                  <>
-                    <div className="space-y-2">
-                      <div className="flex items-center justify-between">
-                        <Label>
-                          {t("settings.layout.columns", { columns: localSettings.gridColumns })}
-                        </Label>
-                      </div>
-                      <Slider
-                        min={1}
-                        max={12}
-                        step={1}
-                        value={[localSettings.gridColumns]}
-                        onValueChange={(value) =>
-                          setLocalSettings({ ...localSettings, gridColumns: value[0] })
-                        }
-                      />
-                    </div>
-
-                    <div className="space-y-2">
-                      <div className="flex items-center justify-between">
-                        <Label>
-                          {t("settings.layout.rows", { rows: localSettings.gridRows })}
-                        </Label>
-                      </div>
-                      <Slider
-                        min={0}
-                        max={10}
-                        step={1}
-                        value={[localSettings.gridRows]}
-                        onValueChange={(value) =>
-                          setLocalSettings({ ...localSettings, gridRows: value[0] })
-                        }
-                      >
-                        <div className="text-xs text-muted-foreground">
-                          * 0 = Auto height
-                        </div>
-                      </Slider>
-                    </div>
-                  </>
-                )}
-
-                <Separator />
-
-                {/* QR Code Settings */}
-                <div className="space-y-4">
-                  <h3 className="text-lg font-medium">{t("settings.qrcode.title")}</h3>
                   
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between">
-                      <Label>
-                        {t("settings.qrcode.mainSize", { size: localSettings.qrCodeSize })}
-                      </Label>
+                  <Button onClick={handleSaveApiSettings}>
+                    Save Connection Settings
+                  </Button>
+                </div>
+              </TabsContent>
+              
+              <TabsContent value="appearance" className="space-y-4">
+                {/* Language & Theme Mode Settings */}
+                <div className="flex flex-col md:flex-row gap-4 p-3 bg-muted/30 rounded-lg">
+                  <div className="flex-1 space-y-1">
+                    <Label>Language</Label>
+                    <div className="flex gap-2 mt-1">
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant={language === "th" ? "default" : "outline"}
+                        onClick={() => setLanguage("th")}
+                        className="flex-1"
+                      >
+                        Thai
+                      </Button>
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant={language === "en" ? "default" : "outline"}
+                        onClick={() => setLanguage("en")}
+                        className="flex-1"
+                      >
+                        English
+                      </Button>
                     </div>
-                    <Slider
-                      min={32}
-                      max={200}
-                      step={4}
-                      value={[localSettings.qrCodeSize]}
-                      onValueChange={(value) =>
-                        setLocalSettings({ ...localSettings, qrCodeSize: value[0] })
-                      }
-                    />
                   </div>
-
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between">
-                      <Label>
-                        {t("settings.qrcode.headerSize", { size: localSettings.headerQRCodeSize })}
-                      </Label>
+                  
+                  <div className="flex-1 space-y-1">
+                    <Label>Theme Mode</Label>
+                    <div className="flex gap-2 mt-1">
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant={themeMode === "light" ? "default" : "outline"}
+                        onClick={() => setThemeMode("light")}
+                        className="flex-1"
+                      >
+                        Light
+                      </Button>
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant={themeMode === "dark" ? "default" : "outline"}
+                        onClick={() => setThemeMode("dark")}
+                        className="flex-1"
+                      >
+                        Dark
+                      </Button>
                     </div>
-                    <Slider
-                      min={32}
-                      max={120}
-                      step={4}
-                      value={[localSettings.headerQRCodeSize]}
-                      onValueChange={(value) =>
-                        setLocalSettings({ ...localSettings, headerQRCodeSize: value[0] })
-                      }
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between">
-                      <Label>
-                        {t("settings.qrcode.viewerSize", { size: localSettings.viewerQRCodeSize })}
-                      </Label>
-                    </div>
-                    <Slider
-                      min={40}
-                      max={200}
-                      step={4}
-                      value={[localSettings.viewerQRCodeSize]}
-                      onValueChange={(value) =>
-                        setLocalSettings({ ...localSettings, viewerQRCodeSize: value[0] })
-                      }
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label>{t("settings.qrcode.position")}</Label>
-                    <RadioGroup
-                      value={localSettings.qrCodePosition}
-                      onValueChange={(value) =>
-                        setLocalSettings({
-                          ...localSettings,
-                          qrCodePosition: value as "bottomRight" | "bottomLeft" | "topRight" | "topLeft" | "center",
-                        })
-                      }
-                      className="grid grid-cols-2 gap-2"
-                    >
-                      <div className="flex items-center space-x-2">
-                        <RadioGroupItem value="bottomRight" id="qr-br" />
-                        <Label htmlFor="qr-br">{t("settings.banner.bottomRight")}</Label>
-                      </div>
-                      <div className="flex items-center space-x-2">
-                        <RadioGroupItem value="bottomLeft" id="qr-bl" />
-                        <Label htmlFor="qr-bl">{t("settings.banner.bottomLeft")}</Label>
-                      </div>
-                      <div className="flex items-center space-x-2">
-                        <RadioGroupItem value="topRight" id="qr-tr" />
-                        <Label htmlFor="qr-tr">{t("settings.banner.topRight")}</Label>
-                      </div>
-                      <div className="flex items-center space-x-2">
-                        <RadioGroupItem value="topLeft" id="qr-tl" />
-                        <Label htmlFor="qr-tl">{t("settings.banner.topLeft")}</Label>
-                      </div>
-                      <div className="flex items-center space-x-2">
-                        <RadioGroupItem value="center" id="qr-c" />
-                        <Label htmlFor="qr-c">Center</Label>
-                      </div>
-                    </RadioGroup>
-                  </div>
-
-                  <div className="flex items-center justify-between">
-                    <Label htmlFor="showHeaderQR">{t("settings.qrcode.showHeader")}</Label>
-                    <Switch
-                      id="showHeaderQR"
-                      checked={localSettings.showHeaderQR}
-                      onCheckedChange={(checked) =>
-                        setLocalSettings({ ...localSettings, showHeaderQR: checked })
-                      }
-                    />
                   </div>
                 </div>
-              </div>
-            </TabsContent>
-
-            {/* Advanced Settings */}
-            <TabsContent value="advanced" className="space-y-4">
-              <div className="space-y-4">
-                <h3 className="text-lg font-medium">{t("settings.advanced.autoScroll")}</h3>
                 
-                <div className="flex items-center justify-between">
-                  <Label htmlFor="autoScrollEnabled">{t("settings.advanced.autoScrollEnabled")}</Label>
-                  <Switch
-                    id="autoScrollEnabled"
-                    checked={localSettings.autoScrollEnabled}
-                    onCheckedChange={(checked) =>
-                      setLocalSettings({ ...localSettings, autoScrollEnabled: checked })
-                    }
-                  />
+                <Separator className="my-3" />
+                
+                {/* Title Settings */}
+                <div className="space-y-3">
+                  <div className="space-y-2">
+                    <Label htmlFor="title">Site Name</Label>
+                    <Input
+                      id="title"
+                      value={title}
+                      onChange={(e) => setTitle(e.target.value)}
+                    />
+                  </div>
+                  
+                  <div className="flex items-center space-x-2">
+                    <Switch
+                      id="showTitle"
+                      checked={showTitle}
+                      onCheckedChange={setShowTitle}
+                    />
+                    <Label htmlFor="showTitle">Show Title</Label>
+                  </div>
+                
+                  <div className="space-y-2">
+                    <Label htmlFor="title-size">
+                      Title Size ({titleSize}px)
+                    </Label>
+                    <Slider
+                      id="title-size"
+                      value={[titleSize]}
+                      min={16}
+                      max={48}
+                      step={1}
+                      onValueChange={(value) => setTitleSize(value[0])}
+                    />
+                  </div>
                 </div>
+                
+                <Separator className="my-3" />
+                
+                {/* Font Selection */}
+                <FontSelector />
+                
+                <FontPreview />
+              </TabsContent>
 
-                {localSettings.autoScrollEnabled && (
-                  <>
+              {/* Layout Tab */}
+              <TabsContent value="layout" className="space-y-6">
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Grid Layout</CardTitle>
+                    <CardDescription>
+                      Configure the grid layout for displaying images
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
                     <div className="space-y-2">
-                      <Label>{t("settings.advanced.autoScrollDirection")}</Label>
-                      <div className="flex space-x-2">
+                      <Label>Layout Type</Label>
+                      <div className="flex flex-wrap gap-2">
                         <Button
                           type="button"
-                          variant={localSettings.autoScrollDirection === "down" ? "default" : "outline"}
+                          variant={gridLayout === "googlePhotos" ? "default" : "outline"}
+                          onClick={() => setGridLayout("googlePhotos")}
                           className="flex-1"
-                          onClick={() =>
-                            setLocalSettings({ ...localSettings, autoScrollDirection: "down" as "down" })
-                          }
                         >
-                          {t("settings.advanced.autoScrollDown")}
+                          <LayoutGrid className="h-4 w-4 mr-2" /> 
+                          Google Photos
                         </Button>
                         <Button
                           type="button"
-                          variant={localSettings.autoScrollDirection === "up" ? "default" : "outline"}
+                          variant={gridLayout === "auto" ? "default" : "outline"}
+                          onClick={() => setGridLayout("auto")}
                           className="flex-1"
-                          onClick={() =>
-                            setLocalSettings({ ...localSettings, autoScrollDirection: "up" as "up" })
-                          }
                         >
-                          {t("settings.advanced.autoScrollUp")}
+                          <Image className="h-4 w-4 mr-2" /> 
+                          Auto Masonry
                         </Button>
+                        <Button
+                          type="button"
+                          variant={gridLayout === "fixed" ? "default" : "outline"}
+                          onClick={() => setGridLayout("fixed")}
+                          className="flex-1"
+                        >
+                          <Grid2x2 className="h-4 w-4 mr-2" /> 
+                          Fixed
+                        </Button>
+                        <Button
+                          type="button"
+                          variant={gridLayout === "custom" ? "default" : "outline"}
+                          onClick={() => setGridLayout("custom")}
+                          className="flex-1"
+                        >
+                          <Grid3x3 className="h-4 w-4 mr-2" /> 
+                          Custom
+                        </Button>
+                      </div>
+                    </div>
+
+                    {gridLayout === "fixed" && (
+                      <div className="space-y-4 pt-2 pb-2">
+                        <Label>Layout Presets</Label>
+                        <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+                          {gridPresets.map((preset, index) => (
+                            <Button
+                              key={index}
+                              variant={(gridColumns === preset.columns && gridRows === preset.rows) ? "default" : "outline"}
+                              onClick={() => {
+                                setGridColumns(preset.columns);
+                                setGridRows(preset.rows);
+                              }}
+                              className="flex items-center justify-center"
+                            >
+                              {preset.name}
+                            </Button>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {(gridLayout === "fixed" || gridLayout === "custom") && (
+                      <div className="space-y-4 pt-2 pb-2 border-l-2 pl-4 border-primary/20">
+                        <div className="space-y-2">
+                          <Label htmlFor="grid-columns">
+                            Columns: {gridColumns}
+                          </Label>
+                          <div className="flex items-center gap-3">
+                            <Columns2 className="h-4 w-4 text-muted-foreground" />
+                            <Slider
+                              id="grid-columns"
+                              value={[gridColumns]}
+                              min={1}
+                              max={12}
+                              step={1}
+                              className="flex-1"
+                              onValueChange={(value) => setGridColumns(value[0])}
+                            />
+                            <Columns4 className="h-4 w-4 text-muted-foreground" />
+                          </div>
+                          <Input 
+                            type="number" 
+                            min={1} 
+                            max={12} 
+                            value={gridColumns}
+                            className="mt-1 w-24"
+                            onChange={(e) => setGridColumns(parseInt(e.target.value) || 1)}
+                          />
+                        </div>
+
+                        <div className="space-y-2">
+                          <Label htmlFor="grid-rows">
+                            Rows: {gridRows === 0 ? "Auto" : gridRows}
+                          </Label>
+                          <div className="flex items-center gap-3">
+                            <Columns2 className="h-4 w-4 text-muted-foreground rotate-90" />
+                            <Slider
+                              id="grid-rows"
+                              value={[gridRows]}
+                              min={0}
+                              max={12}
+                              step={1}
+                              className="flex-1"
+                              onValueChange={(value) => setGridRows(value[0])}
+                            />
+                            <Columns4 className="h-4 w-4 text-muted-foreground rotate-90" />
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <Input 
+                              type="number" 
+                              min={0} 
+                              max={12} 
+                              value={gridRows}
+                              className="mt-1 w-24"
+                              onChange={(e) => setGridRows(parseInt(e.target.value) || 0)}
+                            />
+                            <span className="text-xs text-muted-foreground">
+                              (0 = Auto)
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+
+                <Card>
+                  <CardHeader>
+                    <CardTitle>QR Code Settings</CardTitle>
+                    <CardDescription>
+                      Configure QR code sizes and positions
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="space-y-2 border p-3 rounded-md">
+                        <Label htmlFor="qr-size">
+                          Main QR Code ({qrCodeSize}px)
+                        </Label>
+                        <div className="flex items-center gap-2">
+                          <QrCode className="h-4 w-4 text-muted-foreground" />
+                          <Slider
+                            id="qr-size"
+                            value={[qrCodeSize]}
+                            min={32}
+                            max={180}
+                            step={8}
+                            onValueChange={(value) => setQrCodeSize(value[0])}
+                            className="flex-1"
+                          />
+                        </div>
+                        <Input 
+                          type="number" 
+                          min={32} 
+                          max={180} 
+                          value={qrCodeSize}
+                          className="mt-1 w-full"
+                          onChange={(e) => setQrCodeSize(parseInt(e.target.value) || 64)}
+                        />
+                        
+                        <div className="mt-3">
+                          <Label>QR Code Position</Label>
+                          <RadioGroup 
+                            value={qrCodePosition} 
+                            onValueChange={(value: "bottomRight" | "bottomLeft" | "topRight" | "topLeft" | "center") => setQrCodePosition(value)} 
+                            className="grid grid-cols-2 gap-2 mt-2"
+                          >
+                            <div className="flex items-center space-x-2">
+                              <RadioGroupItem value="bottomRight" id="qr-br" />
+                              <Label htmlFor="qr-br">Bottom Right</Label>
+                            </div>
+                            <div className="flex items-center space-x-2">
+                              <RadioGroupItem value="bottomLeft" id="qr-bl" />
+                              <Label htmlFor="qr-bl">Bottom Left</Label>
+                            </div>
+                            <div className="flex items-center space-x-2">
+                              <RadioGroupItem value="topRight" id="qr-tr" />
+                              <Label htmlFor="qr-tr">Top Right</Label>
+                            </div>
+                            <div className="flex items-center space-x-2">
+                              <RadioGroupItem value="topLeft" id="qr-tl" />
+                              <Label htmlFor="qr-tl">Top Left</Label>
+                            </div>
+                            <div className="flex items-center space-x-2">
+                              <RadioGroupItem value="center" id="qr-c" />
+                              <Label htmlFor="qr-c">Center</Label>
+                            </div>
+                          </RadioGroup>
+                        </div>
+                      </div>
+                      
+                      <div className="space-y-4 border p-3 rounded-md">
+                        <div className="space-y-2">
+                          <Label htmlFor="viewer-qr-size">
+                            Image Viewer QR Code ({viewerQRCodeSize}px)
+                          </Label>
+                          <div className="flex items-center gap-2">
+                            <QrCode className="h-4 w-4 text-muted-foreground" />
+                            <Slider
+                              id="viewer-qr-size"
+                              value={[viewerQRCodeSize]}
+                              min={32}
+                              max={180}
+                              step={8}
+                              onValueChange={(value) => setViewerQRCodeSize(value[0])}
+                              className="flex-1"
+                            />
+                          </div>
+                          <Input 
+                            type="number" 
+                            min={32} 
+                            max={180} 
+                            value={viewerQRCodeSize}
+                            className="mt-1 w-full"
+                            onChange={(e) => setViewerQRCodeSize(parseInt(e.target.value) || 80)}
+                          />
+                        </div>
+
+                        <Separator className="my-3" />
+                        
+                        <div className="space-y-2">
+                          <div className="flex items-center space-x-2 mb-3">
+                            <Switch 
+                              id="show-header-qr" 
+                              checked={showHeaderQR}
+                              onCheckedChange={setShowHeaderQR}
+                            />
+                            <Label htmlFor="show-header-qr">Show Header QR Code</Label>
+                          </div>
+                          
+                          {showHeaderQR && (
+                            <>
+                              <Label htmlFor="header-qr-size">
+                                Header QR Code ({headerQRCodeSize}px)
+                              </Label>
+                              <div className="flex items-center gap-2">
+                                <QrCode className="h-4 w-4 text-muted-foreground" />
+                                <Slider
+                                  id="header-qr-size"
+                                  value={[headerQRCodeSize]}
+                                  min={32}
+                                  max={180}
+                                  step={8}
+                                  onValueChange={(value) => setHeaderQRCodeSize(value[0])}
+                                  className="flex-1"
+                                />
+                              </div>
+                              <Input 
+                                type="number" 
+                                min={32} 
+                                max={180} 
+                                value={headerQRCodeSize}
+                                className="mt-1 w-full"
+                                onChange={(e) => setHeaderQRCodeSize(parseInt(e.target.value) || 48)}
+                              />
+                            </>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              </TabsContent>
+              
+              <TabsContent value="advanced" className="space-y-6">
+                {/* Auto-scroll Settings */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Auto Scroll</CardTitle>
+                    <CardDescription>
+                      Configure automatic scrolling settings
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div className="flex items-center space-x-2">
+                      <Switch
+                        id="auto-scroll"
+                        checked={autoScrollEnabled}
+                        onCheckedChange={setAutoScrollEnabled}
+                      />
+                      <Label htmlFor="auto-scroll">Enable Auto Scroll</Label>
+                    </div>
+                    
+                    {autoScrollEnabled && (
+                      <div className="space-y-3 pl-6 border-l-2 border-primary/20 mt-2">
+                        <div className="space-y-2">
+                          <Label>Initial Scroll Direction</Label>
+                          <div className="flex gap-2">
+                            <Button
+                              type="button"
+                              variant={autoScrollDirection === 'down' ? 'default' : 'outline'}
+                              onClick={() => setAutoScrollDirection('down')}
+                              className="flex-1"
+                            >
+                              <ArrowDown className="h-4 w-4 mr-2" /> Down
+                            </Button>
+                            
+                            <Button
+                              type="button"
+                              variant={autoScrollDirection === 'up' ? 'default' : 'outline'}
+                              onClick={() => setAutoScrollDirection('up')}
+                              className="flex-1"
+                            >
+                              <ArrowUp className="h-4 w-4 mr-2" /> Up
+                            </Button>
+                          </div>
+                        </div>
+                        
+                        <div className="space-y-2">
+                          <Label htmlFor="scroll-speed">
+                            Scroll Speed: {autoScrollSpeed}
+                          </Label>
+                          <div className="flex gap-2 items-center">
+                            <span className="text-sm">Slow</span>
+                            <Slider
+                              id="scroll-speed"
+                              value={[autoScrollSpeed]}
+                              min={1}
+                              max={20}
+                              step={1}
+                              onValueChange={(value) => setAutoScrollSpeed(value[0])}
+                              className="flex-1"
+                            />
+                            <span className="text-sm">Fast</span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <Input 
+                              type="number" 
+                              min={1} 
+                              max={20} 
+                              value={autoScrollSpeed}
+                              className="mt-1 w-24"
+                              onChange={(e) => setAutoScrollSpeed(parseInt(e.target.value) || 5)}
+                            />
+                            <span className="text-xs text-muted-foreground">
+                              (pixels per interval)
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+                
+                {/* Logo settings */}
+                <div className="space-y-4 border p-4 rounded-md bg-muted/10">
+                  <h3 className="text-lg font-medium">Logo Upload</h3>
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-2">
+                      <input
+                        ref={logoFileRef}
+                        type="file"
+                        accept="image/*"
+                        className="hidden"
+                        onChange={handleLogoUpload}
+                      />
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={() => logoFileRef.current?.click()}
+                      >
+                        <Image className="h-4 w-4 mr-2" /> Choose Logo
+                      </Button>
+                      {logoPreview && (
+                        <Button
+                          type="button"
+                          variant="outline"
+                          className="border-destructive text-destructive"
+                          onClick={() => setLogoPreview(null)}
+                        >
+                          Remove Logo
+                        </Button>
+                      )}
+                    </div>
+                    
+                    {logoPreview && (
+                      <div className="mt-2">
+                        <div className="bg-background/30 backdrop-blur-sm p-2 rounded">
+                          <img
+                            src={logoPreview}
+                            alt="Logo Preview"
+                            className="max-h-16 mx-auto"
+                          />
+                        </div>
+                      </div>
+                    )}
+                    
+                    <div className="mt-3">
+                      <Label htmlFor="logo-size">
+                        Logo Size: {logoSize}px
+                      </Label>
+                      <Slider
+                        id="logo-size"
+                        value={[logoSize]}
+                        min={32}
+                        max={200}
+                        step={4}
+                        onValueChange={(value) => setLogoSize(value[0])}
+                      />
+                      <Input 
+                        type="number" 
+                        min={32} 
+                        max={200} 
+                        value={logoSize}
+                        className="mt-1 w-24"
+                        onChange={(e) => setLogoSize(parseInt(e.target.value) || 100)}
+                      />
+                    </div>
+                  </div>
+                </div>
+                
+                {/* Banner settings */}
+                <div className="space-y-4 border p-4 rounded-md bg-muted/10">
+                  <h3 className="text-lg font-medium">Banner Upload</h3>
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-2">
+                      <input
+                        ref={bannerFileRef}
+                        type="file"
+                        accept="image/*"
+                        className="hidden"
+                        onChange={handleBannerUpload}
+                      />
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={() => bannerFileRef.current?.click()}
+                      >
+                        <Image className="h-4 w-4 mr-2" /> Choose Banner
+                      </Button>
+                      {bannerPreview && (
+                        <Button
+                          type="button"
+                          variant="outline"
+                          className="border-destructive text-destructive"
+                          onClick={() => setBannerPreview(null)}
+                        >
+                          Remove Banner
+                        </Button>
+                      )}
+                    </div>
+                    
+                    {bannerPreview && (
+                      <div className="mt-2">
+                        <div className="bg-background/30 backdrop-blur-sm p-2 rounded">
+                          <img
+                            src={bannerPreview}
+                            alt="Banner Preview"
+                            className="max-h-24 mx-auto"
+                          />
+                        </div>
+                      </div>
+                    )}
+                    
+                    <div className="mt-2">
+                      <Label>Banner Size (pixels)</Label>
+                      <div className="flex gap-4 mt-2">
+                        <div className="flex-1">
+                          <Label htmlFor="banner-size">Width: {bannerSize}px</Label>
+                          <Slider
+                            id="banner-size"
+                            value={[bannerSize]}
+                            min={50}
+                            max={600}
+                            step={10}
+                            onValueChange={(value) => setBannerSize(value[0])}
+                          />
+                          <Input 
+                            type="number" 
+                            min={50} 
+                            max={600} 
+                            value={bannerSize}
+                            className="mt-1 w-full"
+                            onChange={(e) => setBannerSize(parseInt(e.target.value) || 200)}
+                          />
+                        </div>
                       </div>
                     </div>
                     
-                    <div className="space-y-2">
-                      <div className="flex items-center justify-between">
-                        <Label>
-                          {t("settings.advanced.autoScrollSpeed", { speed: localSettings.autoScrollSpeed })}
-                        </Label>
-                      </div>
-                      <div className="flex items-center space-x-2">
-                        <span className="text-sm">{t("settings.advanced.slow")}</span>
-                        <Slider
-                          min={1}
-                          max={50}
-                          step={1}
-                          value={[localSettings.autoScrollSpeed]}
-                          onValueChange={(value) =>
-                            setLocalSettings({ ...localSettings, autoScrollSpeed: value[0] })
-                          }
-                          className="flex-1"
-                        />
-                        <span className="text-sm">{t("settings.advanced.fast")}</span>
-                      </div>
+                    <div className="mt-2">
+                      <Label>Banner Position</Label>
+                      <RadioGroup 
+                        value={bannerPosition} 
+                        onValueChange={(value: "bottomLeft" | "bottomRight" | "topLeft" | "topRight") => setBannerPosition(value)} 
+                        className="grid grid-cols-2 gap-2 mt-2"
+                      >
+                        <div className="flex items-center space-x-2">
+                          <RadioGroupItem value="bottomLeft" id="banner-bl" />
+                          <Label htmlFor="banner-bl">Bottom Left</Label>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <RadioGroupItem value="bottomRight" id="banner-br" />
+                          <Label htmlFor="banner-br">Bottom Right</Label>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <RadioGroupItem value="topLeft" id="banner-tl" />
+                          <Label htmlFor="banner-tl">Top Left</Label>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <RadioGroupItem value="topRight" id="banner-tr" />
+                          <Label htmlFor="banner-tr">Top Right</Label>
+                        </div>
+                      </RadioGroup>
                     </div>
-                  </>
-                )}
-                
-                <div className="space-y-2">
-                  <Label htmlFor="refreshInterval">
-                    Refresh Interval: {localSettings.refreshInterval} seconds
-                  </Label>
-                  <Slider
-                    id="refreshInterval"
-                    min={1}
-                    max={60}
-                    step={1}
-                    value={[localSettings.refreshInterval]}
-                    onValueChange={(value) =>
-                      setLocalSettings({ ...localSettings, refreshInterval: value[0] })
-                    }
-                  />
+                  </div>
                 </div>
-              </div>
-            </TabsContent>
-          </ScrollArea>
-        </Tabs>
-
-        <DialogFooter className="pt-4">
-          <Button variant="outline" onClick={handleResetSettings}>
-            {t("settings.reset")}
+              </TabsContent>
+            </Tabs>
+          </div>
+        </ScrollArea>
+        
+        <div className="flex justify-between items-center gap-2 p-4 border-t">
+          <Button 
+            variant="outline" 
+            onClick={handleResetSettings}
+            className="flex items-center gap-2 border-destructive text-destructive hover:bg-destructive/10"
+          >
+            <RotateCw className="h-4 w-4" />
+            Reset Settings
           </Button>
-          <Button onClick={handleSubmit}>{t("settings.save")}</Button>
-        </DialogFooter>
+          
+          <div className="flex gap-2">
+            <Button variant="outline" onClick={() => setIsSettingsOpen(false)}>
+              Cancel
+            </Button>
+            <Button onClick={handleSaveAppSettings}>
+              Save
+            </Button>
+          </div>
+        </div>
       </DialogContent>
     </Dialog>
   );
