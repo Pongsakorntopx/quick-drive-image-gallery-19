@@ -13,7 +13,7 @@ export interface Photo {
   directDownloadUrl?: string;
   fullSizeUrl?: string;
   modifiedTime?: string;
-  iconLink?: string; // Added iconLink property
+  iconLink?: string; 
   createdTime?: string;
 }
 
@@ -36,7 +36,8 @@ export type Language = "th" | "en";
 
 export type ThemeMode = "light" | "dark";
 
-export { AppSettings } from "../context/AppContextTypes";
+// Change from "export { AppSettings }" to "export type { AppSettings }"
+export type { AppSettings } from "../context/AppContextTypes";
 
 // Add interface for photo fetch result to fix the context errors
 export interface PhotoFetchResult {
