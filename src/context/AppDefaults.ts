@@ -1,3 +1,4 @@
+
 import { AppSettings, Theme, Font } from "../types";
 import { allFonts } from "../config/fonts";
 
@@ -5,6 +6,10 @@ export const predefinedThemes: Theme[] = [
   {
     id: "default-light",
     name: "Default Light",
+    colorClass: "light-theme",
+    color: "#FFFFFF",
+    isGradient: false,
+    gradient: "",
     colors: {
       background: "hsl(0 0% 98%)",
       foreground: "hsl(222.2 47.4% 11.2%)",
@@ -30,6 +35,10 @@ export const predefinedThemes: Theme[] = [
   {
     id: "default-dark",
     name: "Default Dark",
+    colorClass: "dark-theme",
+    color: "#1F1F1F",
+    isGradient: false,
+    gradient: "",
     colors: {
       background: "hsl(224 71% 4%)",
       foreground: "hsl(213 31% 91%)",
@@ -55,6 +64,10 @@ export const predefinedThemes: Theme[] = [
   {
     id: "zinc",
     name: "Zinc",
+    colorClass: "zinc-theme",
+    color: "#71717A",
+    isGradient: false,
+    gradient: "",
     colors: {
       background: "hsl(0 0% 98%)",
       foreground: "hsl(240 10% 3.9%)",
@@ -79,7 +92,7 @@ export const predefinedThemes: Theme[] = [
   },
 ];
 
-export const defaultSettings: AppSettings = {
+export const defaultSettings = {
   themeMode: "light",
   theme: predefinedThemes[0], // Default to first theme
   font: {

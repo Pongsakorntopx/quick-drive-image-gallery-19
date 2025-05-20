@@ -1,4 +1,5 @@
-import { ApiConfig, Photo, AppSettings, Theme, Font, PhotoFetchResult, Language, ThemeMode } from "../types";
+
+import { ApiConfig, Photo, Theme, Font, PhotoFetchResult, Language, ThemeMode } from "../types";
 
 // Context interface
 export interface AppContextType {
@@ -37,7 +38,7 @@ export const defaultSortOrder: SortOrder = {
   direction: "desc",
 };
 
-// AppSettings interface
+// AppSettings interface - updated to match usage in SettingsDialog
 export interface AppSettings {
   themeMode: 'light' | 'dark';
   theme: Theme;

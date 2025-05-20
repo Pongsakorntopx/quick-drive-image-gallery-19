@@ -11,6 +11,12 @@ interface QRCodeProps {
   fgColor?: string;
   level?: "L" | "M" | "Q" | "H";
   includeMargin?: boolean;
+  imageSettings?: {
+    src: string;
+    height: number;
+    width: number;
+    excavate: boolean;
+  };
 }
 
 export const QRCode: React.FC<QRCodeProps> = ({ 
@@ -21,7 +27,8 @@ export const QRCode: React.FC<QRCodeProps> = ({
   bgColor = "#FFFFFF",
   fgColor = "#000000",
   level = "H",
-  includeMargin = false
+  includeMargin = false,
+  imageSettings
 }) => {
   return (
     <div className={`bg-white ${className}`} style={{ padding: `${padding}px` }}>
@@ -32,6 +39,7 @@ export const QRCode: React.FC<QRCodeProps> = ({
         includeMargin={includeMargin}
         bgColor={bgColor}
         fgColor={fgColor}
+        imageSettings={imageSettings}
       />
     </div>
   );
