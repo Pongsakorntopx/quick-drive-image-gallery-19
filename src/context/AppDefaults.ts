@@ -27,9 +27,9 @@ export const defaultSettings: AppSettings = {
     subtitle: 16,
     body: 14,
   },
-  qrCodeSize: 64,
-  headerQRCodeSize: 48,
-  viewerQRCodeSize: 80, // Default size for image viewer QR code
+  qrCodeSize: 64,  // Default size for image QR codes in grid
+  headerQRCodeSize: 48, // Default size for header QR code
+  viewerQRCodeSize: 100, // Increased default size for image viewer QR code
   refreshInterval: 5,
   qrCodePosition: "bottomRight",
   showHeaderQR: false,

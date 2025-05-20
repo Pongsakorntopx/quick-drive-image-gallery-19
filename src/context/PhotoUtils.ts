@@ -1,4 +1,3 @@
-
 import { Photo, PhotoFetchResult } from "../types";
 import { fetchPhotosFromDrive } from "../services/googleDriveService";
 import { ApiConfig } from "../types";
@@ -44,15 +43,18 @@ export const sortPhotos = (photos: Photo[], sortOrder: SortOrder): Photo[] => {
   });
 };
 
-// Function to fetch photos from Google Drive
+// Function to fetch photos from Google Drive with improved real-time updates
 export const fetchAndProcessPhotos = async (
   apiConfig: ApiConfig, 
   language: string,
   sortOrder: SortOrder
 ): Promise<PhotoFetchResult> => {
   try {
-    // Fetch photos from Google Drive
-    const photosData = await fetchPhotosFromDrive(apiConfig);
+    // Force cache invalidation by adding timestamp to request
+    const timestamp = Date.now();
+    
+    // Fetch photos from Google Drive with cache-busting
+    const photosData = await fetchPhotosFromDrive(apiConfig, timestamp);
     
     // Create a PhotoFetchResult object from the photos array
     const result: PhotoFetchResult = {

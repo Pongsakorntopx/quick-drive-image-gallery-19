@@ -80,7 +80,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           ...parsed,
           // For backward compatibility
           titleSize: parsed.titleSize || defaultSettings.titleSize,
-          // For new properties
+          // For QR code sizes
+          qrCodeSize: parsed.qrCodeSize || defaultSettings.qrCodeSize,
           headerQRCodeSize: parsed.headerQRCodeSize || defaultSettings.headerQRCodeSize,
           viewerQRCodeSize: parsed.viewerQRCodeSize || defaultSettings.viewerQRCodeSize,
           gridLayout: parsed.gridLayout || defaultSettings.gridLayout,
@@ -103,6 +104,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   
   // Last refresh timestamp
   const lastRefreshTimeRef = useRef<number>(Date.now());
+  const forcedRefreshCount = useRef<number>(0);
   
   // Save API config to local storage
   useEffect(() => {
@@ -153,7 +155,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }
   };
 
-  // Improved refresh photos function with optimized performance
+  // Improved refresh photos function with real-time updates
   const refreshPhotos = useCallback(async (): Promise<boolean> => {
     if (!apiConfig.apiKey || !apiConfig.folderId) {
       setError(settings.language === "th" ? "กรุณาระบุ API Key และ Folder ID" : "Please provide API Key and Folder ID");
@@ -168,13 +170,18 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       
       console.log("Refreshing photos at:", new Date().toISOString());
       lastRefreshTimeRef.current = Date.now();
+      forcedRefreshCount.current += 1;
       
-      // Fetch and sort photos with optimized background processing
-      const result = await fetchAndProcessPhotos(apiConfig, settings.language, sortOrder);
+      // Force cache invalidation by using the current timestamp
+      const result = await fetchAndProcessPhotos(
+        apiConfig, 
+        settings.language, 
+        sortOrder
+      );
       
       if (result.success && result.data) {
-        // Update photos without showing notifications for new photos
-        setPhotos(result.data);
+        // Update photos - use completely new array to trigger renders
+        setPhotos([...result.data]);
         setError(null);
         return true;
       } else {
@@ -194,7 +201,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     } finally {
       setIsLoading(false);
     }
-  }, [apiConfig, photos.length, settings.language, sortOrder]);
+  }, [apiConfig, settings.language, sortOrder]);
 
   // Helper function to clear existing interval
   const clearRefreshInterval = useCallback(() => {
@@ -218,18 +225,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       const intervalMs = Math.max(1000, settings.refreshInterval * 1000); 
       console.log(`Setting up refresh interval: ${settings.refreshInterval} seconds`);
       
-      // Use more efficient setTimeout-based polling instead of setInterval
-      // This ensures we don't stack refreshes if one takes longer than the interval
-      const setupNextRefresh = () => {
-        refreshIntervalRef.current = window.setTimeout(async () => {
-          console.log(`Auto refresh triggered after ${settings.refreshInterval} seconds`);
-          await refreshPhotos();
-          // Set up the next refresh after this one completes
-          setupNextRefresh();
-        }, intervalMs);
-      };
-      
-      setupNextRefresh();
+      refreshIntervalRef.current = window.setInterval(async () => {
+        console.log(`Auto refresh triggered after ${settings.refreshInterval} seconds`);
+        await refreshPhotos();
+      }, intervalMs);
       
       // Clean up on unmount
       return () => {
