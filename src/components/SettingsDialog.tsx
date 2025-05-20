@@ -1,1019 +1,625 @@
-
-import React, { useState, useRef, useEffect } from "react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Button } from "@/components/ui/button";
-import { Slider } from "@/components/ui/slider";
+import React, { useState, useEffect } from "react";
 import { useAppContext } from "../context/AppContext";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { RotateCw, Monitor, Smartphone, Tablet, Image, QrCode, ArrowDown, ArrowUp, Columns2, Columns3, Columns4, Grid2x2, Grid3x3, LayoutGrid } from "lucide-react";
-import { toast } from "@/components/ui/use-toast";
-import { Separator } from "@/components/ui/separator";
-import { ScrollArea } from "@/components/ui/scroll-area";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import {
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger,
+} from "@/components/ui/tabs";
+import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { fontCategories } from "../config/fonts";
+import { Slider } from "@/components/ui/slider";
+import { Separator } from "@/components/ui/separator";
+import { AppSettings } from "../types";
+import { Bell } from "lucide-react";
 import { useTranslation } from "../hooks/useTranslation";
-import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-
-// Define grid presets for layout options
-const gridPresets = [
-  { name: "1×1", columns: 1, rows: 1 },
-  { name: "2×2", columns: 2, rows: 2 },
-  { name: "3×2", columns: 3, rows: 2 },
-  { name: "3×3", columns: 3, rows: 3 },
-  { name: "4×3", columns: 4, rows: 3 },
-  { name: "4×4", columns: 4, rows: 4 }
-];
+import { allFonts } from "../config/fonts";
 
 const SettingsDialog: React.FC = () => {
-  const { t } = useTranslation();
   const {
-    isSettingsOpen,
-    setIsSettingsOpen,
     settings,
     setSettings,
+    isSettingsOpen,
+    setIsSettingsOpen,
     themes,
     fonts,
-    apiConfig,
-    setApiConfig,
-    refreshPhotos,
-    resetAllData
+    notificationsEnabled,
+    setNotificationsEnabled
   } = useAppContext();
 
-  // Basic settings
-  const [apiKey, setApiKey] = useState(apiConfig.apiKey);
-  const [folderId, setFolderId] = useState(apiConfig.folderId);
-  const [title, setTitle] = useState(settings.title);
-  const [showTitle, setShowTitle] = useState(settings.showTitle);
-  const [qrCodeSize, setQrCodeSize] = useState(settings.qrCodeSize);
-  const [headerQRCodeSize, setHeaderQRCodeSize] = useState(settings.headerQRCodeSize || 48);
-  const [viewerQRCodeSize, setViewerQRCodeSize] = useState(settings.viewerQRCodeSize || 80);
-  const [refreshInterval, setRefreshInterval] = useState(settings.refreshInterval);
-  const [titleFont, setTitleFont] = useState(settings.font.id);
-  const [titleSize, setTitleSize] = useState(settings.titleSize);
-  const [subtitleSize, setSubtitleSize] = useState(settings.fontSize.subtitle);
-  const [bodySize, setBodySize] = useState(settings.fontSize.body);
-  const [themeId, setThemeId] = useState(settings.theme.id);
-  const [themeMode, setThemeMode] = useState(settings.themeMode);
-  const [language, setLanguage] = useState(settings.language);
-  const [previewDevice, setPreviewDevice] = useState<'desktop' | 'tablet' | 'mobile'>('desktop');
-  
-  // Grid Layout settings
-  const [gridLayout, setGridLayout] = useState(settings.gridLayout || "googlePhotos");
-  const [gridColumns, setGridColumns] = useState(settings.gridColumns || 4);
-  const [gridRows, setGridRows] = useState(settings.gridRows || 0);
-  
-  // Settings for QR code and logo
-  const [qrCodePosition, setQrCodePosition] = useState(settings.qrCodePosition);
-  const [showHeaderQR, setShowHeaderQR] = useState(settings.showHeaderQR);
-  const [logoSize, setLogoSize] = useState(settings.logoSize || 100);
-  
-  // Banner settings
-  const [bannerSize, setBannerSize] = useState(settings.bannerSize || 200);
-  const [bannerPosition, setBannerPosition] = useState(settings.bannerPosition);
-  
-  // Auto-scroll settings
-  const [autoScrollEnabled, setAutoScrollEnabled] = useState(settings.autoScrollEnabled || false);
-  const [autoScrollDirection, setAutoScrollDirection] = useState(settings.autoScrollDirection || "down");
-  const [autoScrollSpeed, setAutoScrollSpeed] = useState(settings.autoScrollSpeed || 10);
-  
-  // File upload references
-  const logoFileRef = useRef<HTMLInputElement>(null);
-  const bannerFileRef = useRef<HTMLInputElement>(null);
-  const [logoPreview, setLogoPreview] = useState<string | null>(settings.logoUrl);
-  const [bannerPreview, setBannerPreview] = useState<string | null>(settings.bannerUrl);
+  const [tempSettings, setTempSettings] = useState<AppSettings>(settings);
+  const { t } = useTranslation();
 
-  // Update API settings when apiConfig changes from context
   useEffect(() => {
-    setApiKey(apiConfig.apiKey);
-    setFolderId(apiConfig.folderId);
-  }, [apiConfig]);
+    setTempSettings(settings);
+  }, [settings, isSettingsOpen]);
 
-  const handleSaveApiSettings = () => {
-    setApiConfig({
-      apiKey,
-      folderId,
-    });
-    refreshPhotos();
-  };
-
-  const handleSaveAppSettings = () => {
-    const selectedTheme = themes.find((t) => t.id === themeId) || themes[0];
-    const selectedFont = fonts.find((f) => f.id === titleFont) || fonts[0];
-
-    setSettings({
-      ...settings,
-      title,
-      showTitle,
-      titleSize,
-      theme: selectedTheme,
-      themeMode,
-      language,
-      font: selectedFont,
-      fontSize: {
-        subtitle: subtitleSize,
-        body: bodySize,
-      },
-      qrCodeSize,
-      headerQRCodeSize,
-      viewerQRCodeSize,
-      refreshInterval,
-      qrCodePosition,
-      showHeaderQR,
-      logoUrl: logoPreview,
-      logoSize,
-      bannerUrl: bannerPreview,
-      bannerSize,
-      bannerPosition,
-      autoScrollEnabled,
-      autoScrollDirection,
-      autoScrollSpeed,
-      // Grid layout settings
-      gridLayout,
-      gridColumns,
-      gridRows,
-    });
-    
+  const handleSave = () => {
+    setSettings(tempSettings);
     setIsSettingsOpen(false);
-    
-    toast({
-      title: t("toast.settings.saved"),
-      description: t("toast.settings.saved")
-    });
   };
 
-  // Reset all settings to default values
-  const handleResetSettings = () => {
-    if (window.confirm(t("settings.reset") + "?")) {
-      // Reset to defaults
-      setTitle("แกลเลอรี่รูปภาพ Google Drive");
-      setShowTitle(true);
-      setThemeId(themes[0].id);
-      setThemeMode("light");
-      setLanguage("th");
-      setTitleFont(fonts[0].id);
-      setTitleSize(24);
-      setSubtitleSize(16);
-      setBodySize(14);
-      setQrCodeSize(64);
-      setHeaderQRCodeSize(48);
-      setViewerQRCodeSize(80);
-      setRefreshInterval(5);
-      setQrCodePosition("bottomRight");
-      setShowHeaderQR(false);
-      setLogoPreview(null);
-      setLogoSize(100);
-      setBannerPreview(null);
-      setBannerSize(200);
-      setBannerPosition("bottomLeft");
-      setAutoScrollEnabled(false);
-      setAutoScrollDirection("down");
-      setAutoScrollSpeed(10);
-      setGridLayout("googlePhotos");
-      setGridColumns(4);
-      setGridRows(0);
-      
-      toast({
-        title: t("toast.settings.reset"),
-        description: t("toast.settings.reset")
-      });
-    }
+  const updateSettings = (key: keyof AppSettings, value: any) => {
+    setTempSettings((prev) => ({
+      ...prev,
+      [key]: value,
+    }));
   };
-  
-  // Handle reset all data
-  const handleResetAllData = () => {
-    if (window.confirm(t("setup.reset") + "?")) {
-      resetAllData();
-      setIsSettingsOpen(false);
+
+  const updateNestedSettings = (parentKey: string, key: string, value: any) => {
+    setTempSettings((prev) => ({
+      ...prev,
+      [parentKey]: {
+        ...prev[parentKey as keyof typeof prev],
+        [key]: value,
+      },
+    }));
+  };
+
+  const handleThemeChange = (themeId: string) => {
+    const selectedTheme = themes.find((theme) => theme.id === themeId);
+    if (selectedTheme) {
+      updateSettings("theme", selectedTheme);
     }
   };
 
-  // Handle logo upload
-  const handleLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onload = (event) => {
-        setLogoPreview(event.target?.result as string);
-      };
-      reader.readAsDataURL(file);
+  const handleFontChange = (fontId: string) => {
+    const selectedFont = fonts.find((font) => font.id === fontId);
+    if (selectedFont) {
+      updateSettings("font", selectedFont);
     }
-  };
-
-  // Handle banner upload
-  const handleBannerUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onload = (event) => {
-        setBannerPreview(event.target?.result as string);
-      };
-      reader.readAsDataURL(file);
-    }
-  };
-
-  // Preview component to show font styling applied
-  const FontPreview = () => {
-    const selectedFont = fonts.find(f => f.id === titleFont) || fonts[0];
-    
-    // Get device frame class
-    let deviceClass = "w-full h-64 overflow-hidden";
-    let contentClass = "p-4";
-    
-    if (previewDevice === 'mobile') {
-      deviceClass = "w-[320px] h-64 mx-auto overflow-hidden";
-      contentClass = "p-2";
-    } else if (previewDevice === 'tablet') {
-      deviceClass = "w-[500px] h-64 mx-auto overflow-hidden";
-      contentClass = "p-3";
-    }
-
-    return (
-      <div className="mt-6 space-y-4">
-        <div className="flex justify-center gap-4 mb-2">
-          <Button 
-            variant={previewDevice === 'desktop' ? "default" : "outline"} 
-            size="sm" 
-            onClick={() => setPreviewDevice('desktop')}
-            className="px-2"
-          >
-            <Monitor className="h-4 w-4 mr-1" /> Desktop
-          </Button>
-          <Button 
-            variant={previewDevice === 'tablet' ? "default" : "outline"} 
-            size="sm" 
-            onClick={() => setPreviewDevice('tablet')}
-            className="px-2"
-          >
-            <Tablet className="h-4 w-4 mr-1" /> Tablet
-          </Button>
-          <Button 
-            variant={previewDevice === 'mobile' ? "default" : "outline"} 
-            size="sm" 
-            onClick={() => setPreviewDevice('mobile')}
-            className="px-2"
-          >
-            <Smartphone className="h-4 w-4 mr-1" /> Mobile
-          </Button>
-        </div>
-        
-        <div className={`${deviceClass} border rounded-lg shadow-md`}>
-          <div className="bg-background h-full dark:bg-gray-800">
-            <div className={`${contentClass}`}>
-              <div className="rounded-lg p-3 shadow-sm border">
-                <h2 
-                  className={`${selectedFont.class} font-bold`} 
-                  style={{
-                    fontSize: `${titleSize}px`
-                  }}
-                >
-                  {title || t("app.title")}
-                </h2>
-                <p 
-                  className={`${selectedFont.class} mt-2`} 
-                  style={{
-                    fontSize: `${bodySize}px`
-                  }}
-                >
-                  {t("settings.appearance.previewText")}
-                </p>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  };
-  
-  // Component to handle font selection with categories
-  const FontSelector = () => {
-    return (
-      <div className="space-y-4">
-        <Label htmlFor="font">{t("settings.appearance.font")}</Label>
-        
-        <Accordion type="single" collapsible className="w-full">
-          {Object.entries(fontCategories).map(([categoryId, category]) => (
-            <AccordionItem value={categoryId} key={categoryId}>
-              <AccordionTrigger>
-                {t(`settings.fonts.${categoryId}`)}
-              </AccordionTrigger>
-              <AccordionContent>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-48 overflow-y-auto p-1">
-                  {category.fonts.map((font) => (
-                    <Button
-                      key={font.id}
-                      variant={titleFont === font.id ? "default" : "outline"}
-                      onClick={() => setTitleFont(font.id)}
-                      className={`justify-start overflow-hidden ${font.class}`}
-                    >
-                      <span className="truncate">{font.name}</span>
-                    </Button>
-                  ))}
-                </div>
-              </AccordionContent>
-            </AccordionItem>
-          ))}
-        </Accordion>
-      </div>
-    );
   };
 
   return (
     <Dialog open={isSettingsOpen} onOpenChange={setIsSettingsOpen}>
-      <DialogContent className="sm:max-w-[600px] max-h-[90vh] p-0">
-        <DialogHeader className="p-4 pb-0">
-          <DialogTitle>{t("settings.title")}</DialogTitle>
+      <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle>
+            {settings.language === "th"
+              ? "การตั้งค่าแอปพลิเคชัน"
+              : "Application Settings"}
+          </DialogTitle>
         </DialogHeader>
-        
-        <ScrollArea className="px-4 max-h-[calc(90vh-8rem)]">
-          <div className="p-1 pb-4">
-            <Tabs defaultValue="appearance">
-              <TabsList className="grid grid-cols-4 mb-4">
-                <TabsTrigger value="connection">Connection</TabsTrigger>
-                <TabsTrigger value="appearance">Appearance</TabsTrigger>
-                <TabsTrigger value="layout">Layout</TabsTrigger>
-                <TabsTrigger value="advanced">Advanced</TabsTrigger>
-              </TabsList>
+
+        <Tabs defaultValue="general" className="mt-4">
+          <TabsList>
+            <TabsTrigger value="general">
+              {settings.language === "th" ? "ทั่วไป" : "General"}
+            </TabsTrigger>
+            <TabsTrigger value="appearance">
+              {settings.language === "th" ? "รูปลักษณ์" : "Appearance"}
+            </TabsTrigger>
+            <TabsTrigger value="layout">
+              {settings.language === "th" ? "เค้าโครง" : "Layout"}
+            </TabsTrigger>
+            <TabsTrigger value="advanced">
+              {settings.language === "th" ? "ขั้นสูง" : "Advanced"}
+            </TabsTrigger>
+          </TabsList>
+          
+          <TabsContent value="general" className="space-y-4">
+            <div className="space-y-4">
+              <div>
+                <Label>
+                  {settings.language === "th" ? "ชื่อแกลเลอรี่" : "Gallery Title"}
+                </Label>
+                <Input
+                  value={tempSettings.title}
+                  onChange={(e) => updateSettings("title", e.target.value)}
+                />
+              </div>
               
-              <TabsContent value="connection" className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="apiKey">API Key</Label>
-                  <Input
-                    id="apiKey"
-                    value={apiKey}
-                    onChange={(e) => setApiKey(e.target.value)}
-                    placeholder="Enter your Google API Key"
-                  />
-                </div>
-                
-                <div className="space-y-2">
-                  <Label htmlFor="folderId">Folder ID</Label>
-                  <Input
-                    id="folderId"
-                    value={folderId}
-                    onChange={(e) => setFolderId(e.target.value)}
-                    placeholder="Enter your Google Drive Folder ID"
-                  />
-                </div>
-                
-                <div className="flex justify-between mt-4">
-                  <Button 
-                    variant="outline" 
-                    onClick={handleResetAllData}
-                    className="border-destructive text-destructive hover:bg-destructive/10"
-                  >
-                    Reset All Data
-                  </Button>
-                  
-                  <Button onClick={handleSaveApiSettings}>
-                    Save Connection Settings
-                  </Button>
-                </div>
-              </TabsContent>
+              <div className="flex items-center space-x-2">
+                <Switch
+                  id="show-title"
+                  checked={tempSettings.showTitle}
+                  onCheckedChange={(checked) => updateSettings("showTitle", checked)}
+                />
+                <Label htmlFor="show-title">
+                  {settings.language === "th" ? "แสดงชื่อแกลเลอรี่" : "Show Gallery Title"}
+                </Label>
+              </div>
               
-              <TabsContent value="appearance" className="space-y-4">
-                {/* Language & Theme Mode Settings */}
-                <div className="flex flex-col md:flex-row gap-4 p-3 bg-muted/30 rounded-lg">
-                  <div className="flex-1 space-y-1">
-                    <Label>Language</Label>
-                    <div className="flex gap-2 mt-1">
-                      <Button
-                        type="button"
-                        size="sm"
-                        variant={language === "th" ? "default" : "outline"}
-                        onClick={() => setLanguage("th")}
-                        className="flex-1"
-                      >
-                        Thai
-                      </Button>
-                      <Button
-                        type="button"
-                        size="sm"
-                        variant={language === "en" ? "default" : "outline"}
-                        onClick={() => setLanguage("en")}
-                        className="flex-1"
-                      >
-                        English
-                      </Button>
-                    </div>
-                  </div>
-                  
-                  <div className="flex-1 space-y-1">
-                    <Label>Theme Mode</Label>
-                    <div className="flex gap-2 mt-1">
-                      <Button
-                        type="button"
-                        size="sm"
-                        variant={themeMode === "light" ? "default" : "outline"}
-                        onClick={() => setThemeMode("light")}
-                        className="flex-1"
-                      >
-                        Light
-                      </Button>
-                      <Button
-                        type="button"
-                        size="sm"
-                        variant={themeMode === "dark" ? "default" : "outline"}
-                        onClick={() => setThemeMode("dark")}
-                        className="flex-1"
-                      >
-                        Dark
-                      </Button>
-                    </div>
-                  </div>
+              <div>
+                <Label>
+                  {settings.language === "th" ? "ขนาดตัวอักษรชื่อแกลเลอรี่" : "Title Font Size"}
+                </Label>
+                <div className="flex items-center space-x-2">
+                  <Slider
+                    value={[tempSettings.titleSize]}
+                    min={16}
+                    max={48}
+                    step={1}
+                    onValueChange={(values) => updateSettings("titleSize", values[0])}
+                    className="flex-1"
+                  />
+                  <span className="w-12 text-center">{tempSettings.titleSize}px</span>
                 </div>
-                
-                <Separator className="my-3" />
-                
-                {/* Title Settings */}
-                <div className="space-y-3">
-                  <div className="space-y-2">
-                    <Label htmlFor="title">Site Name</Label>
-                    <Input
-                      id="title"
-                      value={title}
-                      onChange={(e) => setTitle(e.target.value)}
+              </div>
+              
+              <div>
+                <Label>
+                  {settings.language === "th" ? "รีเฟรชข้อมูลทุกๆ" : "Refresh Interval"}
+                </Label>
+                <div className="flex items-center space-x-2">
+                  <Slider
+                    value={[tempSettings.refreshInterval]}
+                    min={5}
+                    max={60}
+                    step={5}
+                    onValueChange={(values) => updateSettings("refreshInterval", values[0])}
+                    className="flex-1"
+                  />
+                  <span className="w-12 text-center">{tempSettings.refreshInterval}s</span>
+                </div>
+              </div>
+              
+              <div className="flex items-center space-x-2">
+                <Switch
+                  id="notifications-enabled"
+                  checked={notificationsEnabled}
+                  onCheckedChange={setNotificationsEnabled}
+                />
+                <Label htmlFor="notifications-enabled" className="flex items-center gap-2">
+                  <Bell className="h-4 w-4" />
+                  {settings.language === "th" ? "แสดงการแจ้งเตือน" : "Show Notifications"}
+                </Label>
+              </div>
+              
+              <div className="border p-4 rounded-lg bg-muted/30">
+                <h3 className="text-sm font-medium mb-1">
+                  {settings.language === "th" ? "การเลื่อนอัตโนมัติ" : "Auto Scroll"}
+                </h3>
+                <div className="space-y-2">
+                  <div className="flex items-center space-x-2">
+                    <Switch
+                      id="auto-scroll-enabled"
+                      checked={tempSettings.autoScrollEnabled}
+                      onCheckedChange={(checked) => updateSettings("autoScrollEnabled", checked)}
                     />
+                    <Label htmlFor="auto-scroll-enabled">
+                      {settings.language === "th" ? "เปิดการเลื่อนอัตโนมัติ" : "Enable Auto Scroll"}
+                    </Label>
                   </div>
                   
                   <div className="flex items-center space-x-2">
-                    <Switch
-                      id="showTitle"
-                      checked={showTitle}
-                      onCheckedChange={setShowTitle}
-                    />
-                    <Label htmlFor="showTitle">Show Title</Label>
-                  </div>
-                
-                  <div className="space-y-2">
-                    <Label htmlFor="title-size">
-                      Title Size ({titleSize}px)
+                    <Label className="min-w-[80px]">
+                      {settings.language === "th" ? "ทิศทาง" : "Direction"}:
                     </Label>
-                    <Slider
-                      id="title-size"
-                      value={[titleSize]}
-                      min={16}
-                      max={48}
-                      step={1}
-                      onValueChange={(value) => setTitleSize(value[0])}
-                    />
-                  </div>
-                </div>
-                
-                <Separator className="my-3" />
-                
-                {/* Font Selection */}
-                <FontSelector />
-                
-                <FontPreview />
-              </TabsContent>
-
-              {/* Layout Tab */}
-              <TabsContent value="layout" className="space-y-6">
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Grid Layout</CardTitle>
-                    <CardDescription>
-                      Configure the grid layout for displaying images
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    <div className="space-y-2">
-                      <Label>Layout Type</Label>
-                      <div className="flex flex-wrap gap-2">
-                        <Button
-                          type="button"
-                          variant={gridLayout === "googlePhotos" ? "default" : "outline"}
-                          onClick={() => setGridLayout("googlePhotos")}
-                          className="flex-1"
-                        >
-                          <LayoutGrid className="h-4 w-4 mr-2" /> 
-                          Google Photos
-                        </Button>
-                        <Button
-                          type="button"
-                          variant={gridLayout === "auto" ? "default" : "outline"}
-                          onClick={() => setGridLayout("auto")}
-                          className="flex-1"
-                        >
-                          <Image className="h-4 w-4 mr-2" /> 
-                          Auto Masonry
-                        </Button>
-                        <Button
-                          type="button"
-                          variant={gridLayout === "fixed" ? "default" : "outline"}
-                          onClick={() => setGridLayout("fixed")}
-                          className="flex-1"
-                        >
-                          <Grid2x2 className="h-4 w-4 mr-2" /> 
-                          Fixed
-                        </Button>
-                        <Button
-                          type="button"
-                          variant={gridLayout === "custom" ? "default" : "outline"}
-                          onClick={() => setGridLayout("custom")}
-                          className="flex-1"
-                        >
-                          <Grid3x3 className="h-4 w-4 mr-2" /> 
-                          Custom
-                        </Button>
-                      </div>
-                    </div>
-
-                    {gridLayout === "fixed" && (
-                      <div className="space-y-4 pt-2 pb-2">
-                        <Label>Layout Presets</Label>
-                        <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
-                          {gridPresets.map((preset, index) => (
-                            <Button
-                              key={index}
-                              variant={(gridColumns === preset.columns && gridRows === preset.rows) ? "default" : "outline"}
-                              onClick={() => {
-                                setGridColumns(preset.columns);
-                                setGridRows(preset.rows);
-                              }}
-                              className="flex items-center justify-center"
-                            >
-                              {preset.name}
-                            </Button>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-
-                    {(gridLayout === "fixed" || gridLayout === "custom") && (
-                      <div className="space-y-4 pt-2 pb-2 border-l-2 pl-4 border-primary/20">
-                        <div className="space-y-2">
-                          <Label htmlFor="grid-columns">
-                            Columns: {gridColumns}
-                          </Label>
-                          <div className="flex items-center gap-3">
-                            <Columns2 className="h-4 w-4 text-muted-foreground" />
-                            <Slider
-                              id="grid-columns"
-                              value={[gridColumns]}
-                              min={1}
-                              max={12}
-                              step={1}
-                              className="flex-1"
-                              onValueChange={(value) => setGridColumns(value[0])}
-                            />
-                            <Columns4 className="h-4 w-4 text-muted-foreground" />
-                          </div>
-                          <Input 
-                            type="number" 
-                            min={1} 
-                            max={12} 
-                            value={gridColumns}
-                            className="mt-1 w-24"
-                            onChange={(e) => setGridColumns(parseInt(e.target.value) || 1)}
-                          />
-                        </div>
-
-                        <div className="space-y-2">
-                          <Label htmlFor="grid-rows">
-                            Rows: {gridRows === 0 ? "Auto" : gridRows}
-                          </Label>
-                          <div className="flex items-center gap-3">
-                            <Columns2 className="h-4 w-4 text-muted-foreground rotate-90" />
-                            <Slider
-                              id="grid-rows"
-                              value={[gridRows]}
-                              min={0}
-                              max={12}
-                              step={1}
-                              className="flex-1"
-                              onValueChange={(value) => setGridRows(value[0])}
-                            />
-                            <Columns4 className="h-4 w-4 text-muted-foreground rotate-90" />
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <Input 
-                              type="number" 
-                              min={0} 
-                              max={12} 
-                              value={gridRows}
-                              className="mt-1 w-24"
-                              onChange={(e) => setGridRows(parseInt(e.target.value) || 0)}
-                            />
-                            <span className="text-xs text-muted-foreground">
-                              (0 = Auto)
-                            </span>
-                          </div>
-                        </div>
-                      </div>
-                    )}
-                  </CardContent>
-                </Card>
-
-                <Card>
-                  <CardHeader>
-                    <CardTitle>QR Code Settings</CardTitle>
-                    <CardDescription>
-                      Configure QR code sizes and positions
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div className="space-y-2 border p-3 rounded-md">
-                        <Label htmlFor="qr-size">
-                          Main QR Code ({qrCodeSize}px)
-                        </Label>
-                        <div className="flex items-center gap-2">
-                          <QrCode className="h-4 w-4 text-muted-foreground" />
-                          <Slider
-                            id="qr-size"
-                            value={[qrCodeSize]}
-                            min={32}
-                            max={180}
-                            step={8}
-                            onValueChange={(value) => setQrCodeSize(value[0])}
-                            className="flex-1"
-                          />
-                        </div>
-                        <Input 
-                          type="number" 
-                          min={32} 
-                          max={180} 
-                          value={qrCodeSize}
-                          className="mt-1 w-full"
-                          onChange={(e) => setQrCodeSize(parseInt(e.target.value) || 64)}
-                        />
-                        
-                        <div className="mt-3">
-                          <Label>QR Code Position</Label>
-                          <RadioGroup 
-                            value={qrCodePosition} 
-                            onValueChange={(value: "bottomRight" | "bottomLeft" | "topRight" | "topLeft" | "center") => setQrCodePosition(value)} 
-                            className="grid grid-cols-2 gap-2 mt-2"
-                          >
-                            <div className="flex items-center space-x-2">
-                              <RadioGroupItem value="bottomRight" id="qr-br" />
-                              <Label htmlFor="qr-br">Bottom Right</Label>
-                            </div>
-                            <div className="flex items-center space-x-2">
-                              <RadioGroupItem value="bottomLeft" id="qr-bl" />
-                              <Label htmlFor="qr-bl">Bottom Left</Label>
-                            </div>
-                            <div className="flex items-center space-x-2">
-                              <RadioGroupItem value="topRight" id="qr-tr" />
-                              <Label htmlFor="qr-tr">Top Right</Label>
-                            </div>
-                            <div className="flex items-center space-x-2">
-                              <RadioGroupItem value="topLeft" id="qr-tl" />
-                              <Label htmlFor="qr-tl">Top Left</Label>
-                            </div>
-                            <div className="flex items-center space-x-2">
-                              <RadioGroupItem value="center" id="qr-c" />
-                              <Label htmlFor="qr-c">Center</Label>
-                            </div>
-                          </RadioGroup>
-                        </div>
-                      </div>
-                      
-                      <div className="space-y-4 border p-3 rounded-md">
-                        <div className="space-y-2">
-                          <Label htmlFor="viewer-qr-size">
-                            Image Viewer QR Code ({viewerQRCodeSize}px)
-                          </Label>
-                          <div className="flex items-center gap-2">
-                            <QrCode className="h-4 w-4 text-muted-foreground" />
-                            <Slider
-                              id="viewer-qr-size"
-                              value={[viewerQRCodeSize]}
-                              min={32}
-                              max={180}
-                              step={8}
-                              onValueChange={(value) => setViewerQRCodeSize(value[0])}
-                              className="flex-1"
-                            />
-                          </div>
-                          <Input 
-                            type="number" 
-                            min={32} 
-                            max={180} 
-                            value={viewerQRCodeSize}
-                            className="mt-1 w-full"
-                            onChange={(e) => setViewerQRCodeSize(parseInt(e.target.value) || 80)}
-                          />
-                        </div>
-
-                        <Separator className="my-3" />
-                        
-                        <div className="space-y-2">
-                          <div className="flex items-center space-x-2 mb-3">
-                            <Switch 
-                              id="show-header-qr" 
-                              checked={showHeaderQR}
-                              onCheckedChange={setShowHeaderQR}
-                            />
-                            <Label htmlFor="show-header-qr">Show Header QR Code</Label>
-                          </div>
-                          
-                          {showHeaderQR && (
-                            <>
-                              <Label htmlFor="header-qr-size">
-                                Header QR Code ({headerQRCodeSize}px)
-                              </Label>
-                              <div className="flex items-center gap-2">
-                                <QrCode className="h-4 w-4 text-muted-foreground" />
-                                <Slider
-                                  id="header-qr-size"
-                                  value={[headerQRCodeSize]}
-                                  min={32}
-                                  max={180}
-                                  step={8}
-                                  onValueChange={(value) => setHeaderQRCodeSize(value[0])}
-                                  className="flex-1"
-                                />
-                              </div>
-                              <Input 
-                                type="number" 
-                                min={32} 
-                                max={180} 
-                                value={headerQRCodeSize}
-                                className="mt-1 w-full"
-                                onChange={(e) => setHeaderQRCodeSize(parseInt(e.target.value) || 48)}
-                              />
-                            </>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              </TabsContent>
-              
-              <TabsContent value="advanced" className="space-y-6">
-                {/* Auto-scroll Settings */}
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Auto Scroll</CardTitle>
-                    <CardDescription>
-                      Configure automatic scrolling settings
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
                     <div className="flex items-center space-x-2">
-                      <Switch
-                        id="auto-scroll"
-                        checked={autoScrollEnabled}
-                        onCheckedChange={setAutoScrollEnabled}
-                      />
-                      <Label htmlFor="auto-scroll">Enable Auto Scroll</Label>
-                    </div>
-                    
-                    {autoScrollEnabled && (
-                      <div className="space-y-3 pl-6 border-l-2 border-primary/20 mt-2">
-                        <div className="space-y-2">
-                          <Label>Initial Scroll Direction</Label>
-                          <div className="flex gap-2">
-                            <Button
-                              type="button"
-                              variant={autoScrollDirection === 'down' ? 'default' : 'outline'}
-                              onClick={() => setAutoScrollDirection('down')}
-                              className="flex-1"
-                            >
-                              <ArrowDown className="h-4 w-4 mr-2" /> Down
-                            </Button>
-                            
-                            <Button
-                              type="button"
-                              variant={autoScrollDirection === 'up' ? 'default' : 'outline'}
-                              onClick={() => setAutoScrollDirection('up')}
-                              className="flex-1"
-                            >
-                              <ArrowUp className="h-4 w-4 mr-2" /> Up
-                            </Button>
-                          </div>
-                        </div>
-                        
-                        <div className="space-y-2">
-                          <Label htmlFor="scroll-speed">
-                            Scroll Speed: {autoScrollSpeed}
-                          </Label>
-                          <div className="flex gap-2 items-center">
-                            <span className="text-sm">Slow</span>
-                            <Slider
-                              id="scroll-speed"
-                              value={[autoScrollSpeed]}
-                              min={1}
-                              max={20}
-                              step={1}
-                              onValueChange={(value) => setAutoScrollSpeed(value[0])}
-                              className="flex-1"
-                            />
-                            <span className="text-sm">Fast</span>
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <Input 
-                              type="number" 
-                              min={1} 
-                              max={20} 
-                              value={autoScrollSpeed}
-                              className="mt-1 w-24"
-                              onChange={(e) => setAutoScrollSpeed(parseInt(e.target.value) || 5)}
-                            />
-                            <span className="text-xs text-muted-foreground">
-                              (pixels per interval)
-                            </span>
-                          </div>
-                        </div>
-                      </div>
-                    )}
-                  </CardContent>
-                </Card>
-                
-                {/* Logo settings */}
-                <div className="space-y-4 border p-4 rounded-md bg-muted/10">
-                  <h3 className="text-lg font-medium">Logo Upload</h3>
-                  <div className="space-y-2">
-                    <div className="flex items-center gap-2">
-                      <input
-                        ref={logoFileRef}
-                        type="file"
-                        accept="image/*"
-                        className="hidden"
-                        onChange={handleLogoUpload}
-                      />
                       <Button
                         type="button"
-                        variant="outline"
-                        onClick={() => logoFileRef.current?.click()}
+                        variant={tempSettings.autoScrollDirection === "down" ? "default" : "outline"}
+                        size="sm"
+                        onClick={() => updateSettings("autoScrollDirection", "down")}
+                        className="h-8"
                       >
-                        <Image className="h-4 w-4 mr-2" /> Choose Logo
+                        {settings.language === "th" ? "ลง" : "Down"}
                       </Button>
-                      {logoPreview && (
-                        <Button
-                          type="button"
-                          variant="outline"
-                          className="border-destructive text-destructive"
-                          onClick={() => setLogoPreview(null)}
-                        >
-                          Remove Logo
-                        </Button>
-                      )}
+                      <Button
+                        type="button"
+                        variant={tempSettings.autoScrollDirection === "up" ? "default" : "outline"}
+                        size="sm"
+                        onClick={() => updateSettings("autoScrollDirection", "up")}
+                        className="h-8"
+                      >
+                        {settings.language === "th" ? "ขึ้น" : "Up"}
+                      </Button>
                     </div>
-                    
-                    {logoPreview && (
-                      <div className="mt-2">
-                        <div className="bg-background/30 backdrop-blur-sm p-2 rounded">
-                          <img
-                            src={logoPreview}
-                            alt="Logo Preview"
-                            className="max-h-16 mx-auto"
-                          />
-                        </div>
-                      </div>
-                    )}
-                    
-                    <div className="mt-3">
-                      <Label htmlFor="logo-size">
-                        Logo Size: {logoSize}px
-                      </Label>
+                  </div>
+                  
+                  <div>
+                    <Label>
+                      {settings.language === "th" ? "ความเร็วในการเลื่อน" : "Auto Scroll Speed"}
+                    </Label>
+                    <div className="flex items-center space-x-2">
                       <Slider
-                        id="logo-size"
-                        value={[logoSize]}
-                        min={32}
-                        max={200}
-                        step={4}
-                        onValueChange={(value) => setLogoSize(value[0])}
+                        value={[tempSettings.autoScrollSpeed]}
+                        min={1}
+                        max={30}
+                        step={1}
+                        onValueChange={(values) => updateSettings("autoScrollSpeed", values[0])}
+                        className="flex-1"
                       />
-                      <Input 
-                        type="number" 
-                        min={32} 
-                        max={200} 
-                        value={logoSize}
-                        className="mt-1 w-24"
-                        onChange={(e) => setLogoSize(parseInt(e.target.value) || 100)}
-                      />
+                      <span className="w-12 text-center">{tempSettings.autoScrollSpeed}</span>
                     </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </TabsContent>
+
+          <TabsContent value="appearance" className="space-y-4">
+            <div>
+              <Label>
+                {settings.language === "th" ? "ธีม" : "Theme"}
+              </Label>
+              <div className="grid grid-cols-3 gap-2">
+                {themes.map((theme) => (
+                  <Button
+                    key={theme.id}
+                    variant={tempSettings.theme.id === theme.id ? "default" : "outline"}
+                    onClick={() => handleThemeChange(theme.id)}
+                  >
+                    {settings.language === "th" && theme.name === "ค่าเริ่มต้น" ? "ค่าเริ่มต้น" : theme.name}
+                    {settings.language !== "th" && theme.name === "ค่าเริ่มต้น" ? "Default" : theme.name}
+                  </Button>
+                ))}
+              </div>
+            </div>
+            
+            <div>
+              <Label>
+                {settings.language === "th" ? "รูปแบบธีม" : "Theme Mode"}
+              </Label>
+              <div className="grid grid-cols-2 gap-2">
+                <Button
+                  variant={tempSettings.themeMode === "light" ? "default" : "outline"}
+                  onClick={() => updateSettings("themeMode", "light")}
+                >
+                  {settings.language === "th" ? "สว่าง" : "Light"}
+                </Button>
+                <Button
+                  variant={tempSettings.themeMode === "dark" ? "default" : "outline"}
+                  onClick={() => updateSettings("themeMode", "dark")}
+                >
+                  {settings.language === "th" ? "มืด" : "Dark"}
+                </Button>
+              </div>
+            </div>
+            
+            <div>
+              <Label>
+                {settings.language === "th" ? "ภาษา" : "Language"}
+              </Label>
+              <div className="grid grid-cols-2 gap-2">
+                <Button
+                  variant={tempSettings.language === "th" ? "default" : "outline"}
+                  onClick={() => updateSettings("language", "th")}
+                >
+                  ไทย
+                </Button>
+                <Button
+                  variant={tempSettings.language === "en" ? "default" : "outline"}
+                  onClick={() => updateSettings("language", "en")}
+                >
+                  English
+                </Button>
+              </div>
+            </div>
+            
+            <div>
+              <Label>
+                {settings.language === "th" ? "ฟอนต์" : "Font"}
+              </Label>
+              <div className="grid grid-cols-2 gap-2">
+                {fonts.map((font) => (
+                  <Button
+                    key={font.id}
+                    variant={tempSettings.font.id === font.id ? "default" : "outline"}
+                    onClick={() => handleFontChange(font.id)}
+                    className={font.class}
+                    style={{ fontFamily: font.name }}
+                  >
+                    {font.name}
+                  </Button>
+                ))}
+              </div>
+            </div>
+            
+            <div>
+              <Label>
+                {settings.language === "th" ? "ขนาดตัวอักษร (คำบรรยาย)" : "Font Size (Subtitle)"}
+              </Label>
+              <div className="flex items-center space-x-2">
+                <Slider
+                  value={[tempSettings.fontSize.subtitle]}
+                  min={12}
+                  max={20}
+                  step={1}
+                  onValueChange={(values) => updateNestedSettings("fontSize", "subtitle", values[0])}
+                  className="flex-1"
+                />
+                <span className="w-12 text-center">{tempSettings.fontSize.subtitle}px</span>
+              </div>
+            </div>
+            
+            <div>
+              <Label>
+                {settings.language === "th" ? "ขนาดตัวอักษร (เนื้อหา)" : "Font Size (Body)"}
+              </Label>
+              <div className="flex items-center space-x-2">
+                <Slider
+                  value={[tempSettings.fontSize.body]}
+                  min={10}
+                  max={18}
+                  step={1}
+                  onValueChange={(values) => updateNestedSettings("fontSize", "body", values[0])}
+                  className="flex-1"
+                />
+                <span className="w-12 text-center">{tempSettings.fontSize.body}px</span>
+              </div>
+            </div>
+          </TabsContent>
+
+          <TabsContent value="layout" className="space-y-4">
+            <div>
+              <Label>
+                {settings.language === "th" ? "รูปแบบการจัดเรียง" : "Grid Layout"}
+              </Label>
+              <div className="grid grid-cols-2 gap-2">
+                <Button
+                  variant={tempSettings.gridLayout === "googlePhotos" ? "default" : "outline"}
+                  onClick={() => updateSettings("gridLayout", "googlePhotos")}
+                >
+                  {settings.language === "th" ? "Google Photos" : "Google Photos"}
+                </Button>
+                <Button
+                  variant={tempSettings.gridLayout === "fixed" ? "default" : "outline"}
+                  onClick={() => updateSettings("gridLayout", "fixed")}
+                >
+                  {settings.language === "th" ? "คงที่" : "Fixed"}
+                </Button>
+                <Button
+                  variant={tempSettings.gridLayout === "custom" ? "default" : "outline"}
+                  onClick={() => updateSettings("gridLayout", "custom")}
+                >
+                  {settings.language === "th" ? "กำหนดเอง" : "Custom"}
+                </Button>
+                <Button
+                  variant={tempSettings.gridLayout === "auto" ? "default" : "outline"}
+                  onClick={() => updateSettings("gridLayout", "auto")}
+                >
+                  {settings.language === "th" ? "อัตโนมัติ" : "Auto"}
+                </Button>
+              </div>
+            </div>
+            
+            {tempSettings.gridLayout === "fixed" || tempSettings.gridLayout === "custom" ? (
+              <>
+                <div>
+                  <Label>
+                    {settings.language === "th" ? "จำนวนคอลัมน์" : "Number of Columns"}
+                  </Label>
+                  <div className="flex items-center space-x-2">
+                    <Slider
+                      value={[tempSettings.gridColumns]}
+                      min={1}
+                      max={12}
+                      step={1}
+                      onValueChange={(values) => updateSettings("gridColumns", values[0])}
+                      className="flex-1"
+                    />
+                    <span className="w-12 text-center">{tempSettings.gridColumns}</span>
                   </div>
                 </div>
                 
-                {/* Banner settings */}
-                <div className="space-y-4 border p-4 rounded-md bg-muted/10">
-                  <h3 className="text-lg font-medium">Banner Upload</h3>
-                  <div className="space-y-2">
-                    <div className="flex items-center gap-2">
-                      <input
-                        ref={bannerFileRef}
-                        type="file"
-                        accept="image/*"
-                        className="hidden"
-                        onChange={handleBannerUpload}
-                      />
-                      <Button
-                        type="button"
-                        variant="outline"
-                        onClick={() => bannerFileRef.current?.click()}
-                      >
-                        <Image className="h-4 w-4 mr-2" /> Choose Banner
-                      </Button>
-                      {bannerPreview && (
-                        <Button
-                          type="button"
-                          variant="outline"
-                          className="border-destructive text-destructive"
-                          onClick={() => setBannerPreview(null)}
-                        >
-                          Remove Banner
-                        </Button>
-                      )}
-                    </div>
-                    
-                    {bannerPreview && (
-                      <div className="mt-2">
-                        <div className="bg-background/30 backdrop-blur-sm p-2 rounded">
-                          <img
-                            src={bannerPreview}
-                            alt="Banner Preview"
-                            className="max-h-24 mx-auto"
-                          />
-                        </div>
-                      </div>
-                    )}
-                    
-                    <div className="mt-2">
-                      <Label>Banner Size (pixels)</Label>
-                      <div className="flex gap-4 mt-2">
-                        <div className="flex-1">
-                          <Label htmlFor="banner-size">Width: {bannerSize}px</Label>
-                          <Slider
-                            id="banner-size"
-                            value={[bannerSize]}
-                            min={50}
-                            max={600}
-                            step={10}
-                            onValueChange={(value) => setBannerSize(value[0])}
-                          />
-                          <Input 
-                            type="number" 
-                            min={50} 
-                            max={600} 
-                            value={bannerSize}
-                            className="mt-1 w-full"
-                            onChange={(e) => setBannerSize(parseInt(e.target.value) || 200)}
-                          />
-                        </div>
-                      </div>
-                    </div>
-                    
-                    <div className="mt-2">
-                      <Label>Banner Position</Label>
-                      <RadioGroup 
-                        value={bannerPosition} 
-                        onValueChange={(value: "bottomLeft" | "bottomRight" | "topLeft" | "topRight") => setBannerPosition(value)} 
-                        className="grid grid-cols-2 gap-2 mt-2"
-                      >
-                        <div className="flex items-center space-x-2">
-                          <RadioGroupItem value="bottomLeft" id="banner-bl" />
-                          <Label htmlFor="banner-bl">Bottom Left</Label>
-                        </div>
-                        <div className="flex items-center space-x-2">
-                          <RadioGroupItem value="bottomRight" id="banner-br" />
-                          <Label htmlFor="banner-br">Bottom Right</Label>
-                        </div>
-                        <div className="flex items-center space-x-2">
-                          <RadioGroupItem value="topLeft" id="banner-tl" />
-                          <Label htmlFor="banner-tl">Top Left</Label>
-                        </div>
-                        <div className="flex items-center space-x-2">
-                          <RadioGroupItem value="topRight" id="banner-tr" />
-                          <Label htmlFor="banner-tr">Top Right</Label>
-                        </div>
-                      </RadioGroup>
-                    </div>
+                <div>
+                  <Label>
+                    {settings.language === "th" ? "จำนวนแถว" : "Number of Rows"}
+                  </Label>
+                  <div className="flex items-center space-x-2">
+                    <Slider
+                      value={[tempSettings.gridRows]}
+                      min={0}
+                      max={5}
+                      step={1}
+                      onValueChange={(values) => updateSettings("gridRows", values[0])}
+                      className="flex-1"
+                    />
+                    <span className="w-12 text-center">{tempSettings.gridRows}</span>
                   </div>
                 </div>
-              </TabsContent>
-            </Tabs>
-          </div>
-        </ScrollArea>
-        
-        <div className="flex justify-between items-center gap-2 p-4 border-t">
-          <Button 
-            variant="outline" 
-            onClick={handleResetSettings}
-            className="flex items-center gap-2 border-destructive text-destructive hover:bg-destructive/10"
-          >
-            <RotateCw className="h-4 w-4" />
-            Reset Settings
-          </Button>
+              </>
+            ) : null}
+          </TabsContent>
           
-          <div className="flex gap-2">
-            <Button variant="outline" onClick={() => setIsSettingsOpen(false)}>
-              Cancel
-            </Button>
-            <Button onClick={handleSaveAppSettings}>
-              Save
-            </Button>
-          </div>
-        </div>
+          <TabsContent value="advanced" className="space-y-4">
+            <div>
+              <Label>
+                {settings.language === "th" ? "ขนาด QR Code" : "QR Code Size"}
+              </Label>
+              <div className="flex items-center space-x-2">
+                <Slider
+                  value={[tempSettings.qrCodeSize]}
+                  min={32}
+                  max={128}
+                  step={8}
+                  onValueChange={(values) => updateSettings("qrCodeSize", values[0])}
+                  className="flex-1"
+                />
+                <span className="w-12 text-center">{tempSettings.qrCodeSize}px</span>
+              </div>
+            </div>
+            
+            <div>
+              <Label>
+                {settings.language === "th" ? "ขนาด QR Code ใน Header" : "Header QR Code Size"}
+              </Label>
+              <div className="flex items-center space-x-2">
+                <Slider
+                  value={[tempSettings.headerQRCodeSize]}
+                  min={24}
+                  max={96}
+                  step={8}
+                  onValueChange={(values) => updateSettings("headerQRCodeSize", values[0])}
+                  className="flex-1"
+                />
+                <span className="w-12 text-center">{tempSettings.headerQRCodeSize}px</span>
+              </div>
+            </div>
+            
+            <div>
+              <Label>
+                {settings.language === "th" ? "ขนาด QR Code ใน ImageViewer" : "ImageViewer QR Code Size"}
+              </Label>
+              <div className="flex items-center space-x-2">
+                <Slider
+                  value={[tempSettings.viewerQRCodeSize]}
+                  min={40}
+                  max={160}
+                  step={8}
+                  onValueChange={(values) => updateSettings("viewerQRCodeSize", values[0])}
+                  className="flex-1"
+                />
+                <span className="w-12 text-center">{tempSettings.viewerQRCodeSize}px</span>
+              </div>
+            </div>
+            
+            <div>
+              <Label>
+                {settings.language === "th" ? "ตำแหน่ง QR Code" : "QR Code Position"}
+              </Label>
+              <div className="grid grid-cols-3 gap-2">
+                <Button
+                  variant={tempSettings.qrCodePosition === "bottomRight" ? "default" : "outline"}
+                  onClick={() => updateSettings("qrCodePosition", "bottomRight")}
+                >
+                  {settings.language === "th" ? "ขวาล่าง" : "Bottom Right"}
+                </Button>
+                <Button
+                  variant={tempSettings.qrCodePosition === "bottomLeft" ? "default" : "outline"}
+                  onClick={() => updateSettings("qrCodePosition", "bottomLeft")}
+                >
+                  {settings.language === "th" ? "ซ้ายล่าง" : "Bottom Left"}
+                </Button>
+                <Button
+                  variant={tempSettings.qrCodePosition === "topRight" ? "default" : "outline"}
+                  onClick={() => updateSettings("qrCodePosition", "topRight")}
+                >
+                  {settings.language === "th" ? "ขวาบน" : "Top Right"}
+                </Button>
+                <Button
+                  variant={tempSettings.qrCodePosition === "topLeft" ? "default" : "outline"}
+                  onClick={() => updateSettings("qrCodePosition", "topLeft")}
+                >
+                  {settings.language === "th" ? "ซ้ายบน" : "Top Left"}
+                </Button>
+                <Button
+                  variant={tempSettings.qrCodePosition === "center" ? "default" : "outline"}
+                  onClick={() => updateSettings("qrCodePosition", "center")}
+                >
+                  {settings.language === "th" ? "ตรงกลาง" : "Center"}
+                </Button>
+              </div>
+            </div>
+            
+            <div className="flex items-center space-x-2">
+              <Switch
+                id="show-header-qr"
+                checked={tempSettings.showHeaderQR}
+                onCheckedChange={(checked) => updateSettings("showHeaderQR", checked)}
+              />
+              <Label htmlFor="show-header-qr">
+                {settings.language === "th" ? "แสดง QR Code ใน Header" : "Show QR Code in Header"}
+              </Label>
+            </div>
+            
+            <div>
+              <Label>
+                {settings.language === "th" ? "URL โลโก้" : "Logo URL"}
+              </Label>
+              <Input
+                value={tempSettings.logoUrl || ""}
+                onChange={(e) => updateSettings("logoUrl", e.target.value)}
+              />
+            </div>
+            
+            <div>
+              <Label>
+                {settings.language === "th" ? "ขนาดโลโก้" : "Logo Size"}
+              </Label>
+              <div className="flex items-center space-x-2">
+                <Slider
+                  value={[tempSettings.logoSize]}
+                  min={50}
+                  max={200}
+                  step={5}
+                  onValueChange={(values) => updateSettings("logoSize", values[0])}
+                  className="flex-1"
+                />
+                <span className="w-12 text-center">{tempSettings.logoSize}px</span>
+              </div>
+            </div>
+            
+            <div>
+              <Label>
+                {settings.language === "th" ? "URL แบนเนอร์" : "Banner URL"}
+              </Label>
+              <Input
+                value={tempSettings.bannerUrl || ""}
+                onChange={(e) => updateSettings("bannerUrl", e.target.value)}
+              />
+            </div>
+            
+            <div>
+              <Label>
+                {settings.language === "th" ? "ขนาดแบนเนอร์" : "Banner Size"}
+              </Label>
+              <div className="flex items-center space-x-2">
+                <Slider
+                  value={[tempSettings.bannerSize]}
+                  min={50}
+                  max={400}
+                  step={10}
+                  onValueChange={(values) => updateSettings("bannerSize", values[0])}
+                  className="flex-1"
+                />
+                <span className="w-12 text-center">{tempSettings.bannerSize}px</span>
+              </div>
+            </div>
+            
+            <div>
+              <Label>
+                {settings.language === "th" ? "ตำแหน่งแบนเนอร์" : "Banner Position"}
+              </Label>
+              <div className="grid grid-cols-2 gap-2">
+                <Button
+                  variant={tempSettings.bannerPosition === "bottomLeft" ? "default" : "outline"}
+                  onClick={() => updateSettings("bannerPosition", "bottomLeft")}
+                >
+                  {settings.language === "th" ? "ซ้ายล่าง" : "Bottom Left"}
+                </Button>
+                <Button
+                  variant={tempSettings.bannerPosition === "bottomRight" ? "default" : "outline"}
+                  onClick={() => updateSettings("bannerPosition", "bottomRight")}
+                >
+                  {settings.language === "th" ? "ขวาล่าง" : "Bottom Right"}
+                </Button>
+                <Button
+                  variant={tempSettings.bannerPosition === "topLeft" ? "default" : "outline"}
+                  onClick={() => updateSettings("bannerPosition", "topLeft")}
+                >
+                  {settings.language === "th" ? "ซ้ายบน" : "Top Left"}
+                </Button>
+                <Button
+                  variant={tempSettings.bannerPosition === "topRight" ? "default" : "outline"}
+                  onClick={() => updateSettings("bannerPosition", "topRight")}
+                >
+                  {settings.language === "th" ? "ขวาบน" : "Top Right"}
+                </Button>
+              </div>
+            </div>
+          </TabsContent>
+        </Tabs>
+
+        <DialogFooter className="flex justify-between mt-4">
+          <Button variant="outline" onClick={() => setIsSettingsOpen(false)}>
+            {settings.language === "th" ? "ยกเลิก" : "Cancel"}
+          </Button>
+          <Button onClick={handleSave}>
+            {settings.language === "th" ? "บันทึก" : "Save"}
+          </Button>
+        </DialogFooter>
       </DialogContent>
     </Dialog>
   );

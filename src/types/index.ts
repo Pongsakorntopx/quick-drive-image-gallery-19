@@ -1,4 +1,3 @@
-
 export interface ApiConfig {
   apiKey: string;
   folderId: string;
@@ -80,4 +79,10 @@ export interface Translation {
     th: string;
     en: string;
   };
+}
+
+// New types for sort order
+export interface SortOptions {
+  field: "name" | "modifiedTime" | "createdTime";
+  direction: "asc" | "desc";
 }

@@ -1,10 +1,14 @@
-import React, { useEffect, useRef, useState, useMemo } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { useAppContext } from "../context/AppContext";
-import ImageCard from "./ImageCard";
-import { Skeleton } from "@/components/ui/skeleton";
-import { RefreshCw } from "lucide-react";
-import { Button } from "@/components/ui/button";
 import { useInView } from "react-intersection-observer";
+import { Photo } from "../types";
+
+// Import grid components
+import GridItem from "./grid/GridItem";
+import GridContainer from "./grid/GridContainer";
+import GridLoading from "./grid/GridLoading";
+import GridError from "./grid/GridError";
+import SortControls from "./grid/SortControls";
 
 // Define a type for the virtualized photo
 interface VirtualizedPhoto {
@@ -13,7 +17,18 @@ interface VirtualizedPhoto {
 }
 
 const PhotoGrid: React.FC = () => {
-  const { photos, isLoading, error, refreshPhotos, setSelectedPhoto, settings } = useAppContext();
+  const { 
+    photos, 
+    isLoading, 
+    error, 
+    refreshPhotos, 
+    setSelectedPhoto, 
+    settings,
+    sortOrder,
+    setSortOrder,
+    sortPhotos
+  } = useAppContext();
+
   const gridRef = useRef<HTMLDivElement>(null);
   const [virtualizedPhotos, setVirtualizedPhotos] = useState<VirtualizedPhoto[]>([]);
   const { ref: loadMoreRef, inView } = useInView({
@@ -26,14 +41,17 @@ const PhotoGrid: React.FC = () => {
 
   // Batch size for virtualization - increased for better initial load
   const batchSize = 24; 
+
+  // Sorted photos using the context sort function
+  const sortedPhotos = sortPhotos(photos);
   
   // Calculate optimized layout for masonry grid
   useEffect(() => {
-    if (photos.length > 0 && prevPhotosLength.current !== photos.length) {
+    if (sortedPhotos.length > 0 && prevPhotosLength.current !== sortedPhotos.length) {
       // Only update when the photos array actually changes
       if (virtualizedPhotos.length === 0) {
         // Initial batch of photos
-        const initialBatch = photos.slice(0, batchSize).map((photo, index) => ({
+        const initialBatch = sortedPhotos.slice(0, batchSize).map((photo, index) => ({
           id: photo.id,
           index,
         }));
@@ -41,7 +59,7 @@ const PhotoGrid: React.FC = () => {
       } else {
         // Keep existing photos and add any new ones if needed
         const existingIds = new Set(virtualizedPhotos.map(vp => vp.id));
-        const newBatch = photos
+        const newBatch = sortedPhotos
           .slice(0, Math.max(virtualizedPhotos.length, batchSize))
           .map((photo, index) => ({
             id: photo.id,
@@ -54,14 +72,26 @@ const PhotoGrid: React.FC = () => {
         }
       }
       
-      prevPhotosLength.current = photos.length;
+      prevPhotosLength.current = sortedPhotos.length;
     }
-  }, [photos]);
+  }, [sortedPhotos]);
+
+  // Handle sort order changes
+  useEffect(() => {
+    // Reset virtualized photos when sort order changes
+    if (sortedPhotos.length > 0) {
+      const initialBatch = sortedPhotos.slice(0, batchSize).map((photo, index) => ({
+        id: photo.id,
+        index,
+      }));
+      setVirtualizedPhotos(initialBatch);
+    }
+  }, [sortOrder]);
 
   // Handle lazy loading of more photos when scrolling
   useEffect(() => {
-    if (inView && photos.length > virtualizedPhotos.length) {
-      const nextBatch = photos
+    if (inView && sortedPhotos.length > virtualizedPhotos.length) {
+      const nextBatch = sortedPhotos
         .slice(virtualizedPhotos.length, virtualizedPhotos.length + batchSize)
         .map((photo, index) => ({
           id: photo.id,
@@ -70,16 +100,16 @@ const PhotoGrid: React.FC = () => {
       
       setVirtualizedPhotos(prev => [...prev, ...nextBatch]);
     }
-  }, [inView, photos, virtualizedPhotos]);
+  }, [inView, sortedPhotos, virtualizedPhotos]);
 
   // Memoize the photo lookup for better performance
-  const photoMap = useMemo(() => {
+  const photoMap = React.useMemo(() => {
     const map = new Map();
-    photos.forEach(photo => {
+    sortedPhotos.forEach(photo => {
       map.set(photo.id, photo);
     });
     return map;
-  }, [photos]);
+  }, [sortedPhotos]);
 
   // Create the masonry layout with improved performance
   useEffect(() => {
@@ -116,21 +146,29 @@ const PhotoGrid: React.FC = () => {
         }
       };
 
-      // Use IntersectionObserver for lazy loading images
+      // Use IntersectionObserver for improved lazy loading images
       const observer = new IntersectionObserver((entries) => {
         entries.forEach(entry => {
           if (entry.isIntersecting) {
             const img = entry.target.querySelector('img');
             if (img && img.dataset.src) {
-              img.src = img.dataset.src;
-              img.onload = resizeAllGridItems;
-              delete img.dataset.src;
+              // Create a new image to preload
+              const preloadImg = new Image();
+              preloadImg.onload = () => {
+                if (img) {
+                  img.src = img.dataset.src as string;
+                  img.onload = resizeAllGridItems;
+                  delete img.dataset.src;
+                }
+              };
+              preloadImg.src = img.dataset.src as string;
             }
             observer.unobserve(entry.target);
           }
         });
       }, {
         rootMargin: '200px', // Start loading before visible
+        threshold: 0.01
       });
       
       // Observe all masonry items
@@ -161,129 +199,55 @@ const PhotoGrid: React.FC = () => {
     }
   }, [virtualizedPhotos, settings.gridLayout]);
 
-  // Get grid layout class based on settings
-  const getGridLayoutClass = () => {
-    if (settings.gridLayout === "googlePhotos") {
-      return "masonry-grid"; // Google Photos style layout (original masonry)
-    } else if (settings.gridLayout === "auto") {
-      return "masonry-grid"; // Auto masonry (same as Google Photos)
-    } else if (settings.gridLayout === "fixed" || settings.gridLayout === "custom") {
-      const columns = settings.gridColumns || 4;
-      return `grid grid-cols-1 ${columns === 1 ? '' : 'sm:grid-cols-2'} ${columns <= 2 ? '' : 'md:grid-cols-3'} ${columns <= 3 ? '' : `lg:grid-cols-${Math.min(columns, 12)}`} gap-4`;
-    }
-    return "masonry-grid";
-  };
-
-  // Get grid item class based on settings
-  const getGridItemClass = () => {
-    if (settings.gridLayout === "fixed" || settings.gridLayout === "custom") {
-      if (settings.gridRows && settings.gridRows > 0) {
-        const gridRowStyles = {
-          height: settings.gridRows === 1 ? "calc(100vh - 120px)" : `calc((100vh - 120px) / ${settings.gridRows})`,
-          minHeight: "150px"
-        };
-        return { className: "", style: gridRowStyles };
-      }
-      return { className: "", style: {} };
-    }
-    return { 
-      className: "masonry-item", 
-      style: { 
-        opacity: 0, 
-        transform: "translateY(20px)", 
-        transition: "opacity 0.3s ease, transform 0.3s ease" 
-      } 
-    };
-  };
-
-  // Get content class based on settings
-  const getContentClass = () => {
-    if (settings.gridLayout === "fixed" || settings.gridLayout === "custom") {
-      return "h-full";
-    }
-    return "masonry-content";
-  };
-
-  // Calculate aspect ratio for fixed grid
-  const getImageContainerStyle = () => {
-    if ((settings.gridLayout === "fixed" || settings.gridLayout === "custom") && 
-        settings.gridRows && settings.gridRows > 0) {
-      // Calculate aspect ratio based on columns and rows
-      const ratio = settings.gridColumns / settings.gridRows;
-      return { 
-        aspectRatio: ratio.toString(),
-        height: '100%',
-        objectFit: 'cover' as const
-      };
-    }
-    return {};
+  // Handle sort order change
+  const handleSortChange = (newSortOrder: typeof sortOrder) => {
+    setSortOrder(newSortOrder);
   };
 
   if (error) {
-    return (
-      <div className="flex flex-col items-center justify-center p-4 sm:p-8 min-h-[400px]">
-        <div className="text-lg mb-4 text-destructive">{error}</div>
-        <Button onClick={() => refreshPhotos()}>
-          <RefreshCw className="mr-2 h-4 w-4" />
-          Try Again
-        </Button>
-      </div>
-    );
+    return <GridError error={error} onRetry={refreshPhotos} />;
   }
 
   return (
     <div className="px-2 py-4 md:px-4 md:py-6 responsive-container">
+      {/* Sort controls */}
+      {photos.length > 0 && (
+        <SortControls 
+          sortOrder={sortOrder} 
+          onChange={handleSortChange}
+          language={settings.language}
+        />
+      )}
+
       {isLoading && photos.length === 0 ? (
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-2 sm:gap-3 md:gap-4">
-          {Array.from({ length: 12 }).map((_, index) => (
-            <div key={index} className="rounded-lg overflow-hidden shadow-sm group hover:shadow-md transition-shadow duration-200">
-              <Skeleton className="aspect-[3/2] w-full" />
-              <div className="p-2">
-                <Skeleton className="h-4 w-3/4" />
-              </div>
-            </div>
-          ))}
-        </div>
+        <GridLoading count={12} />
       ) : photos.length === 0 ? (
         <div className="flex flex-col items-center justify-center p-8 min-h-[400px]">
           <div className="rounded-full h-8 w-8 border-4 border-t-transparent border-primary animate-spin"></div>
         </div>
       ) : (
         <>
-          <div 
+          <GridContainer 
+            gridLayout={settings.gridLayout} 
+            gridColumns={settings.gridColumns} 
             ref={gridRef} 
-            className={getGridLayoutClass()}
-            style={settings.gridLayout === "googlePhotos" || settings.gridLayout === "auto" ? { 
-              display: "grid", 
-              gridTemplateColumns: "repeat(auto-fill, minmax(250px, 1fr))",
-              gridAutoRows: "10px",
-              gridGap: "16px"
-            } : {}}
+            photos={photos}
           >
             {virtualizedPhotos.map((vPhoto, idx) => {
               const photo = photoMap.get(vPhoto.id);
-              const gridItemProps = getGridItemClass();
               
               return photo ? (
-                <div 
+                <GridItem 
                   key={vPhoto.id} 
-                  className={gridItemProps.className}
-                  style={gridItemProps.style}
-                  data-index={idx}
-                >
-                  <div 
-                    className={getContentClass()}
-                    style={getImageContainerStyle()}
-                  >
-                    <ImageCard 
-                      photo={photo} 
-                      onClick={() => setSelectedPhoto(photo)} 
-                    />
-                  </div>
-                </div>
+                  photo={photo} 
+                  onClick={setSelectedPhoto}
+                  gridLayout={settings.gridLayout}
+                  gridRows={settings.gridRows}
+                  index={idx}
+                />
               ) : null;
             })}
-          </div>
+          </GridContainer>
           
           {/* Load more trigger element */}
           {virtualizedPhotos.length < photos.length && (
@@ -355,6 +319,23 @@ const PhotoGrid: React.FC = () => {
         @media (min-width: 1281px) {
           .masonry-grid {
             grid-template-columns: repeat(6, 1fr);
+          }
+        }
+
+        /* New animation classes */
+        .animate-fade-in {
+          animation: fadeIn 0.5s ease-out forwards;
+          opacity: 0;
+        }
+        
+        @keyframes fadeIn {
+          from {
+            opacity: 0;
+            transform: translateY(10px);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0);
           }
         }
         `}

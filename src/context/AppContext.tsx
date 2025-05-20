@@ -1,112 +1,11 @@
+
 import React, { createContext, useContext, useState, useEffect } from "react";
-import { ApiConfig, Photo, AppSettings, Theme, Font, PhotoFetchResult, Language, ThemeMode } from "../types";
-import { fetchPhotosFromDrive } from "../services/googleDriveService";
+import { ApiConfig, Photo, AppSettings } from "../types";
 import { useToast } from "@/components/ui/use-toast";
 import { allFonts } from "../config/fonts";
-
-// Define the predefined themes
-const predefinedThemes: Theme[] = [
-  {
-    id: "default",
-    name: "ค่าเริ่มต้น",
-    colorClass: "slate",
-    color: "#f8fafc",
-    isGradient: false,
-    gradient: "",
-  },
-  {
-    id: "blue",
-    name: "น้ำเงิน",
-    colorClass: "blue",
-    color: "#eff6ff",
-    isGradient: false,
-    gradient: "",
-  },
-  {
-    id: "green",
-    name: "เขียว",
-    colorClass: "green",
-    color: "#f0fdf4",
-    isGradient: false,
-    gradient: "",
-  },
-  {
-    id: "purple",
-    name: "ม่วง",
-    colorClass: "purple",
-    color: "#f3e8ff",
-    isGradient: false,
-    gradient: "",
-  },
-  {
-    id: "golden",
-    name: "ทอง",
-    colorClass: "yellow",
-    color: "#fffbeb",
-    isGradient: false,
-    gradient: "",
-  },
-  {
-    id: "gray",
-    name: "เทา",
-    colorClass: "gray",
-    color: "#f9fafb",
-    isGradient: false,
-    gradient: "",
-  },
-];
-
-// Default settings
-const defaultSettings: AppSettings = {
-  title: "แกลเลอรี่รูปภาพ Google Drive",
-  showTitle: true,
-  titleSize: 24,
-  theme: predefinedThemes[0],
-  themeMode: "light" as ThemeMode,
-  language: "th" as Language,
-  font: allFonts[0],
-  fontSize: {
-    subtitle: 16,
-    body: 14,
-  },
-  qrCodeSize: 64,
-  headerQRCodeSize: 48,
-  viewerQRCodeSize: 80, // Default size for image viewer QR code
-  refreshInterval: 5,
-  qrCodePosition: "bottomRight",
-  showHeaderQR: false,
-  logoUrl: null,
-  logoSize: 100,
-  bannerUrl: null,
-  bannerSize: 200, // Changed from string to number (pixels)
-  bannerPosition: "bottomLeft",
-  autoScrollEnabled: false,
-  autoScrollDirection: "down",
-  autoScrollSpeed: 10,
-  gridLayout: "googlePhotos", // Set to googlePhotos as the default layout
-  gridColumns: 4,
-  gridRows: 0,
-};
-
-// Context interface
-interface AppContextType {
-  apiConfig: ApiConfig;
-  setApiConfig: React.Dispatch<React.SetStateAction<ApiConfig>>;
-  photos: Photo[];
-  setPhotos: React.Dispatch<React.SetStateAction<Photo[]>>;
-  isLoading: boolean;
-  error: string | null;
-  refreshPhotos: () => Promise<boolean>;
-  selectedPhoto: Photo | null;
-  setSelectedPhoto: React.Dispatch<React.SetStateAction<Photo | null>>;
-  settings: AppSettings;
-  setSettings: React.Dispatch<React.SetStateAction<AppSettings>>;
-  isSettingsOpen: boolean;
-  setIsSettingsOpen: React.Dispatch<React.SetStateAction<boolean>>;
-  themes: Theme[];
-  fonts: Font[];
-  resetAllData: () => void;
-}
+import { AppContextType, SortOrder, defaultSortOrder } from "./AppContextTypes";
+import { predefinedThemes, defaultSettings } from "./AppDefaults";
+import { fetchAndProcessPhotos, sortPhotos as sortPhotoUtil } from "./PhotoUtils";
 
 // Create the context
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -138,6 +37,18 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
   
+  // Sort order state
+  const [sortOrder, setSortOrder] = useState<SortOrder>(() => {
+    const savedSortOrder = localStorage.getItem("gdrive-app-sort");
+    return savedSortOrder ? JSON.parse(savedSortOrder) : defaultSortOrder;
+  });
+  
+  // Notifications state
+  const [notificationsEnabled, setNotificationsEnabled] = useState<boolean>(() => {
+    const savedNotificationsState = localStorage.getItem("gdrive-app-notifications");
+    return savedNotificationsState ? JSON.parse(savedNotificationsState) : true;
+  });
+
   // Selected photo for the viewer
   const [selectedPhoto, setSelectedPhoto] = useState<Photo | null>(null);
   
@@ -198,33 +109,43 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     localStorage.setItem("gdrive-app-settings", JSON.stringify(settings));
   }, [settings]);
   
+  // Save sort order to local storage
+  useEffect(() => {
+    localStorage.setItem("gdrive-app-sort", JSON.stringify(sortOrder));
+  }, [sortOrder]);
+  
+  // Save notifications state to local storage
+  useEffect(() => {
+    localStorage.setItem("gdrive-app-notifications", JSON.stringify(notificationsEnabled));
+  }, [notificationsEnabled]);
+  
+  // Function to apply sort order to photos
+  const sortPhotos = (photosToSort: Photo[]) => {
+    return sortPhotoUtil(photosToSort, sortOrder);
+  };
+  
   // Function to reset all data
   const resetAllData = () => {
     localStorage.removeItem("gdrive-app-config");
     localStorage.removeItem("gdrive-app-settings");
+    localStorage.removeItem("gdrive-app-sort");
+    localStorage.removeItem("gdrive-app-notifications");
     
     setApiConfig({ apiKey: "", folderId: "" });
     setSettings(defaultSettings);
     setPhotos([]);
     setSelectedPhoto(null);
+    setSortOrder(defaultSortOrder);
+    setNotificationsEnabled(true);
     
-    toast({
-      title: settings.language === "th" ? "ล้างข้อมูลทั้งหมดสำเร็จ" : "All data has been reset successfully",
-      description: settings.language === "th" 
-        ? "การตั้งค่าทั้งหมดถูกรีเซ็ตเป็นค่าเริ่มต้น" 
-        : "All settings have been reset to defaults",
-    });
-  };
-
-  // Helper function to check if photos array has actually changed
-  const checkIfPhotosChanged = (oldPhotos: Photo[], newPhotos: Photo[]): boolean => {
-    if (oldPhotos.length !== newPhotos.length) {
-      return true;
+    if (notificationsEnabled) {
+      toast({
+        title: settings.language === "th" ? "ล้างข้อมูลทั้งหมดสำเร็จ" : "All data has been reset successfully",
+        description: settings.language === "th" 
+          ? "การตั้งค่าทั้งหมดถูกรีเซ็ตเป็นค่าเริ่มต้น" 
+          : "All settings have been reset to defaults",
+      });
     }
-    
-    // Check if any IDs are different
-    const oldIds = new Set(oldPhotos.map(p => p.id));
-    return newPhotos.some(p => !oldIds.has(p.id));
   };
 
   // Modified refresh photos function to always place new photos at the top
@@ -239,46 +160,34 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         setIsLoading(true);
       }
       
-      // Convert the response to match our PhotoFetchResult interface
-      const photosData = await fetchPhotosFromDrive(apiConfig);
-      
-      // Create a PhotoFetchResult object from the photos array
-      const result: PhotoFetchResult = {
-        success: true,
-        data: photosData as Photo[]
-      };
+      // Fetch and sort photos
+      const result = await fetchAndProcessPhotos(apiConfig, settings.language, sortOrder);
       
       if (result.success && result.data) {
-        // Always sort by modified time (newest first)
-        const sortedPhotos = [...result.data].sort((a, b) => {
-          if (a.modifiedTime && b.modifiedTime) {
-            return new Date(b.modifiedTime).getTime() - new Date(a.modifiedTime).getTime();
-          }
-          return 0;
-        });
-        
         // Find new photos (not in the current photos array)
         if (photos.length > 0) {
           const currentIds = new Set(photos.map(p => p.id));
-          const newPhotos = sortedPhotos.filter(p => !currentIds.has(p.id));
-          const existingPhotos = sortedPhotos.filter(p => currentIds.has(p.id));
+          const newPhotos = result.data.filter(p => !currentIds.has(p.id));
           
-          // If we have new photos, place them at the beginning
-          if (newPhotos.length > 0) {
-            setPhotos([...newPhotos, ...existingPhotos]);
-          } else {
-            setPhotos(sortedPhotos);
+          // If we have new photos, notify user if notifications are enabled
+          if (newPhotos.length > 0 && notificationsEnabled) {
+            toast({
+              title: settings.language === "th" ? "พบรูปภาพใหม่" : "New photos found",
+              description: settings.language === "th" 
+                ? `พบรูปภาพใหม่ ${newPhotos.length} รูป` 
+                : `Found ${newPhotos.length} new photos`
+            });
           }
-        } else {
-          setPhotos(sortedPhotos);
         }
         
+        // Apply sorting and update photos
+        setPhotos(result.data);
         setError(null);
         return true;
       } else {
-        setError(settings.language === "th" ? 
+        setError(result.error || (settings.language === "th" ? 
           "ไม่สามารถดึงข้อมูลรูปภาพได้" : 
-          "Could not fetch images"
+          "Could not fetch images")
         );
         return false;
       }
@@ -303,7 +212,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       
       return () => clearInterval(interval);
     }
-  }, [apiConfig, settings.refreshInterval]);
+  }, [apiConfig, settings.refreshInterval, sortOrder]);
 
   // Apply theme mode
   useEffect(() => {
@@ -333,7 +242,12 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setIsSettingsOpen,
     themes: predefinedThemes,
     fonts: allFonts,
-    resetAllData
+    resetAllData,
+    sortOrder,
+    setSortOrder,
+    notificationsEnabled,
+    setNotificationsEnabled,
+    sortPhotos
   };
 
   return (
