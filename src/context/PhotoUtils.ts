@@ -15,6 +15,16 @@ export const checkIfPhotosChanged = (oldPhotos: Photo[], newPhotos: Photo[]): bo
   return newPhotos.some(p => !oldIds.has(p.id));
 };
 
+// Find new photos that are not in the current collection
+export const findNewPhotos = (oldPhotos: Photo[], newPhotos: Photo[]): Photo[] => {
+  if (oldPhotos.length === 0) {
+    return newPhotos; // All are new if old list is empty
+  }
+  
+  const currentIds = new Set(oldPhotos.map(p => p.id));
+  return newPhotos.filter(p => !currentIds.has(p.id));
+};
+
 // Modified function to sort photos
 export const sortPhotos = (photos: Photo[], sortOrder: SortOrder): Photo[] => {
   return [...photos].sort((a, b) => {

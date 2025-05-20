@@ -1,10 +1,11 @@
+
 import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from "react";
 import { ApiConfig, Photo, AppSettings } from "../types";
 import { useToast } from "@/components/ui/use-toast";
 import { allFonts } from "../config/fonts";
 import { AppContextType, SortOrder, defaultSortOrder } from "./AppContextTypes";
 import { predefinedThemes, defaultSettings } from "./AppDefaults";
-import { fetchAndProcessPhotos, sortPhotos as sortPhotoUtil } from "./PhotoUtils";
+import { fetchAndProcessPhotos, sortPhotos as sortPhotoUtil, findNewPhotos } from "./PhotoUtils";
 
 // Create the context
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -173,8 +174,16 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       const result = await fetchAndProcessPhotos(apiConfig, settings.language, sortOrder);
       
       if (result.success && result.data) {
-        // Update photos without showing notifications for new photos
-        setPhotos(result.data);
+        // Detect new photos without showing notifications
+        const newPhotos = findNewPhotos(photos, result.data);
+        
+        // If we have new photos or first load, immediately update the photos state
+        if (newPhotos.length > 0 || photos.length === 0) {
+          console.log(`Found ${newPhotos.length} new photos, updating display`);
+          setPhotos(result.data);
+        }
+        
+        // Always update state if there are any changes to ensure consistent display
         setError(null);
         return true;
       } else {
@@ -194,7 +203,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     } finally {
       setIsLoading(false);
     }
-  }, [apiConfig, photos.length, settings.language, sortOrder]);
+  }, [apiConfig, photos, settings.language, sortOrder]);
 
   // Helper function to clear existing interval
   const clearRefreshInterval = useCallback(() => {

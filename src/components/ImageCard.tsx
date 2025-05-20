@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { Photo } from "../types";
 import { useAppContext } from "../context/AppContext";
@@ -132,6 +131,7 @@ const ImageCard: React.FC<ImageCardProps> = ({ photo, onClick }) => {
           url={photo.directDownloadUrl || photo.webContentLink} 
           size={settings.qrCodeSize} 
           className="shadow-lg bg-white/90 backdrop-blur-sm rounded-lg"
+          padding={2}
         />
       </div>
 

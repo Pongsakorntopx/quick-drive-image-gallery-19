@@ -1,825 +1,523 @@
-
-import React, { useState, useEffect } from "react";
-import { useAppContext } from "../context/AppContext";
+import React, { useState, useEffect, useCallback } from "react";
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogDescription,
   DialogFooter,
 } from "@/components/ui/dialog";
-import {
-  Tabs,
-  TabsContent,
-  TabsList,
-  TabsTrigger,
-} from "@/components/ui/tabs";
-import { Label } from "@/components/ui/label";
-import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Slider } from "@/components/ui/slider";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
-import { AppSettings } from "../types";
-import { Bell, Upload, RotateCw, Trash2 } from "lucide-react";
+import { useTheme } from "next-themes";
+import { useAppContext } from "../context/AppContext";
+import { Theme } from "@/types";
+import { Font } from "@/types";
 import { useTranslation } from "../hooks/useTranslation";
-import { fontCategories } from "../config/fonts";
-import { defaultSettings } from "../context/AppDefaults";
 
 const SettingsDialog: React.FC = () => {
-  const {
-    settings,
-    setSettings,
-    isSettingsOpen,
-    setIsSettingsOpen,
-    notificationsEnabled,
-    setNotificationsEnabled,
-    resetAllData
+  const { 
+    settings, 
+    setSettings, 
+    isSettingsOpen, 
+    setIsSettingsOpen, 
+    themes, 
+    fonts,
+    resetAllData 
   } = useAppContext();
-
-  const [tempSettings, setTempSettings] = useState<AppSettings>(settings);
-  const [logoFile, setLogoFile] = useState<File | null>(null);
-  const [bannerFile, setBannerFile] = useState<File | null>(null);
-  const [logoPreview, setLogoPreview] = useState<string | null>(null);
-  const [bannerPreview, setBannerPreview] = useState<string | null>(null);
+  const [localSettings, setLocalSettings] = useState(settings);
+  const { theme: systemTheme } = useTheme();
   const { t } = useTranslation();
 
   useEffect(() => {
-    setTempSettings(settings);
-    setLogoPreview(settings.logoUrl);
-    setBannerPreview(settings.bannerUrl);
-  }, [settings, isSettingsOpen]);
+    setLocalSettings(settings);
+  }, [settings]);
 
-  const handleSave = () => {
-    // Process logo upload if available
-    if (logoFile) {
-      const logoReader = new FileReader();
-      logoReader.onloadend = () => {
-        const base64Logo = logoReader.result as string;
-        setSettings({
-          ...tempSettings,
-          logoUrl: base64Logo
-        });
-      };
-      logoReader.readAsDataURL(logoFile);
-    } else {
-      // Process banner upload if available
-      if (bannerFile) {
-        const bannerReader = new FileReader();
-        bannerReader.onloadend = () => {
-          const base64Banner = bannerReader.result as string;
-          setSettings({
-            ...tempSettings,
-            bannerUrl: base64Banner
-          });
-        };
-        bannerReader.readAsDataURL(bannerFile);
-      } else {
-        // No files to process, just save settings
-        setSettings(tempSettings);
-      }
-    }
+  const updateSetting = useCallback(
+    (key: keyof typeof localSettings, value: any) => {
+      setLocalSettings((prevSettings) => ({
+        ...prevSettings,
+        [key]: value,
+      }));
+    },
+    []
+  );
+
+  const applySettings = () => {
+    setSettings(localSettings);
     setIsSettingsOpen(false);
   };
 
-  // Reset only the settings to default values
-  const handleResetSettings = () => {
-    if (window.confirm(settings.language === "th" 
-      ? "คุณแน่ใจหรือไม่ที่จะรีเซ็ตการตั้งค่าทั้งหมดกลับเป็นค่าเริ่มต้น?" 
-      : "Are you sure you want to reset all settings to default values?")) {
-      setTempSettings(defaultSettings);
-    }
-  };
-
-  // Reset all data including API config
-  const handleResetAllData = () => {
-    if (window.confirm(settings.language === "th" 
-      ? "คุณแน่ใจหรือไม่ที่จะล้างข้อมูลและการตั้งค่าทั้งหมด? การกระทำนี้ไม่สามารถย้อนกลับได้และคุณจะต้องตั้งค่า API อีกครั้ง" 
-      : "Are you sure you want to clear all data and settings? This action cannot be undone and you will need to set up the API again.")) {
-      resetAllData();
-      setIsSettingsOpen(false);
-    }
-  };
-
-  const updateSettings = (key: keyof AppSettings, value: any) => {
-    setTempSettings((prev) => ({
-      ...prev,
-      [key]: value,
-    }));
-  };
-
-  const updateNestedSettings = (parentKey: string, key: string, value: any) => {
-    setTempSettings((prev) => ({
-      ...prev,
-      [parentKey]: {
-        ...(prev[parentKey as keyof typeof prev] as Record<string, unknown>),
-        [key]: value,
-      },
-    }));
-  };
-
-  const handleFontChange = (fontId: string) => {
-    // Flatten all font categories to find the selected font
-    const allFonts = Object.values(fontCategories).flatMap(category => category.fonts);
-    const selectedFont = allFonts.find((font) => font.id === fontId);
-    if (selectedFont) {
-      updateSettings("font", selectedFont);
-    }
-  };
-
-  const handleLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files[0]) {
-      const file = e.target.files[0];
-      setLogoFile(file);
-      
-      // Create preview
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setLogoPreview(reader.result as string);
-      };
-      reader.readAsDataURL(file);
-    }
-  };
-
-  const handleBannerUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files[0]) {
-      const file = e.target.files[0];
-      setBannerFile(file);
-      
-      // Create preview
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setBannerPreview(reader.result as string);
-      };
-      reader.readAsDataURL(file);
-    }
+  const closeDialog = () => {
+    setIsSettingsOpen(false);
+    setLocalSettings(settings); // Revert to original settings
   };
 
   return (
-    <Dialog open={isSettingsOpen} onOpenChange={setIsSettingsOpen}>
-      <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+    <Dialog open={isSettingsOpen} onOpenChange={closeDialog}>
+      <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
-          <DialogTitle>
-            {settings.language === "th"
-              ? "การตั้งค่าแอปพลิเคชัน"
-              : "Application Settings"}
-          </DialogTitle>
+          <DialogTitle>{t("Settings")}</DialogTitle>
+          <DialogDescription>
+            {t("Make changes to your gallery here. Click save when you're done.")}
+          </DialogDescription>
         </DialogHeader>
-
-        <Tabs defaultValue="general" className="mt-4">
-          <TabsList>
-            <TabsTrigger value="general">
-              {settings.language === "th" ? "ทั่วไป" : "General"}
-            </TabsTrigger>
-            <TabsTrigger value="appearance">
-              {settings.language === "th" ? "รูปลักษณ์" : "Appearance"}
-            </TabsTrigger>
-            <TabsTrigger value="layout">
-              {settings.language === "th" ? "เค้าโครง" : "Layout"}
-            </TabsTrigger>
-            <TabsTrigger value="advanced">
-              {settings.language === "th" ? "ขั้นสูง" : "Advanced"}
-            </TabsTrigger>
-          </TabsList>
-          
-          <TabsContent value="general" className="space-y-4">
-            <div className="space-y-4">
-              <div>
-                <Label>
-                  {settings.language === "th" ? "ชื่อแกลเลอรี่" : "Gallery Title"}
-                </Label>
-                <Input
-                  value={tempSettings.title}
-                  onChange={(e) => updateSettings("title", e.target.value)}
-                />
-              </div>
-              
-              <div className="flex items-center space-x-2">
-                <Switch
-                  id="show-title"
-                  checked={tempSettings.showTitle}
-                  onCheckedChange={(checked) => updateSettings("showTitle", checked)}
-                />
-                <Label htmlFor="show-title">
-                  {settings.language === "th" ? "แสดงชื่อแกลเลอรี่" : "Show Gallery Title"}
-                </Label>
-              </div>
-              
-              <div>
-                <Label>
-                  {settings.language === "th" ? "ขนาดตัวอักษรชื่อแกลเลอรี่" : "Title Font Size"}
-                </Label>
-                <div className="flex items-center space-x-2">
-                  <Slider
-                    value={[tempSettings.titleSize]}
-                    min={16}
-                    max={48}
-                    step={1}
-                    onValueChange={(values) => updateSettings("titleSize", values[0])}
-                    className="flex-1"
-                  />
-                  <span className="w-12 text-center">{tempSettings.titleSize}px</span>
-                </div>
-              </div>
-              
-              <div>
-                <Label>
-                  {settings.language === "th" ? "รีเฟรชข้อมูลทุกๆ" : "Refresh Interval"}
-                </Label>
-                <div className="flex items-center space-x-2">
-                  <Slider
-                    value={[tempSettings.refreshInterval]}
-                    min={1}
-                    max={60}
-                    step={1}
-                    onValueChange={(values) => updateSettings("refreshInterval", values[0])}
-                    className="flex-1"
-                  />
-                  <span className="w-12 text-center">{tempSettings.refreshInterval}s</span>
-                </div>
-              </div>
-              
-              <div className="flex items-center space-x-2">
-                <Switch
-                  id="notifications-enabled"
-                  checked={notificationsEnabled}
-                  onCheckedChange={setNotificationsEnabled}
-                />
-                <Label htmlFor="notifications-enabled" className="flex items-center gap-2">
-                  <Bell className="h-4 w-4" />
-                  {settings.language === "th" ? "แสดงการแจ้งเตือน" : "Show Notifications"}
-                </Label>
-              </div>
-              
-              <div className="border p-4 rounded-lg bg-muted/30">
-                <h3 className="text-sm font-medium mb-1">
-                  {settings.language === "th" ? "การเลื่อนอัตโนมัติ" : "Auto Scroll"}
-                </h3>
-                <div className="space-y-2">
-                  <div className="flex items-center space-x-2">
-                    <Switch
-                      id="auto-scroll-enabled"
-                      checked={tempSettings.autoScrollEnabled}
-                      onCheckedChange={(checked) => updateSettings("autoScrollEnabled", checked)}
-                    />
-                    <Label htmlFor="auto-scroll-enabled">
-                      {settings.language === "th" ? "เปิดการเลื่อนอัตโนมัติ" : "Enable Auto Scroll"}
-                    </Label>
-                  </div>
-                  
-                  <div className="flex items-center space-x-2">
-                    <Label className="min-w-[80px]">
-                      {settings.language === "th" ? "ทิศทาง" : "Direction"}:
-                    </Label>
-                    <div className="flex items-center space-x-2">
-                      <Button
-                        type="button"
-                        variant={tempSettings.autoScrollDirection === "down" ? "default" : "outline"}
-                        size="sm"
-                        onClick={() => updateSettings("autoScrollDirection", "down")}
-                        className="h-8"
-                      >
-                        {settings.language === "th" ? "ลง" : "Down"}
-                      </Button>
-                      <Button
-                        type="button"
-                        variant={tempSettings.autoScrollDirection === "up" ? "default" : "outline"}
-                        size="sm"
-                        onClick={() => updateSettings("autoScrollDirection", "up")}
-                        className="h-8"
-                      >
-                        {settings.language === "th" ? "ขึ้น" : "Up"}
-                      </Button>
-                    </div>
-                  </div>
-                  
-                  <div>
-                    <Label>
-                      {settings.language === "th" ? "ความเร็วในการเลื่อน" : "Auto Scroll Speed"}
-                    </Label>
-                    <div className="flex items-center space-x-2">
-                      <Slider
-                        value={[tempSettings.autoScrollSpeed]}
-                        min={1}
-                        max={30}
-                        step={1}
-                        onValueChange={(values) => updateSettings("autoScrollSpeed", values[0])}
-                        className="flex-1"
-                      />
-                      <span className="w-12 text-center">{tempSettings.autoScrollSpeed}</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </TabsContent>
-
-          <TabsContent value="appearance" className="space-y-4">
-            <div>
-              <Label>
-                {settings.language === "th" ? "รูปแบบธีม" : "Theme Mode"}
-              </Label>
-              <div className="grid grid-cols-2 gap-2">
-                <Button
-                  variant={tempSettings.themeMode === "light" ? "default" : "outline"}
-                  onClick={() => updateSettings("themeMode", "light")}
-                >
-                  {settings.language === "th" ? "สว่าง" : "Light"}
-                </Button>
-                <Button
-                  variant={tempSettings.themeMode === "dark" ? "default" : "outline"}
-                  onClick={() => updateSettings("themeMode", "dark")}
-                >
-                  {settings.language === "th" ? "มืด" : "Dark"}
-                </Button>
-              </div>
+        <div className="grid gap-4 py-4">
+          {/* General Settings */}
+          <div className="space-y-2">
+            <h3 className="text-lg font-medium">{t("General")}</h3>
+            <Separator />
+            
+            {/* Gallery Name */}
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="name" className="text-right">{t("Gallery Name")}</Label>
+              <Input
+                id="name"
+                value={localSettings.galleryName}
+                onChange={(e) => updateSetting("galleryName", e.target.value)}
+                className="col-span-3"
+              />
             </div>
             
-            <div>
-              <Label>
-                {settings.language === "th" ? "ภาษา" : "Language"}
+            {/* Show Gallery Name */}
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="showGalleryName" className="text-right">
+                {t("Show Gallery Name")}
               </Label>
-              <div className="grid grid-cols-2 gap-2">
-                <Button
-                  variant={tempSettings.language === "th" ? "default" : "outline"}
-                  onClick={() => updateSettings("language", "th")}
-                >
-                  ไทย
-                </Button>
-                <Button
-                  variant={tempSettings.language === "en" ? "default" : "outline"}
-                  onClick={() => updateSettings("language", "en")}
-                >
-                  English
-                </Button>
-              </div>
+              <Switch
+                id="showGalleryName"
+                checked={localSettings.showGalleryName}
+                onCheckedChange={(checked) => updateSetting("showGalleryName", checked)}
+              />
+            </div>
+          </div>
+
+          {/* Theme Settings */}
+          <div className="space-y-2">
+            <h3 className="text-lg font-medium">{t("Theme")}</h3>
+            <Separator />
+            
+            {/* Theme Mode */}
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="themeMode" className="text-right">{t("Theme Mode")}</Label>
+              <Select
+                value={localSettings.themeMode}
+                onValueChange={(value) => updateSetting("themeMode", value)}
+              >
+                <SelectTrigger className="col-span-3">
+                  <SelectValue placeholder={t("Select Theme Mode")} />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="light">{t("Light")}</SelectItem>
+                  <SelectItem value="dark">{t("Dark")}</SelectItem>
+                  <SelectItem value={systemTheme === "dark" ? "light" : "dark"}>
+                    {t("System") + ` (${systemTheme})`}
+                  </SelectItem>
+                </SelectContent>
+              </Select>
             </div>
             
-            <div>
-              <Label>
-                {settings.language === "th" ? "ฟอนต์" : "Font"}
-              </Label>
-              
-              {/* Font categories */}
-              <Tabs defaultValue="thai" className="mt-2">
-                <TabsList className="w-full flex-wrap h-auto py-1">
-                  {Object.entries(fontCategories).map(([key, category]) => (
-                    <TabsTrigger key={key} value={key} className="text-xs">
-                      {category.name}
-                    </TabsTrigger>
+            {/* Theme */}
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="theme" className="text-right">{t("Theme")}</Label>
+              <Select
+                value={localSettings.theme.id}
+                onValueChange={(value) => {
+                  const selectedTheme = themes.find((theme) => theme.id === value);
+                  if (selectedTheme) {
+                    updateSetting("theme", selectedTheme);
+                  }
+                }}
+              >
+                <SelectTrigger className="col-span-3">
+                  <SelectValue placeholder={t("Select Theme")} />
+                </SelectTrigger>
+                <SelectContent>
+                  {themes.map((theme) => (
+                    <SelectItem key={theme.id} value={theme.id}>
+                      {theme.name}
+                    </SelectItem>
                   ))}
-                </TabsList>
-                
-                {Object.entries(fontCategories).map(([key, category]) => (
-                  <TabsContent key={key} value={key} className="mt-2">
-                    <div className="grid grid-cols-2 gap-2 max-h-48 overflow-y-auto p-1">
-                      {category.fonts.map((font) => (
-                        <Button
-                          key={font.id}
-                          variant={tempSettings.font.id === font.id ? "default" : "outline"}
-                          onClick={() => handleFontChange(font.id)}
-                          className={font.class}
-                        >
-                          {font.name}
-                        </Button>
-                      ))}
-                    </div>
-                  </TabsContent>
-                ))}
-              </Tabs>
+                </SelectContent>
+              </Select>
             </div>
-            
-            <div>
-              <Label>
-                {settings.language === "th" ? "ขนาดตัวอักษร (คำบรรยาย)" : "Font Size (Subtitle)"}
-              </Label>
-              <div className="flex items-center space-x-2">
-                <Slider
-                  value={[tempSettings.fontSize.subtitle]}
-                  min={12}
-                  max={20}
-                  step={1}
-                  onValueChange={(values) => updateNestedSettings("fontSize", "subtitle", values[0])}
-                  className="flex-1"
-                />
-                <span className="w-12 text-center">{tempSettings.fontSize.subtitle}px</span>
-              </div>
-            </div>
-            
-            <div>
-              <Label>
-                {settings.language === "th" ? "ขนาดตัวอักษร (เนื้อหา)" : "Font Size (Body)"}
-              </Label>
-              <div className="flex items-center space-x-2">
-                <Slider
-                  value={[tempSettings.fontSize.body]}
-                  min={10}
-                  max={18}
-                  step={1}
-                  onValueChange={(values) => updateNestedSettings("fontSize", "body", values[0])}
-                  className="flex-1"
-                />
-                <span className="w-12 text-center">{tempSettings.fontSize.body}px</span>
-              </div>
-            </div>
-          </TabsContent>
+          </div>
 
-          <TabsContent value="layout" className="space-y-4">
-            <div>
-              <Label>
-                {settings.language === "th" ? "รูปแบบการจัดเรียง" : "Grid Layout"}
-              </Label>
-              <div className="grid grid-cols-2 gap-2">
-                <Button
-                  variant={tempSettings.gridLayout === "googlePhotos" ? "default" : "outline"}
-                  onClick={() => updateSettings("gridLayout", "googlePhotos")}
-                >
-                  {settings.language === "th" ? "Google Photos" : "Google Photos"}
-                </Button>
-                <Button
-                  variant={tempSettings.gridLayout === "fixed" ? "default" : "outline"}
-                  onClick={() => updateSettings("gridLayout", "fixed")}
-                >
-                  {settings.language === "th" ? "คงที่" : "Fixed"}
-                </Button>
-                <Button
-                  variant={tempSettings.gridLayout === "custom" ? "default" : "outline"}
-                  onClick={() => updateSettings("gridLayout", "custom")}
-                >
-                  {settings.language === "th" ? "กำหนดเอง" : "Custom"}
-                </Button>
-                <Button
-                  variant={tempSettings.gridLayout === "auto" ? "default" : "outline"}
-                  onClick={() => updateSettings("gridLayout", "auto")}
-                >
-                  {settings.language === "th" ? "อัตโนมัติ" : "Auto"}
-                </Button>
-              </div>
+          {/* Font Settings */}
+          <div className="space-y-2">
+            <h3 className="text-lg font-medium">{t("Font")}</h3>
+            <Separator />
+            
+            {/* Font */}
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="font" className="text-right">{t("Font")}</Label>
+              <Select
+                value={localSettings.font.id}
+                onValueChange={(value) => {
+                  const selectedFont = fonts.find((font) => font.id === value);
+                  if (selectedFont) {
+                    updateSetting("font", selectedFont);
+                  }
+                }}
+              >
+                <SelectTrigger className="col-span-3">
+                  <SelectValue placeholder={t("Select Font")} />
+                </SelectTrigger>
+                <SelectContent>
+                  {fonts.map((font) => (
+                    <SelectItem key={font.id} value={font.id}>
+                      {font.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
             
-            {tempSettings.gridLayout === "fixed" || tempSettings.gridLayout === "custom" ? (
-              <>
-                <div>
-                  <Label>
-                    {settings.language === "th" ? "จำนวนคอลัมน์" : "Number of Columns"}
-                  </Label>
-                  <div className="flex items-center space-x-2">
-                    <Slider
-                      value={[tempSettings.gridColumns]}
-                      min={1}
-                      max={12}
-                      step={1}
-                      onValueChange={(values) => updateSettings("gridColumns", values[0])}
-                      className="flex-1"
-                    />
-                    <span className="w-12 text-center">{tempSettings.gridColumns}</span>
-                  </div>
-                </div>
-                
-                <div>
-                  <Label>
-                    {settings.language === "th" ? "จำนวนแถว" : "Number of Rows"}
-                  </Label>
-                  <div className="flex items-center space-x-2">
-                    <Slider
-                      value={[tempSettings.gridRows]}
-                      min={0}
-                      max={5}
-                      step={1}
-                      onValueChange={(values) => updateSettings("gridRows", values[0])}
-                      className="flex-1"
-                    />
-                    <span className="w-12 text-center">{tempSettings.gridRows}</span>
-                  </div>
-                </div>
-              </>
-            ) : null}
-          </TabsContent>
-          
-          <TabsContent value="advanced" className="space-y-4">
-            <div>
-              <Label>
-                {settings.language === "th" ? "ขนาด QR Code" : "QR Code Size"}
-              </Label>
-              <div className="flex items-center space-x-2">
+            {/* Font Size - Title */}
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="titleSize" className="text-right">{t("Title Size")}</Label>
+              <div className="col-span-3 flex items-center gap-2">
                 <Slider
-                  value={[tempSettings.qrCodeSize]}
-                  min={32}
-                  max={128}
-                  step={8}
-                  onValueChange={(values) => updateSettings("qrCodeSize", values[0])}
+                  id="titleSize"
+                  min={16}
+                  max={48}
+                  step={1}
+                  value={[localSettings.fontSize.title]}
+                  onValueChange={([value]) => updateSetting("fontSize", {...localSettings.fontSize, title: value})}
                   className="flex-1"
                 />
-                <span className="w-12 text-center">{tempSettings.qrCodeSize}px</span>
+                <span className="w-12 text-sm">{localSettings.fontSize.title}px</span>
               </div>
             </div>
             
-            <div>
-              <Label>
-                {settings.language === "th" ? "ขนาด QR Code ใน Header" : "Header QR Code Size"}
-              </Label>
-              <div className="flex items-center space-x-2">
+            {/* Font Size - Subtitle */}
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="subtitleSize" className="text-right">{t("Subtitle Size")}</Label>
+              <div className="col-span-3 flex items-center gap-2">
                 <Slider
-                  value={[tempSettings.headerQRCodeSize]}
-                  min={24}
-                  max={96}
-                  step={8}
-                  onValueChange={(values) => updateSettings("headerQRCodeSize", values[0])}
+                  id="subtitleSize"
+                  min={12}
+                  max={32}
+                  step={1}
+                  value={[localSettings.fontSize.subtitle]}
+                  onValueChange={([value]) => updateSetting("fontSize", {...localSettings.fontSize, subtitle: value})}
                   className="flex-1"
                 />
-                <span className="w-12 text-center">{tempSettings.headerQRCodeSize}px</span>
+                <span className="w-12 text-sm">{localSettings.fontSize.subtitle}px</span>
               </div>
             </div>
             
-            <div>
-              <Label>
-                {settings.language === "th" ? "ขนาด QR Code ใน ImageViewer" : "ImageViewer QR Code Size"}
-              </Label>
-              <div className="flex items-center space-x-2">
+            {/* Font Size - Body */}
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="bodySize" className="text-right">{t("Body Size")}</Label>
+              <div className="col-span-3 flex items-center gap-2">
                 <Slider
-                  value={[tempSettings.viewerQRCodeSize]}
+                  id="bodySize"
+                  min={10}
+                  max={24}
+                  step={1}
+                  value={[localSettings.fontSize.body]}
+                  onValueChange={([value]) => updateSetting("fontSize", {...localSettings.fontSize, body: value})}
+                  className="flex-1"
+                />
+                <span className="w-12 text-sm">{localSettings.fontSize.body}px</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Logo Settings */}
+          <div className="space-y-2">
+            <h3 className="text-lg font-medium">{t("Logo")}</h3>
+            <Separator />
+            
+            {/* Logo URL */}
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="logoUrl" className="text-right">{t("Logo URL")}</Label>
+              <Input
+                id="logoUrl"
+                value={localSettings.logoUrl}
+                onChange={(e) => updateSetting("logoUrl", e.target.value)}
+                className="col-span-3"
+              />
+            </div>
+            
+            {/* Show Logo */}
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="showLogo" className="text-right">
+                {t("Show Logo")}
+              </Label>
+              <Switch
+                id="showLogo"
+                checked={localSettings.showLogo}
+                onCheckedChange={(checked) => updateSetting("showLogo", checked)}
+              />
+            </div>
+            
+            {/* Logo Size */}
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="logoSize" className="text-right">{t("Logo Size")}</Label>
+              <div className="col-span-3 flex items-center gap-2">
+                <Slider
+                  id="logoSize"
                   min={40}
                   max={160}
-                  step={8}
-                  onValueChange={(values) => updateSettings("viewerQRCodeSize", values[0])}
-                  className="flex-1"
-                />
-                <span className="w-12 text-center">{tempSettings.viewerQRCodeSize}px</span>
-              </div>
-            </div>
-            
-            <div>
-              <Label>
-                {settings.language === "th" ? "ตำแหน่ง QR Code" : "QR Code Position"}
-              </Label>
-              <div className="grid grid-cols-3 gap-2">
-                <Button
-                  variant={tempSettings.qrCodePosition === "bottomRight" ? "default" : "outline"}
-                  onClick={() => updateSettings("qrCodePosition", "bottomRight")}
-                >
-                  {settings.language === "th" ? "ขวาล่าง" : "Bottom Right"}
-                </Button>
-                <Button
-                  variant={tempSettings.qrCodePosition === "bottomLeft" ? "default" : "outline"}
-                  onClick={() => updateSettings("qrCodePosition", "bottomLeft")}
-                >
-                  {settings.language === "th" ? "ซ้ายล่าง" : "Bottom Left"}
-                </Button>
-                <Button
-                  variant={tempSettings.qrCodePosition === "topRight" ? "default" : "outline"}
-                  onClick={() => updateSettings("qrCodePosition", "topRight")}
-                >
-                  {settings.language === "th" ? "ขวาบน" : "Top Right"}
-                </Button>
-                <Button
-                  variant={tempSettings.qrCodePosition === "topLeft" ? "default" : "outline"}
-                  onClick={() => updateSettings("qrCodePosition", "topLeft")}
-                >
-                  {settings.language === "th" ? "ซ้ายบน" : "Top Left"}
-                </Button>
-                <Button
-                  variant={tempSettings.qrCodePosition === "center" ? "default" : "outline"}
-                  onClick={() => updateSettings("qrCodePosition", "center")}
-                >
-                  {settings.language === "th" ? "ตรงกลาง" : "Center"}
-                </Button>
-              </div>
-            </div>
-            
-            <div className="flex items-center space-x-2">
-              <Switch
-                id="show-header-qr"
-                checked={tempSettings.showHeaderQR}
-                onCheckedChange={(checked) => updateSettings("showHeaderQR", checked)}
-              />
-              <Label htmlFor="show-header-qr">
-                {settings.language === "th" ? "แสดง QR Code ใน Header" : "Show QR Code in Header"}
-              </Label>
-            </div>
-            
-            <div>
-              <Label>
-                {settings.language === "th" ? "โลโก้" : "Logo"}
-              </Label>
-              <div className="flex flex-col space-y-2">
-                <div className="flex items-center gap-2">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={() => document.getElementById('logo-upload')?.click()}
-                    className="w-full"
-                  >
-                    <Upload className="h-4 w-4 mr-2" />
-                    {settings.language === "th" ? "อัพโหลดโลโก้" : "Upload Logo"}
-                  </Button>
-                  {logoPreview && (
-                    <Button 
-                      type="button" 
-                      variant="destructive" 
-                      onClick={() => {
-                        setLogoPreview(null);
-                        setLogoFile(null);
-                        updateSettings("logoUrl", null);
-                      }}
-                    >
-                      {settings.language === "th" ? "ลบ" : "Remove"}
-                    </Button>
-                  )}
-                </div>
-                <input
-                  id="logo-upload"
-                  type="file"
-                  accept="image/*"
-                  className="hidden"
-                  onChange={handleLogoUpload}
-                />
-                {logoPreview && (
-                  <div className="p-2 border rounded-md mt-2">
-                    <img 
-                      src={logoPreview} 
-                      alt="Logo Preview" 
-                      className="max-h-20 mx-auto"
-                    />
-                  </div>
-                )}
-              </div>
-            </div>
-            
-            <div>
-              <Label>
-                {settings.language === "th" ? "ขนาดโลโก้" : "Logo Size"}
-              </Label>
-              <div className="flex items-center space-x-2">
-                <Slider
-                  value={[tempSettings.logoSize]}
-                  min={50}
-                  max={200}
                   step={5}
-                  onValueChange={(values) => updateSettings("logoSize", values[0])}
+                  value={[localSettings.logoSize]}
+                  onValueChange={([value]) => updateSetting("logoSize", value)}
                   className="flex-1"
                 />
-                <span className="w-12 text-center">{tempSettings.logoSize}px</span>
+                <span className="w-12 text-sm">{localSettings.logoSize}px</span>
               </div>
             </div>
+          </div>
+
+          {/* Banner Settings */}
+          <div className="space-y-2">
+            <h3 className="text-lg font-medium">{t("Banner")}</h3>
+            <Separator />
             
-            <div>
-              <Label>
-                {settings.language === "th" ? "แบนเนอร์" : "Banner"}
-              </Label>
-              <div className="flex flex-col space-y-2">
-                <div className="flex items-center gap-2">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={() => document.getElementById('banner-upload')?.click()}
-                    className="w-full"
-                  >
-                    <Upload className="h-4 w-4 mr-2" />
-                    {settings.language === "th" ? "อัพโหลดแบนเนอร์" : "Upload Banner"}
-                  </Button>
-                  {bannerPreview && (
-                    <Button 
-                      type="button" 
-                      variant="destructive" 
-                      onClick={() => {
-                        setBannerPreview(null);
-                        setBannerFile(null);
-                        updateSettings("bannerUrl", null);
-                      }}
-                    >
-                      {settings.language === "th" ? "ลบ" : "Remove"}
-                    </Button>
-                  )}
-                </div>
-                <input
-                  id="banner-upload"
-                  type="file"
-                  accept="image/*"
-                  className="hidden"
-                  onChange={handleBannerUpload}
-                />
-                {bannerPreview && (
-                  <div className="p-2 border rounded-md mt-2">
-                    <img 
-                      src={bannerPreview} 
-                      alt="Banner Preview" 
-                      className="max-h-20 mx-auto"
-                    />
-                  </div>
-                )}
-              </div>
+            {/* Banner URL */}
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="bannerUrl" className="text-right">{t("Banner URL")}</Label>
+              <Input
+                id="bannerUrl"
+                value={localSettings.bannerUrl}
+                onChange={(e) => updateSetting("bannerUrl", e.target.value)}
+                className="col-span-3"
+              />
             </div>
             
-            <div>
-              <Label>
-                {settings.language === "th" ? "ขนาดแบนเนอร์" : "Banner Size"}
-              </Label>
-              <div className="flex items-center space-x-2">
+            {/* Banner Position */}
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="bannerPosition" className="text-right">{t("Banner Position")}</Label>
+              <Select
+                value={localSettings.bannerPosition}
+                onValueChange={(value) =>
+                  updateSetting("bannerPosition", value as any)
+                }
+              >
+                <SelectTrigger className="col-span-3">
+                  <SelectValue placeholder={t("Select Position")} />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="bottomLeft">{t("Bottom Left")}</SelectItem>
+                  <SelectItem value="bottomRight">{t("Bottom Right")}</SelectItem>
+                  <SelectItem value="topLeft">{t("Top Left")}</SelectItem>
+                  <SelectItem value="topRight">{t("Top Right")}</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            
+            {/* Banner Size */}
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="bannerSize" className="text-right">{t("Banner Size")}</Label>
+              <div className="col-span-3 flex items-center gap-2">
                 <Slider
-                  value={[tempSettings.bannerSize]}
-                  min={50}
+                  id="bannerSize"
+                  min={100}
                   max={400}
                   step={10}
-                  onValueChange={(values) => updateSettings("bannerSize", values[0])}
+                  value={[localSettings.bannerSize]}
+                  onValueChange={([value]) => updateSetting("bannerSize", value)}
                   className="flex-1"
                 />
-                <span className="w-12 text-center">{tempSettings.bannerSize}px</span>
+                <span className="w-12 text-sm">{localSettings.bannerSize}px</span>
               </div>
             </div>
-            
-            <div>
-              <Label>
-                {settings.language === "th" ? "ตำแหน่งแบนเนอร์" : "Banner Position"}
-              </Label>
-              <div className="grid grid-cols-2 gap-2">
-                <Button
-                  variant={tempSettings.bannerPosition === "bottomLeft" ? "default" : "outline"}
-                  onClick={() => updateSettings("bannerPosition", "bottomLeft")}
-                >
-                  {settings.language === "th" ? "ซ้ายล่าง" : "Bottom Left"}
-                </Button>
-                <Button
-                  variant={tempSettings.bannerPosition === "bottomRight" ? "default" : "outline"}
-                  onClick={() => updateSettings("bannerPosition", "bottomRight")}
-                >
-                  {settings.language === "th" ? "ขวาล่าง" : "Bottom Right"}
-                </Button>
-                <Button
-                  variant={tempSettings.bannerPosition === "topLeft" ? "default" : "outline"}
-                  onClick={() => updateSettings("bannerPosition", "topLeft")}
-                >
-                  {settings.language === "th" ? "ซ้ายบน" : "Top Left"}
-                </Button>
-                <Button
-                  variant={tempSettings.bannerPosition === "topRight" ? "default" : "outline"}
-                  onClick={() => updateSettings("bannerPosition", "topRight")}
-                >
-                  {settings.language === "th" ? "ขวาบน" : "Top Right"}
-                </Button>
-              </div>
-            </div>
-            
-            <Separator className="my-4" />
-            
-            {/* Add Reset Buttons Section */}
-            <div className="border p-4 rounded-lg bg-destructive/10 space-y-4">
-              <h3 className="text-sm font-medium mb-2">
-                {settings.language === "th" ? "การรีเซ็ตและการล้างข้อมูล" : "Reset and Clear Data"}
-              </h3>
-              
-              <div className="flex items-center justify-between">
-                <div>
-                  <h4 className="text-sm font-medium">
-                    {settings.language === "th" ? "รีเซ็ตการตั้งค่า" : "Reset Settings"}
-                  </h4>
-                  <p className="text-xs text-muted-foreground">
-                    {settings.language === "th" 
-                      ? "รีเซ็ตการตั้งค่าทั้งหมดกลับเป็นค่าเริ่มต้น" 
-                      : "Reset all settings to default values"}
-                  </p>
-                </div>
-                <Button 
-                  variant="outline" 
-                  size="sm" 
-                  onClick={handleResetSettings}
-                  className="gap-2"
-                >
-                  <RotateCw className="h-4 w-4" />
-                  {settings.language === "th" ? "รีเซ็ตการตั้งค่า" : "Reset Settings"}
-                </Button>
-              </div>
-              
-              <div className="flex items-center justify-between">
-                <div>
-                  <h4 className="text-sm font-medium">
-                    {settings.language === "th" ? "ล้างข้อมูลทั้งหมด" : "Clear All Data"}
-                  </h4>
-                  <p className="text-xs text-muted-foreground">
-                    {settings.language === "th" 
-                      ? "ล้างข้อมูลทั้งหมดและกลับไปยังหน้าเริ่มต้น" 
-                      : "Clear all data and return to initial setup"}
-                  </p>
-                </div>
-                <Button 
-                  variant="destructive" 
-                  size="sm" 
-                  onClick={handleResetAllData}
-                  className="gap-2"
-                >
-                  <Trash2 className="h-4 w-4" />
-                  {settings.language === "th" ? "ล้างข้อมูลทั้งหมด" : "Clear All Data"}
-                </Button>
-              </div>
-            </div>
-          </TabsContent>
-        </Tabs>
+          </div>
 
-        <DialogFooter className="flex justify-between mt-4">
-          <Button variant="outline" onClick={() => setIsSettingsOpen(false)}>
-            {settings.language === "th" ? "ยกเลิก" : "Cancel"}
+          {/* QR Code Settings */}
+          <div className="space-y-2">
+            <h3 className="text-lg font-medium">{t("QR Code Settings")}</h3>
+            <Separator />
+            
+            <div className="grid gap-4 py-2">
+              {/* QR Code Position */}
+              <div className="grid grid-cols-3 items-center gap-4">
+                <Label htmlFor="qrCodePosition" className="text-right">{t("QR Code Position")}</Label>
+                <Select
+                  value={localSettings.qrCodePosition}
+                  onValueChange={(value) =>
+                    updateSetting("qrCodePosition", value as any)
+                  }
+                >
+                  <SelectTrigger className="col-span-2">
+                    <SelectValue placeholder={t("Select Position")} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="bottomRight">{t("Bottom Right")}</SelectItem>
+                    <SelectItem value="bottomLeft">{t("Bottom Left")}</SelectItem>
+                    <SelectItem value="topRight">{t("Top Right")}</SelectItem>
+                    <SelectItem value="topLeft">{t("Top Left")}</SelectItem>
+                    <SelectItem value="center">{t("Center")}</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              
+              {/* Image Card QR Code Size */}
+              <div className="grid grid-cols-3 items-center gap-4">
+                <Label htmlFor="qrCodeSize" className="text-right">{t("Card QR Size")}</Label>
+                <div className="col-span-2 flex items-center gap-2">
+                  <Slider
+                    id="qrCodeSize"
+                    min={60}
+                    max={200}
+                    step={10}
+                    value={[localSettings.qrCodeSize]}
+                    onValueChange={([value]) => updateSetting("qrCodeSize", value)}
+                    className="flex-1"
+                  />
+                  <span className="w-12 text-sm">{localSettings.qrCodeSize}px</span>
+                </div>
+              </div>
+              
+              {/* Header QR Code Size */}
+              <div className="grid grid-cols-3 items-center gap-4">
+                <Label htmlFor="headerQRCodeSize" className="text-right">{t("Header QR Size")}</Label>
+                <div className="col-span-2 flex items-center gap-2">
+                  <Slider
+                    id="headerQRCodeSize"
+                    min={80}
+                    max={240}
+                    step={10}
+                    value={[localSettings.headerQRCodeSize]}
+                    onValueChange={([value]) => updateSetting("headerQRCodeSize", value)}
+                    className="flex-1"
+                  />
+                  <span className="w-12 text-sm">{localSettings.headerQRCodeSize}px</span>
+                </div>
+              </div>
+              
+              {/* Viewer QR Code Size */}
+              <div className="grid grid-cols-3 items-center gap-4">
+                <Label htmlFor="viewerQRCodeSize" className="text-right">{t("Viewer QR Size")}</Label>
+                <div className="col-span-2 flex items-center gap-2">
+                  <Slider
+                    id="viewerQRCodeSize"
+                    min={100}
+                    max={300}
+                    step={10}
+                    value={[localSettings.viewerQRCodeSize]}
+                    onValueChange={([value]) => updateSetting("viewerQRCodeSize", value)}
+                    className="flex-1"
+                  />
+                  <span className="w-12 text-sm">{localSettings.viewerQRCodeSize}px</span>
+                </div>
+              </div>
+
+              {/* Show Header QR */}
+              <div className="grid grid-cols-3 items-center gap-4">
+                <Label htmlFor="showHeaderQR" className="text-right">
+                  {t("Show Header QR")}
+                </Label>
+                <Switch
+                  id="showHeaderQR"
+                  checked={localSettings.showHeaderQR}
+                  onCheckedChange={(checked) => updateSetting("showHeaderQR", checked)}
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* Refresh Interval */}
+          <div className="space-y-2">
+            <h3 className="text-lg font-medium">{t("Refresh")}</h3>
+            <Separator />
+            
+            {/* Refresh Interval */}
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="refreshInterval" className="text-right">{t("Refresh Interval")}</Label>
+              <div className="col-span-3 flex items-center gap-2">
+                <Slider
+                  id="refreshInterval"
+                  min={10}
+                  max={300}
+                  step={10}
+                  value={[localSettings.refreshInterval]}
+                  onValueChange={([value]) => updateSetting("refreshInterval", value)}
+                  className="flex-1"
+                />
+                <span className="w-12 text-sm">{localSettings.refreshInterval}s</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Grid Layout Settings */}
+          <div className="space-y-2">
+            <h3 className="text-lg font-medium">{t("Grid Layout")}</h3>
+            <Separator />
+
+            {/* Grid Layout */}
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="gridLayout" className="text-right">{t("Layout Type")}</Label>
+              <Select
+                value={localSettings.gridLayout}
+                onValueChange={(value) =>
+                  updateSetting("gridLayout", value as any)
+                }
+              >
+                <SelectTrigger className="col-span-3">
+                  <SelectValue placeholder={t("Select Layout")} />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="googlePhotos">{t("Google Photos")}</SelectItem>
+                  <SelectItem value="fixed">{t("Fixed")}</SelectItem>
+                  <SelectItem value="auto">{t("Auto")}</SelectItem>
+                  <SelectItem value="custom">{t("Custom")}</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Grid Columns */}
+            {localSettings.gridLayout === "fixed" || localSettings.gridLayout === "custom" ? (
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="gridColumns" className="text-right">{t("Columns")}</Label>
+                <div className="col-span-3 flex items-center gap-2">
+                  <Slider
+                    id="gridColumns"
+                    min={1}
+                    max={12}
+                    step={1}
+                    value={[localSettings.gridColumns]}
+                    onValueChange={([value]) => updateSetting("gridColumns", value)}
+                    className="flex-1"
+                  />
+                  <span className="w-12 text-sm">{localSettings.gridColumns}</span>
+                </div>
+              </div>
+            ) : null}
+
+            {/* Grid Rows */}
+            {localSettings.gridLayout === "fixed" || localSettings.gridLayout === "custom" ? (
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="gridRows" className="text-right">{t("Rows")}</Label>
+                <div className="col-span-3 flex items-center gap-2">
+                  <Slider
+                    id="gridRows"
+                    min={1}
+                    max={5}
+                    step={1}
+                    value={[localSettings.gridRows]}
+                    onValueChange={([value]) => updateSetting("gridRows", value)}
+                    className="flex-1"
+                  />
+                  <span className="w-12 text-sm">{localSettings.gridRows}</span>
+                </div>
+              </div>
+            ) : null}
+          </div>
+        </div>
+        <DialogFooter>
+          <Button type="button" variant="secondary" onClick={resetAllData}>
+            {t("Reset All")}
           </Button>
-          <Button onClick={handleSave}>
-            {settings.language === "th" ? "บันทึก" : "Save"}
+          <Button type="button" onClick={applySettings}>
+            {t("Save changes")}
           </Button>
         </DialogFooter>
       </DialogContent>
