@@ -59,7 +59,7 @@ const SettingsDialog: React.FC = () => {
     setTempSettings((prev) => ({
       ...prev,
       [parentKey]: {
-        ...prev[parentKey as keyof typeof prev],
+        ...(prev[parentKey as keyof typeof prev] as Record<string, unknown>),
         [key]: value,
       },
     }));
@@ -85,7 +85,7 @@ const SettingsDialog: React.FC = () => {
         <DialogHeader>
           <DialogTitle>
             {settings.language === "th"
-              ? "การตั้งค่าแอปพลิเคชัน"
+              ? "การตั้งค่าแอปพ���ิเคชัน"
               : "Application Settings"}
           </DialogTitle>
         </DialogHeader>
