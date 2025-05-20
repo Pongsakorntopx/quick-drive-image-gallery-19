@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { useAppContext } from "../context/AppContext";
 import {
@@ -20,7 +21,7 @@ import { Switch } from "@/components/ui/switch";
 import { Slider } from "@/components/ui/slider";
 import { Separator } from "@/components/ui/separator";
 import { AppSettings } from "../types";
-import { Bell, Upload, Reset, Trash } from "lucide-react";
+import { Bell, Upload, RotateCw, Trash2 } from "lucide-react";
 import { useTranslation } from "../hooks/useTranslation";
 import { fontCategories } from "../config/fonts";
 import { defaultSettings } from "../context/AppDefaults";
@@ -783,7 +784,7 @@ const SettingsDialog: React.FC = () => {
                   onClick={handleResetSettings}
                   className="gap-2"
                 >
-                  <Reset className="h-4 w-4" />
+                  <RotateCw className="h-4 w-4" />
                   {settings.language === "th" ? "รีเซ็ตการตั้งค่า" : "Reset Settings"}
                 </Button>
               </div>
@@ -805,7 +806,7 @@ const SettingsDialog: React.FC = () => {
                   onClick={handleResetAllData}
                   className="gap-2"
                 >
-                  <Trash className="h-4 w-4" />
+                  <Trash2 className="h-4 w-4" />
                   {settings.language === "th" ? "ล้างข้อมูลทั้งหมด" : "Clear All Data"}
                 </Button>
               </div>

@@ -102,6 +102,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   // Reference for the refresh interval
   const refreshIntervalRef = useRef<number | null>(null);
   
+  // Last refresh timestamp
+  const lastRefreshTimeRef = useRef<number>(Date.now());
+  
   // Save API config to local storage
   useEffect(() => {
     localStorage.setItem("gdrive-app-config", JSON.stringify(apiConfig));
@@ -151,7 +154,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }
   };
 
-  // Modified refresh photos function with improved performance
+  // Improved refresh photos function with optimized performance
   const refreshPhotos = useCallback(async (): Promise<boolean> => {
     if (!apiConfig.apiKey || !apiConfig.folderId) {
       setError(settings.language === "th" ? "กรุณาระบุ API Key และ Folder ID" : "Please provide API Key and Folder ID");
@@ -159,13 +162,15 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }
     
     try {
+      // Only show loading state on initial load
       if (photos.length === 0) {
         setIsLoading(true);
       }
       
       console.log("Refreshing photos at:", new Date().toISOString());
+      lastRefreshTimeRef.current = Date.now();
       
-      // Fetch and sort photos
+      // Fetch and sort photos with optimized background processing
       const result = await fetchAndProcessPhotos(apiConfig, settings.language, sortOrder);
       
       if (result.success && result.data) {
@@ -226,14 +231,22 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       // Initial fetch when component mounts or dependencies change
       refreshPhotos();
       
-      // Set up a new interval with the current refreshInterval
-      const intervalMs = settings.refreshInterval * 1000; // Convert seconds to milliseconds
+      // Set up a new interval with the current refreshInterval (convert to milliseconds)
+      const intervalMs = Math.max(1000, settings.refreshInterval * 1000); 
       console.log(`Setting up refresh interval: ${settings.refreshInterval} seconds`);
       
-      refreshIntervalRef.current = window.setInterval(() => {
-        console.log(`Auto refresh triggered after ${settings.refreshInterval} seconds`);
-        refreshPhotos();
-      }, intervalMs);
+      // Use more efficient setTimeout-based polling instead of setInterval
+      // This ensures we don't stack refreshes if one takes longer than the interval
+      const setupNextRefresh = () => {
+        refreshIntervalRef.current = window.setTimeout(async () => {
+          console.log(`Auto refresh triggered after ${settings.refreshInterval} seconds`);
+          await refreshPhotos();
+          // Set up the next refresh after this one completes
+          setupNextRefresh();
+        }, intervalMs);
+      };
+      
+      setupNextRefresh();
       
       // Clean up on unmount
       return () => {
