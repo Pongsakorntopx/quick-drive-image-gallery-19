@@ -1,5 +1,5 @@
 
-import React, { createContext, useContext, useState, useEffect } from "react";
+import React, { createContext, useContext, useState, useEffect, useCallback } from "react";
 import { ApiConfig, Photo, AppSettings } from "../types";
 import { useToast } from "@/components/ui/use-toast";
 import { allFonts } from "../config/fonts";
@@ -148,8 +148,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }
   };
 
-  // Modified refresh photos function to always place new photos at the top
-  const refreshPhotos = async (): Promise<boolean> => {
+  // Modified refresh photos function with improved performance
+  const refreshPhotos = useCallback(async (): Promise<boolean> => {
     if (!apiConfig.apiKey || !apiConfig.folderId) {
       setError(settings.language === "th" ? "กรุณาระบุ API Key และ Folder ID" : "Please provide API Key and Folder ID");
       return false;
@@ -201,18 +201,23 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [apiConfig, photos.length, settings.language, sortOrder, notificationsEnabled, toast]);
 
-  // Refresh photos periodically
+  // Refresh photos periodically with the correct interval from settings
   useEffect(() => {
     if (apiConfig.apiKey && apiConfig.folderId) {
+      // Initial fetch when component mounts or dependencies change
+      refreshPhotos();
+      
+      // Set up the interval
       const interval = setInterval(() => {
         refreshPhotos();
-      }, settings.refreshInterval * 1000);
+      }, settings.refreshInterval * 1000); // Convert seconds to milliseconds
       
+      // Clean up interval on unmount or when dependencies change
       return () => clearInterval(interval);
     }
-  }, [apiConfig, settings.refreshInterval, sortOrder]);
+  }, [apiConfig, settings.refreshInterval, refreshPhotos]);
 
   // Apply theme mode
   useEffect(() => {
@@ -240,7 +245,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setSettings,
     isSettingsOpen,
     setIsSettingsOpen,
-    themes: predefinedThemes,
+    themes: predefinedThemes, // Now only contains default theme
     fonts: allFonts,
     resetAllData,
     sortOrder,

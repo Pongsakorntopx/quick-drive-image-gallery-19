@@ -60,12 +60,12 @@ const Header: React.FC = () => {
         </div>
         
         <div className="flex items-center gap-2 mt-2 md:mt-0 w-full md:w-auto justify-center md:justify-end">
-          {/* QR Code for header - uses headerQRCodeSize */}
+          {/* QR Code for header - uses headerQRCodeSize and links to Google Drive folder */}
           <div className="relative group">
             <Button variant="outline" size="icon">
               <QrCode className="h-4 w-4" />
             </Button>
-            <div className="absolute right-0 top-full mt-1 hidden group-hover:block">
+            <div className="absolute right-0 top-full mt-1 hidden group-hover:block z-50">
               <QRCode url={folderUrl} size={settings.headerQRCodeSize} className="shadow-lg bg-white/90 backdrop-blur-sm" />
             </div>
           </div>

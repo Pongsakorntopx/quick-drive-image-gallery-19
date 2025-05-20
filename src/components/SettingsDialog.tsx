@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { useAppContext } from "../context/AppContext";
 import {
@@ -20,9 +21,9 @@ import { Switch } from "@/components/ui/switch";
 import { Slider } from "@/components/ui/slider";
 import { Separator } from "@/components/ui/separator";
 import { AppSettings } from "../types";
-import { Bell } from "lucide-react";
+import { Bell, Upload } from "lucide-react";
 import { useTranslation } from "../hooks/useTranslation";
-import { allFonts } from "../config/fonts";
+import { fontCategories } from "../config/fonts";
 
 const SettingsDialog: React.FC = () => {
   const {
@@ -30,21 +31,52 @@ const SettingsDialog: React.FC = () => {
     setSettings,
     isSettingsOpen,
     setIsSettingsOpen,
-    themes,
-    fonts,
     notificationsEnabled,
     setNotificationsEnabled
   } = useAppContext();
 
   const [tempSettings, setTempSettings] = useState<AppSettings>(settings);
+  const [logoFile, setLogoFile] = useState<File | null>(null);
+  const [bannerFile, setBannerFile] = useState<File | null>(null);
+  const [logoPreview, setLogoPreview] = useState<string | null>(null);
+  const [bannerPreview, setBannerPreview] = useState<string | null>(null);
   const { t } = useTranslation();
 
   useEffect(() => {
     setTempSettings(settings);
+    setLogoPreview(settings.logoUrl);
+    setBannerPreview(settings.bannerUrl);
   }, [settings, isSettingsOpen]);
 
   const handleSave = () => {
-    setSettings(tempSettings);
+    // Process logo upload if available
+    if (logoFile) {
+      const logoReader = new FileReader();
+      logoReader.onloadend = () => {
+        const base64Logo = logoReader.result as string;
+        setSettings({
+          ...tempSettings,
+          logoUrl: base64Logo
+        });
+      };
+      logoReader.readAsDataURL(logoFile);
+    } else {
+      // Process banner upload if available
+      if (bannerFile) {
+        const bannerReader = new FileReader();
+        bannerReader.onloadend = () => {
+          const base64Banner = bannerReader.result as string;
+          setSettings({
+            ...tempSettings,
+            bannerUrl: base64Banner
+          });
+        };
+        bannerReader.readAsDataURL(bannerFile);
+      } else {
+        // No files to process, just save settings
+        setSettings(tempSettings);
+      }
+    }
     setIsSettingsOpen(false);
   };
 
@@ -65,17 +97,40 @@ const SettingsDialog: React.FC = () => {
     }));
   };
 
-  const handleThemeChange = (themeId: string) => {
-    const selectedTheme = themes.find((theme) => theme.id === themeId);
-    if (selectedTheme) {
-      updateSettings("theme", selectedTheme);
+  const handleFontChange = (fontId: string) => {
+    // Flatten all font categories to find the selected font
+    const allFonts = Object.values(fontCategories).flatMap(category => category.fonts);
+    const selectedFont = allFonts.find((font) => font.id === fontId);
+    if (selectedFont) {
+      updateSettings("font", selectedFont);
     }
   };
 
-  const handleFontChange = (fontId: string) => {
-    const selectedFont = fonts.find((font) => font.id === fontId);
-    if (selectedFont) {
-      updateSettings("font", selectedFont);
+  const handleLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      const file = e.target.files[0];
+      setLogoFile(file);
+      
+      // Create preview
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setLogoPreview(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleBannerUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      const file = e.target.files[0];
+      setBannerFile(file);
+      
+      // Create preview
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setBannerPreview(reader.result as string);
+      };
+      reader.readAsDataURL(file);
     }
   };
 
@@ -85,7 +140,7 @@ const SettingsDialog: React.FC = () => {
         <DialogHeader>
           <DialogTitle>
             {settings.language === "th"
-              ? "การตั้งค่าแอปพ���ิเคชัน"
+              ? "การตั้งค่าแอปพลิเคชัน"
               : "Application Settings"}
           </DialogTitle>
         </DialogHeader>
@@ -153,9 +208,9 @@ const SettingsDialog: React.FC = () => {
                 <div className="flex items-center space-x-2">
                   <Slider
                     value={[tempSettings.refreshInterval]}
-                    min={5}
+                    min={1}
                     max={60}
-                    step={5}
+                    step={1}
                     onValueChange={(values) => updateSettings("refreshInterval", values[0])}
                     className="flex-1"
                   />
@@ -241,24 +296,6 @@ const SettingsDialog: React.FC = () => {
           <TabsContent value="appearance" className="space-y-4">
             <div>
               <Label>
-                {settings.language === "th" ? "ธีม" : "Theme"}
-              </Label>
-              <div className="grid grid-cols-3 gap-2">
-                {themes.map((theme) => (
-                  <Button
-                    key={theme.id}
-                    variant={tempSettings.theme.id === theme.id ? "default" : "outline"}
-                    onClick={() => handleThemeChange(theme.id)}
-                  >
-                    {settings.language === "th" && theme.name === "ค่าเริ่มต้น" ? "ค่าเริ่มต้น" : theme.name}
-                    {settings.language !== "th" && theme.name === "ค่าเริ่มต้น" ? "Default" : theme.name}
-                  </Button>
-                ))}
-              </div>
-            </div>
-            
-            <div>
-              <Label>
                 {settings.language === "th" ? "รูปแบบธีม" : "Theme Mode"}
               </Label>
               <div className="grid grid-cols-2 gap-2">
@@ -301,19 +338,34 @@ const SettingsDialog: React.FC = () => {
               <Label>
                 {settings.language === "th" ? "ฟอนต์" : "Font"}
               </Label>
-              <div className="grid grid-cols-2 gap-2">
-                {fonts.map((font) => (
-                  <Button
-                    key={font.id}
-                    variant={tempSettings.font.id === font.id ? "default" : "outline"}
-                    onClick={() => handleFontChange(font.id)}
-                    className={font.class}
-                    style={{ fontFamily: font.name }}
-                  >
-                    {font.name}
-                  </Button>
+              
+              {/* Font categories */}
+              <Tabs defaultValue="thai" className="mt-2">
+                <TabsList className="w-full flex-wrap h-auto py-1">
+                  {Object.entries(fontCategories).map(([key, category]) => (
+                    <TabsTrigger key={key} value={key} className="text-xs">
+                      {category.name}
+                    </TabsTrigger>
+                  ))}
+                </TabsList>
+                
+                {Object.entries(fontCategories).map(([key, category]) => (
+                  <TabsContent key={key} value={key} className="mt-2">
+                    <div className="grid grid-cols-2 gap-2 max-h-48 overflow-y-auto p-1">
+                      {category.fonts.map((font) => (
+                        <Button
+                          key={font.id}
+                          variant={tempSettings.font.id === font.id ? "default" : "outline"}
+                          onClick={() => handleFontChange(font.id)}
+                          className={font.class}
+                        >
+                          {font.name}
+                        </Button>
+                      ))}
+                    </div>
+                  </TabsContent>
                 ))}
-              </div>
+              </Tabs>
             </div>
             
             <div>
@@ -526,12 +578,50 @@ const SettingsDialog: React.FC = () => {
             
             <div>
               <Label>
-                {settings.language === "th" ? "URL โลโก้" : "Logo URL"}
+                {settings.language === "th" ? "โลโก้" : "Logo"}
               </Label>
-              <Input
-                value={tempSettings.logoUrl || ""}
-                onChange={(e) => updateSettings("logoUrl", e.target.value)}
-              />
+              <div className="flex flex-col space-y-2">
+                <div className="flex items-center gap-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => document.getElementById('logo-upload')?.click()}
+                    className="w-full"
+                  >
+                    <Upload className="h-4 w-4 mr-2" />
+                    {settings.language === "th" ? "อัพโหลดโลโก้" : "Upload Logo"}
+                  </Button>
+                  {logoPreview && (
+                    <Button 
+                      type="button" 
+                      variant="destructive" 
+                      onClick={() => {
+                        setLogoPreview(null);
+                        setLogoFile(null);
+                        updateSettings("logoUrl", null);
+                      }}
+                    >
+                      {settings.language === "th" ? "ลบ" : "Remove"}
+                    </Button>
+                  )}
+                </div>
+                <input
+                  id="logo-upload"
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={handleLogoUpload}
+                />
+                {logoPreview && (
+                  <div className="p-2 border rounded-md mt-2">
+                    <img 
+                      src={logoPreview} 
+                      alt="Logo Preview" 
+                      className="max-h-20 mx-auto"
+                    />
+                  </div>
+                )}
+              </div>
             </div>
             
             <div>
@@ -553,12 +643,50 @@ const SettingsDialog: React.FC = () => {
             
             <div>
               <Label>
-                {settings.language === "th" ? "URL แบนเนอร์" : "Banner URL"}
+                {settings.language === "th" ? "แบนเนอร์" : "Banner"}
               </Label>
-              <Input
-                value={tempSettings.bannerUrl || ""}
-                onChange={(e) => updateSettings("bannerUrl", e.target.value)}
-              />
+              <div className="flex flex-col space-y-2">
+                <div className="flex items-center gap-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => document.getElementById('banner-upload')?.click()}
+                    className="w-full"
+                  >
+                    <Upload className="h-4 w-4 mr-2" />
+                    {settings.language === "th" ? "อัพโหลดแบนเนอร์" : "Upload Banner"}
+                  </Button>
+                  {bannerPreview && (
+                    <Button 
+                      type="button" 
+                      variant="destructive" 
+                      onClick={() => {
+                        setBannerPreview(null);
+                        setBannerFile(null);
+                        updateSettings("bannerUrl", null);
+                      }}
+                    >
+                      {settings.language === "th" ? "ลบ" : "Remove"}
+                    </Button>
+                  )}
+                </div>
+                <input
+                  id="banner-upload"
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={handleBannerUpload}
+                />
+                {bannerPreview && (
+                  <div className="p-2 border rounded-md mt-2">
+                    <img 
+                      src={bannerPreview} 
+                      alt="Banner Preview" 
+                      className="max-h-20 mx-auto"
+                    />
+                  </div>
+                )}
+              </div>
             </div>
             
             <div>
