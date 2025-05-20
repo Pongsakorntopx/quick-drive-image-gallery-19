@@ -22,14 +22,6 @@ const Header: React.FC = () => {
     }));
   };
 
-  // Toggle language
-  const toggleLanguage = () => {
-    setSettings(prev => ({
-      ...prev,
-      language: prev.language === "th" ? "en" : "th"
-    }));
-  };
-
   return (
     <header className={`sticky top-0 z-50 w-full px-4 md:px-6 py-3 backdrop-blur-lg bg-background/75 border-b ${settings.font.class}`}>
       <div className="flex flex-col md:flex-row items-center justify-between">
@@ -60,7 +52,7 @@ const Header: React.FC = () => {
         </div>
         
         <div className="flex items-center gap-2 mt-2 md:mt-0 w-full md:w-auto justify-center md:justify-end">
-          {/* QR Code for header - uses headerQRCodeSize and links to Google Drive folder */}
+          {/* QR Code for header - links to Google Drive folder */}
           <div className="relative group">
             <Button variant="outline" size="icon">
               <QrCode className="h-4 w-4" />

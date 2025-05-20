@@ -1,5 +1,5 @@
 
-import React, { createContext, useContext, useState, useEffect, useCallback } from "react";
+import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from "react";
 import { ApiConfig, Photo, AppSettings } from "../types";
 import { useToast } from "@/components/ui/use-toast";
 import { allFonts } from "../config/fonts";
@@ -99,6 +99,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   // Settings dialog
   const [isSettingsOpen, setIsSettingsOpen] = useState<boolean>(false);
   
+  // Reference for the refresh interval
+  const refreshIntervalRef = useRef<number | null>(null);
+  
   // Save API config to local storage
   useEffect(() => {
     localStorage.setItem("gdrive-app-config", JSON.stringify(apiConfig));
@@ -160,6 +163,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         setIsLoading(true);
       }
       
+      console.log("Refreshing photos at:", new Date().toISOString());
+      
       // Fetch and sort photos
       const result = await fetchAndProcessPhotos(apiConfig, settings.language, sortOrder);
       
@@ -203,21 +208,39 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }
   }, [apiConfig, photos.length, settings.language, sortOrder, notificationsEnabled, toast]);
 
-  // Refresh photos periodically with the correct interval from settings
+  // Helper function to clear existing interval
+  const clearRefreshInterval = useCallback(() => {
+    if (refreshIntervalRef.current !== null) {
+      clearInterval(refreshIntervalRef.current);
+      refreshIntervalRef.current = null;
+    }
+  }, []);
+
+  // Set up the refresh interval whenever settings.refreshInterval changes
   useEffect(() => {
+    // Clear any existing interval
+    clearRefreshInterval();
+    
+    // Only set up interval if we have API configs
     if (apiConfig.apiKey && apiConfig.folderId) {
       // Initial fetch when component mounts or dependencies change
       refreshPhotos();
       
-      // Set up the interval
-      const interval = setInterval(() => {
-        refreshPhotos();
-      }, settings.refreshInterval * 1000); // Convert seconds to milliseconds
+      // Set up a new interval with the current refreshInterval
+      const intervalMs = settings.refreshInterval * 1000; // Convert seconds to milliseconds
+      console.log(`Setting up refresh interval: ${settings.refreshInterval} seconds`);
       
-      // Clean up interval on unmount or when dependencies change
-      return () => clearInterval(interval);
+      refreshIntervalRef.current = window.setInterval(() => {
+        console.log(`Auto refresh triggered after ${settings.refreshInterval} seconds`);
+        refreshPhotos();
+      }, intervalMs);
+      
+      // Clean up on unmount
+      return () => {
+        clearRefreshInterval();
+      };
     }
-  }, [apiConfig, settings.refreshInterval, refreshPhotos]);
+  }, [apiConfig.apiKey, apiConfig.folderId, settings.refreshInterval, refreshPhotos, clearRefreshInterval]);
 
   // Apply theme mode
   useEffect(() => {
@@ -245,7 +268,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setSettings,
     isSettingsOpen,
     setIsSettingsOpen,
-    themes: predefinedThemes, // Now only contains default theme
+    themes: predefinedThemes, 
     fonts: allFonts,
     resetAllData,
     sortOrder,

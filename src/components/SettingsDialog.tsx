@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { useAppContext } from "../context/AppContext";
 import {
@@ -21,9 +20,10 @@ import { Switch } from "@/components/ui/switch";
 import { Slider } from "@/components/ui/slider";
 import { Separator } from "@/components/ui/separator";
 import { AppSettings } from "../types";
-import { Bell, Upload } from "lucide-react";
+import { Bell, Upload, Reset, Trash } from "lucide-react";
 import { useTranslation } from "../hooks/useTranslation";
 import { fontCategories } from "../config/fonts";
+import { defaultSettings } from "../context/AppDefaults";
 
 const SettingsDialog: React.FC = () => {
   const {
@@ -32,7 +32,8 @@ const SettingsDialog: React.FC = () => {
     isSettingsOpen,
     setIsSettingsOpen,
     notificationsEnabled,
-    setNotificationsEnabled
+    setNotificationsEnabled,
+    resetAllData
   } = useAppContext();
 
   const [tempSettings, setTempSettings] = useState<AppSettings>(settings);
@@ -78,6 +79,25 @@ const SettingsDialog: React.FC = () => {
       }
     }
     setIsSettingsOpen(false);
+  };
+
+  // Reset only the settings to default values
+  const handleResetSettings = () => {
+    if (window.confirm(settings.language === "th" 
+      ? "คุณแน่ใจหรือไม่ที่จะรีเซ็ตการตั้งค่าทั้งหมดกลับเป็นค่าเริ่มต้น?" 
+      : "Are you sure you want to reset all settings to default values?")) {
+      setTempSettings(defaultSettings);
+    }
+  };
+
+  // Reset all data including API config
+  const handleResetAllData = () => {
+    if (window.confirm(settings.language === "th" 
+      ? "คุณแน่ใจหรือไม่ที่จะล้างข้อมูลและการตั้งค่าทั้งหมด? การกระทำนี้ไม่สามารถย้อนกลับได้และคุณจะต้องตั้งค่า API อีกครั้ง" 
+      : "Are you sure you want to clear all data and settings? This action cannot be undone and you will need to set up the API again.")) {
+      resetAllData();
+      setIsSettingsOpen(false);
+    }
   };
 
   const updateSettings = (key: keyof AppSettings, value: any) => {
@@ -734,6 +754,59 @@ const SettingsDialog: React.FC = () => {
                   onClick={() => updateSettings("bannerPosition", "topRight")}
                 >
                   {settings.language === "th" ? "ขวาบน" : "Top Right"}
+                </Button>
+              </div>
+            </div>
+            
+            <Separator className="my-4" />
+            
+            {/* Add Reset Buttons Section */}
+            <div className="border p-4 rounded-lg bg-destructive/10 space-y-4">
+              <h3 className="text-sm font-medium mb-2">
+                {settings.language === "th" ? "การรีเซ็ตและการล้างข้อมูล" : "Reset and Clear Data"}
+              </h3>
+              
+              <div className="flex items-center justify-between">
+                <div>
+                  <h4 className="text-sm font-medium">
+                    {settings.language === "th" ? "รีเซ็ตการตั้งค่า" : "Reset Settings"}
+                  </h4>
+                  <p className="text-xs text-muted-foreground">
+                    {settings.language === "th" 
+                      ? "รีเซ็ตการตั้งค่าทั้งหมดกลับเป็นค่าเริ่มต้น" 
+                      : "Reset all settings to default values"}
+                  </p>
+                </div>
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={handleResetSettings}
+                  className="gap-2"
+                >
+                  <Reset className="h-4 w-4" />
+                  {settings.language === "th" ? "รีเซ็ตการตั้งค่า" : "Reset Settings"}
+                </Button>
+              </div>
+              
+              <div className="flex items-center justify-between">
+                <div>
+                  <h4 className="text-sm font-medium">
+                    {settings.language === "th" ? "ล้างข้อมูลทั้งหมด" : "Clear All Data"}
+                  </h4>
+                  <p className="text-xs text-muted-foreground">
+                    {settings.language === "th" 
+                      ? "ล้างข้อมูลทั้งหมดและกลับไปยังหน้าเริ่มต้น" 
+                      : "Clear all data and return to initial setup"}
+                  </p>
+                </div>
+                <Button 
+                  variant="destructive" 
+                  size="sm" 
+                  onClick={handleResetAllData}
+                  className="gap-2"
+                >
+                  <Trash className="h-4 w-4" />
+                  {settings.language === "th" ? "ล้างข้อมูลทั้งหมด" : "Clear All Data"}
                 </Button>
               </div>
             </div>
