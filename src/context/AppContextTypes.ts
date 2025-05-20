@@ -1,5 +1,4 @@
-
-import { ApiConfig, Photo, Theme, Font, PhotoFetchResult, Language, ThemeMode } from "../types";
+import { ApiConfig, Photo, AppSettings, Theme, Font, PhotoFetchResult, Language, ThemeMode } from "../types";
 
 // Context interface
 export interface AppContextType {
@@ -38,7 +37,7 @@ export const defaultSortOrder: SortOrder = {
   direction: "desc",
 };
 
-// AppSettings interface - updated to match usage in SettingsDialog
+// AppSettings interface
 export interface AppSettings {
   themeMode: 'light' | 'dark';
   theme: Theme;
@@ -67,9 +66,4 @@ export interface AppSettings {
   gridColumns: number;
   gridRows: number;
   qrCodePosition: "bottomRight" | "bottomLeft" | "topRight" | "topLeft" | "center";
-  title: string;
-  showTitle: boolean;
-  autoScrollEnabled: boolean;
-  autoScrollDirection: "up" | "down";
-  autoScrollSpeed: number;
 }
