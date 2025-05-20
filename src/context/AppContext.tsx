@@ -1,9 +1,9 @@
 
 import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from "react";
-import { ApiConfig, Photo } from "../types";
+import { ApiConfig, Photo, AppSettings } from "../types";
 import { useToast } from "@/components/ui/use-toast";
 import { allFonts } from "../config/fonts";
-import { AppContextType, SortOrder, defaultSortOrder, AppSettings } from "./AppContextTypes";
+import { AppContextType, SortOrder, defaultSortOrder } from "./AppContextTypes";
 import { predefinedThemes, defaultSettings } from "./AppDefaults";
 import { fetchAndProcessPhotos, sortPhotos as sortPhotoUtil, findNewPhotos } from "./PhotoUtils";
 
@@ -75,10 +75,18 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           }
         }
         
-        // Ensure all new settings have default values by merging with defaultSettings
+        // Ensure all new settings have default values
         return { 
           ...defaultSettings, 
           ...parsed,
+          // For backward compatibility
+          titleSize: parsed.titleSize || defaultSettings.titleSize,
+          // For new properties
+          headerQRCodeSize: parsed.headerQRCodeSize || defaultSettings.headerQRCodeSize,
+          viewerQRCodeSize: parsed.viewerQRCodeSize || defaultSettings.viewerQRCodeSize,
+          gridLayout: parsed.gridLayout || defaultSettings.gridLayout,
+          gridColumns: parsed.gridColumns || defaultSettings.gridColumns,
+          gridRows: parsed.gridRows || defaultSettings.gridRows,
         };
       } catch (e) {
         console.error("Error parsing saved settings:", e);
@@ -93,7 +101,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   
   // Reference for the refresh interval
   const refreshIntervalRef = useRef<number | null>(null);
-  const autoRefreshIntervalRef = useRef<number | null>(null);
   
   // Last refresh timestamp
   const lastRefreshTimeRef = useRef<number>(Date.now());
@@ -147,7 +154,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }
   };
 
-  // ปรับปรุงฟังก์ชันรีเฟรชรูปภาพเพื่อตรวจจับรูปภาพใหม่และแจ้งเตือน
+  // Improved refresh photos function with optimized performance
   const refreshPhotos = useCallback(async (): Promise<boolean> => {
     if (!apiConfig.apiKey || !apiConfig.folderId) {
       setError(settings.language === "th" ? "กรุณาระบุ API Key และ Folder ID" : "Please provide API Key and Folder ID");
@@ -167,30 +174,16 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       const result = await fetchAndProcessPhotos(apiConfig, settings.language, sortOrder);
       
       if (result.success && result.data) {
-        // เพิ่มการตรวจจับรูปภาพใหม่
+        // Detect new photos without showing notifications
         const newPhotos = findNewPhotos(photos, result.data);
         
-        // อัปเดตรูปภาพทันทีถ้ามีรูปภาพใหม่หรือเป็นการโหลดครั้งแรก
+        // If we have new photos or first load, immediately update the photos state
         if (newPhotos.length > 0 || photos.length === 0) {
-          console.log(`Found ${newPhotos.length} new photos, updating display instantly`);
-          
-          if (newPhotos.length > 0 && photos.length > 0 && notificationsEnabled) {
-            // แจ้งเตือนเมื่อพบรูปภาพใหม่
-            toast({
-              title: settings.language === "th" 
-                ? `พบรูปภาพใหม่ ${newPhotos.length} รูป` 
-                : `Found ${newPhotos.length} new photos`,
-              description: settings.language === "th"
-                ? "อัปเดตแกลเลอรีแล้ว"
-                : "Gallery has been updated",
-              duration: 3000
-            });
-          }
-          
-          // อัปเดตรายการรูปภาพ
+          console.log(`Found ${newPhotos.length} new photos, updating display`);
           setPhotos(result.data);
         }
         
+        // Always update state if there are any changes to ensure consistent display
         setError(null);
         return true;
       } else {
@@ -210,69 +203,51 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     } finally {
       setIsLoading(false);
     }
-  }, [apiConfig, photos, settings.language, sortOrder, notificationsEnabled, toast]);
+  }, [apiConfig, photos, settings.language, sortOrder]);
 
-  // ฟังก์ชันช่วยเหลือในการล้าง interval ที่มีอยู่
+  // Helper function to clear existing interval
   const clearRefreshInterval = useCallback(() => {
     if (refreshIntervalRef.current !== null) {
       clearInterval(refreshIntervalRef.current);
       refreshIntervalRef.current = null;
     }
-    
-    if (autoRefreshIntervalRef.current !== null) {
-      clearInterval(autoRefreshIntervalRef.current);
-      autoRefreshIntervalRef.current = null;
-    }
   }, []);
 
-  // ตั้งค่า refresh interval เมื่อมีการเปลี่ยนแปลงการตั้งค่า refreshInterval
+  // Set up the refresh interval whenever settings.refreshInterval changes
   useEffect(() => {
-    // ล้าง interval ที่มีอยู่
+    // Clear any existing interval
     clearRefreshInterval();
     
-    // ตั้งค่า interval ใหม่เฉพาะเมื่อมีการกำหนดค่า API
+    // Only set up interval if we have API configs
     if (apiConfig.apiKey && apiConfig.folderId) {
-      // รีเฟรชข้อมูลเมื่อคอมโพเนนต์ถูกโหลดหรือเมื่อการตั้งค่าเปลี่ยนแปลง
+      // Initial fetch when component mounts or dependencies change
       refreshPhotos();
       
-      // ตั้งค่า interval ใหม่ด้วย refreshInterval ปัจจุบัน (แปลงเป็นมิลลิวินาที)
+      // Set up a new interval with the current refreshInterval (convert to milliseconds)
       const intervalMs = Math.max(1000, settings.refreshInterval * 1000); 
       console.log(`Setting up refresh interval: ${settings.refreshInterval} seconds`);
       
-      // เพิ่มการตรวจสอบการเปิดใช้งาน autoRefresh
-      if (settings.autoRefreshEnabled) {
-        const autoRefreshIntervalMs = Math.max(5000, settings.autoRefreshInterval * 1000);
-        console.log(`Setting up auto refresh interval: ${settings.autoRefreshInterval} seconds`);
-        
-        // ใช้การตั้งเวลาแบบ setTimeout แทน setInterval เพื่อป้องกันการซ้อนทับ
-        const setupNextAutoRefresh = () => {
-          autoRefreshIntervalRef.current = window.setTimeout(async () => {
-            console.log(`Auto refresh triggered after ${settings.autoRefreshInterval} seconds`);
-            await refreshPhotos();
-            // ตั้งค่าการรีเฟรชถัดไปหลังจากเสร็จสิ้น
-            setupNextAutoRefresh();
-          }, autoRefreshIntervalMs);
-        };
-        
-        setupNextAutoRefresh();
-      }
+      // Use more efficient setTimeout-based polling instead of setInterval
+      // This ensures we don't stack refreshes if one takes longer than the interval
+      const setupNextRefresh = () => {
+        refreshIntervalRef.current = window.setTimeout(async () => {
+          console.log(`Auto refresh triggered after ${settings.refreshInterval} seconds`);
+          await refreshPhotos();
+          // Set up the next refresh after this one completes
+          setupNextRefresh();
+        }, intervalMs);
+      };
       
-      // ล้างข้อมูลเมื่อถูกยกเลิก
+      setupNextRefresh();
+      
+      // Clean up on unmount
       return () => {
         clearRefreshInterval();
       };
     }
-  }, [
-    apiConfig.apiKey, 
-    apiConfig.folderId, 
-    settings.refreshInterval, 
-    settings.autoRefreshEnabled, 
-    settings.autoRefreshInterval, 
-    refreshPhotos, 
-    clearRefreshInterval
-  ]);
+  }, [apiConfig.apiKey, apiConfig.folderId, settings.refreshInterval, refreshPhotos, clearRefreshInterval]);
 
-  // ใช้ theme mode
+  // Apply theme mode
   useEffect(() => {
     const htmlElement = document.querySelector('html');
     if (htmlElement) {

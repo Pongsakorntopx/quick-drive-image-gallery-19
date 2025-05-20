@@ -85,6 +85,11 @@ const ImageViewer: React.FC = () => {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [currentPhotoIndex, photos, selectedPhoto]);
   
+  // Toggle view mode
+  const toggleViewMode = () => {
+    setViewMode(prev => prev === "standard" ? "carousel" : "standard");
+  };
+  
   // Handle download
   const handleDownload = () => {
     if (!selectedPhoto) return;
@@ -119,7 +124,7 @@ const ImageViewer: React.FC = () => {
       <Dialog open={!!selectedPhoto} onOpenChange={(open) => !open && setSelectedPhoto(null)}>
         <DialogContent className="max-w-[95vw] max-h-[95vh] p-0 bg-background/95 backdrop-blur-md border-2 shadow-xl">
           <div className="relative flex flex-col w-full h-full p-2 md:p-4">
-            {/* Controls - ลบปุ่มคอมพิวเตอร์และเหลือเพียงปุ่มปิด X */}
+            {/* Controls */}
             <div className="absolute top-2 right-2 z-50 flex gap-2">
               <Button
                 variant="ghost"
@@ -158,9 +163,7 @@ const ImageViewer: React.FC = () => {
                       url={photoUrl}
                       size={settings.viewerQRCodeSize}
                       className="mx-auto"
-                      padding={settings.qrCodePadding || 4}
-                      borderRadius={settings.qrCodeBorderRadius || 4}
-                      level={settings.qrCodeLevel || "H"}
+                      padding={4}
                     />
                   </div>
                   <Button
@@ -205,7 +208,7 @@ const ImageViewer: React.FC = () => {
     <Dialog open={!!selectedPhoto} onOpenChange={(open) => !open && setSelectedPhoto(null)}>
       <DialogContent className="max-w-[95vw] max-h-[95vh] p-0 bg-background/95 backdrop-blur-md border-2 shadow-xl">
         <div className="relative flex flex-col w-full h-full p-2 md:p-4">
-          {/* Controls - ลบปุ่มคอมพิวเตอร์และเหลือเพียงปุ่มปิด X */}
+          {/* Controls */}
           <div className="absolute top-2 right-2 z-50 flex gap-2">
             <Button
               variant="ghost"
