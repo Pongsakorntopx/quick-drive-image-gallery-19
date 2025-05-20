@@ -1,3 +1,4 @@
+
 import { Photo, PhotoFetchResult } from "../types";
 import { fetchPhotosFromDrive } from "../services/googleDriveService";
 import { ApiConfig } from "../types";
@@ -12,6 +13,16 @@ export const checkIfPhotosChanged = (oldPhotos: Photo[], newPhotos: Photo[]): bo
   // Check if any IDs are different
   const oldIds = new Set(oldPhotos.map(p => p.id));
   return newPhotos.some(p => !oldIds.has(p.id));
+};
+
+// Find new photos that are not in the current collection
+export const findNewPhotos = (oldPhotos: Photo[], newPhotos: Photo[]): Photo[] => {
+  if (oldPhotos.length === 0) {
+    return newPhotos; // All are new if old list is empty
+  }
+  
+  const currentIds = new Set(oldPhotos.map(p => p.id));
+  return newPhotos.filter(p => !currentIds.has(p.id));
 };
 
 // Modified function to sort photos
@@ -43,18 +54,15 @@ export const sortPhotos = (photos: Photo[], sortOrder: SortOrder): Photo[] => {
   });
 };
 
-// Function to fetch photos from Google Drive with improved real-time updates
+// Function to fetch photos from Google Drive
 export const fetchAndProcessPhotos = async (
   apiConfig: ApiConfig, 
   language: string,
   sortOrder: SortOrder
 ): Promise<PhotoFetchResult> => {
   try {
-    // Force cache invalidation by adding timestamp to request
-    const timestamp = Date.now();
-    
-    // Fetch photos from Google Drive with cache-busting
-    const photosData = await fetchPhotosFromDrive(apiConfig, timestamp);
+    // Fetch photos from Google Drive
+    const photosData = await fetchPhotosFromDrive(apiConfig);
     
     // Create a PhotoFetchResult object from the photos array
     const result: PhotoFetchResult = {

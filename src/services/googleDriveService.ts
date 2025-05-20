@@ -4,7 +4,7 @@ import { ApiConfig, Photo } from "../types";
 const DRIVE_API_BASE_URL = "https://www.googleapis.com/drive/v3";
 const DEFAULT_FIELDS = "files(id,name,mimeType,thumbnailLink,webContentLink,createdTime,modifiedTime,size,iconLink)";
 const MAX_RESULTS = 1000; // Increase max results
-const CACHE_TIMEOUT = 10000; // Reduced to 10 seconds for more frequent updates
+const CACHE_TIMEOUT = 300000; // 5 minutes cache for API responses
 
 // Cache for API responses to reduce API calls
 let photosCache = {
@@ -13,17 +13,16 @@ let photosCache = {
   folderId: ''
 };
 
-export const fetchPhotosFromDrive = async (config: ApiConfig, forceTimestamp?: number): Promise<Photo[]> => {
+export const fetchPhotosFromDrive = async (config: ApiConfig): Promise<Photo[]> => {
   try {
     if (!config.apiKey || !config.folderId) {
       console.error("API Key or Folder ID is missing");
       return [];
     }
     
-    // Check if we have a valid recent cache for this folder and no force refresh
+    // Check if we have a valid recent cache for this folder
     const now = Date.now();
     if (
-      !forceTimestamp && 
       photosCache.folderId === config.folderId &&
       photosCache.photos.length > 0 &&
       now - photosCache.timestamp < CACHE_TIMEOUT
@@ -43,9 +42,7 @@ export const fetchPhotosFromDrive = async (config: ApiConfig, forceTimestamp?: n
         fields: `${DEFAULT_FIELDS}, nextPageToken`,
         key: config.apiKey,
         orderBy: "modifiedTime desc",
-        pageSize: "100",
-        // Add cache-busting timestamp to force fresh data
-        _: forceTimestamp?.toString() || now.toString()
+        pageSize: "100"
       });
       
       if (pageToken) {
@@ -55,9 +52,8 @@ export const fetchPhotosFromDrive = async (config: ApiConfig, forceTimestamp?: n
       const response = await fetch(`${DRIVE_API_BASE_URL}/files?${params}`, {
         cache: 'no-store',
         headers: {
-          'Cache-Control': 'no-cache, no-store, must-revalidate',
-          'Pragma': 'no-cache',
-          'Expires': '0'
+          'Cache-Control': 'no-cache',
+          'Pragma': 'no-cache'
         }
       });
       
@@ -81,18 +77,18 @@ export const fetchPhotosFromDrive = async (config: ApiConfig, forceTimestamp?: n
       id: file.id,
       name: file.name,
       // Improved URL generation with multiple fallbacks and timestamp to prevent caching
-      url: file.thumbnailLink ? file.thumbnailLink.replace('=s220', '=s1000') + `&t=${now}` : getPhotoUrl(file.id, now),
-      thumbnailLink: file.thumbnailLink ? file.thumbnailLink + `&t=${now}` : `https://drive.google.com/thumbnail?id=${file.id}&t=${now}`,
-      iconLink: file.iconLink || `https://drive.google.com/icon?id=${file.id}&t=${now}`,
+      url: file.thumbnailLink ? file.thumbnailLink.replace('=s220', '=s1000') + `&t=${Date.now()}` : getPhotoUrl(file.id),
+      thumbnailLink: file.thumbnailLink ? file.thumbnailLink + `&t=${Date.now()}` : `https://drive.google.com/thumbnail?id=${file.id}&t=${Date.now()}`,
+      iconLink: file.iconLink || `https://drive.google.com/icon?id=${file.id}&t=${Date.now()}`,
       mimeType: file.mimeType,
       createdTime: file.createdTime,
       modifiedTime: file.modifiedTime,
       size: file.size || "Unknown",
-      webContentLink: file.webContentLink || getPhotoDownloadUrl(file.id, now),
+      webContentLink: file.webContentLink || getPhotoDownloadUrl(file.id),
       // Add multiple direct URLs for better compatibility
-      fullSizeUrl: getDirectImageUrl(file.id, now),
+      fullSizeUrl: getDirectImageUrl(file.id),
       // Add direct download link that doesn't require login
-      directDownloadUrl: getDirectDownloadUrl(file.id, now)
+      directDownloadUrl: getDirectDownloadUrl(file.id)
     }));
     
     // Only log when there's an actual change in the number of photos
@@ -118,24 +114,24 @@ export const fetchPhotosFromDrive = async (config: ApiConfig, forceTimestamp?: n
 };
 
 // Get different types of URLs for photos for maximum compatibility
-export const getPhotoUrl = (photoId: string, timestamp?: number): string => {
+export const getPhotoUrl = (photoId: string): string => {
   // Direct link with caching prevention
-  return `https://drive.google.com/uc?export=view&id=${photoId}&t=${timestamp || Date.now()}`;
+  return `https://drive.google.com/uc?export=view&id=${photoId}&t=${Date.now()}`;
 };
 
-export const getPhotoDownloadUrl = (photoId: string, timestamp?: number): string => {
+export const getPhotoDownloadUrl = (photoId: string): string => {
   // Add parameters to bypass login
-  return `https://drive.google.com/uc?export=download&id=${photoId}&confirm=t&uuid=${timestamp || Date.now()}`;
+  return `https://drive.google.com/uc?export=download&id=${photoId}&confirm=t&uuid=${Date.now()}`;
 };
 
 // More reliable direct image URL for viewing
-export const getDirectImageUrl = (photoId: string, timestamp?: number): string => {
-  return `https://lh3.googleusercontent.com/d/${photoId}?t=${timestamp || Date.now()}`;
+export const getDirectImageUrl = (photoId: string): string => {
+  return `https://lh3.googleusercontent.com/d/${photoId}?t=${Date.now()}`;
 };
 
 // Direct download URL that doesn't require login
-export const getDirectDownloadUrl = (photoId: string, timestamp?: number): string => {
-  return `https://drive.usercontent.google.com/download?id=${photoId}&export=download&authuser=0&confirm=t&uuid=${timestamp || Date.now()}`;
+export const getDirectDownloadUrl = (photoId: string): string => {
+  return `https://drive.usercontent.google.com/download?id=${photoId}&export=download&authuser=0&confirm=t&uuid=${Date.now()}`;
 };
 
 // Get the folder URL from folder ID

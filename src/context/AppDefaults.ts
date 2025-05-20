@@ -1,47 +1,115 @@
-
-import { AppSettings, Language, ThemeMode, Theme, Font } from "../types";
+import { AppSettings, Theme, Font } from "../types";
 import { allFonts } from "../config/fonts";
 
-// Define the predefined themes - Simplified to just light/dark
 export const predefinedThemes: Theme[] = [
   {
-    id: "default",
-    name: "ค่าเริ่มต้น",
-    colorClass: "slate",
-    color: "#f8fafc",
-    isGradient: false,
-    gradient: "",
+    id: "default-light",
+    name: "Default Light",
+    colors: {
+      background: "hsl(0 0% 98%)",
+      foreground: "hsl(222.2 47.4% 11.2%)",
+      card: "hsl(0 0% 100%)",
+      cardForeground: "hsl(222.2 47.4% 11.2%)",
+      popover: "hsl(0 0% 100%)",
+      popoverForeground: "hsl(222.2 47.4% 11.2%)",
+      primary: "hsl(222.2 47.4% 11.2%)",
+      primaryForeground: "hsl(210 40% 98%)",
+      secondary: "hsl(210 40% 96.1%)",
+      secondaryForeground: "hsl(222.2 47.4% 11.2%)",
+      muted: "hsl(210 40% 96.1%)",
+      mutedForeground: "hsl(215.4 16.3% 46.9%)",
+      accent: "hsl(210 40% 96.1%)",
+      accentForeground: "hsl(222.2 47.4% 11.2%)",
+      destructive: "hsl(0 84.2% 60.2%)",
+      destructiveForeground: "hsl(210 40% 98%)",
+      border: "hsl(214.3 31.8% 91.4%)",
+      input: "hsl(214.3 31.8% 91.4%)",
+      ring: "hsl(222.2 47.4% 11.2%)",
+    },
+  },
+  {
+    id: "default-dark",
+    name: "Default Dark",
+    colors: {
+      background: "hsl(224 71% 4%)",
+      foreground: "hsl(213 31% 91%)",
+      card: "hsl(224 71% 4%)",
+      cardForeground: "hsl(213 31% 91%)",
+      popover: "hsl(224 71% 4%)",
+      popoverForeground: "hsl(213 31% 91%)",
+      primary: "hsl(210 40% 98%)",
+      primaryForeground: "hsl(222.2 47.4% 11.2%)",
+      secondary: "hsl(217.2 32.6% 17.5%)",
+      secondaryForeground: "hsl(210 40% 98%)",
+      muted: "hsl(217.2 32.6% 17.5%)",
+      mutedForeground: "hsl(215.4 16.3% 46.9%)",
+      accent: "hsl(217.2 32.6% 17.5%)",
+      accentForeground: "hsl(210 40% 98%)",
+      destructive: "hsl(0 62.8% 30.6%)",
+      destructiveForeground: "hsl(210 40% 98%)",
+      border: "hsl(216 34% 17%)",
+      input: "hsl(216 34% 17%)",
+      ring: "hsl(210 40% 98%)",
+    },
+  },
+  {
+    id: "zinc",
+    name: "Zinc",
+    colors: {
+      background: "hsl(0 0% 98%)",
+      foreground: "hsl(240 10% 3.9%)",
+      card: "hsl(0 0% 100%)",
+      cardForeground: "hsl(240 10% 3.9%)",
+      popover: "hsl(0 0% 100%)",
+      popoverForeground: "hsl(240 10% 3.9%)",
+      primary: "hsl(240 5.9% 10%)",
+      primaryForeground: "hsl(0 0% 98%)",
+      secondary: "hsl(220 14.3% 95.1%)",
+      secondaryForeground: "hsl(240 5.9% 10%)",
+      muted: "hsl(220 14.3% 95.1%)",
+      mutedForeground: "hsl(220 8.9% 46.1%)",
+      accent: "hsl(220 14.3% 95.1%)",
+      accentForeground: "hsl(240 5.9% 10%)",
+      destructive: "hsl(0 84.2% 60.2%)",
+      destructiveForeground: "hsl(0 0% 98%)",
+      border: "hsl(220 13% 91%)",
+      input: "hsl(220 13% 91%)",
+      ring: "hsl(240 5.9% 10%)",
+    },
   },
 ];
 
-// Default settings
 export const defaultSettings: AppSettings = {
-  title: "แกลเลอรี่รูปภาพ Google Drive",
-  showTitle: true,
-  titleSize: 24,
-  theme: predefinedThemes[0],
-  themeMode: "light" as ThemeMode,
-  language: "th" as Language,
-  font: allFonts[0],
-  fontSize: {
-    subtitle: 16,
-    body: 14,
+  themeMode: "light",
+  theme: predefinedThemes[0], // Default to first theme
+  font: {
+    id: "roboto",
+    name: "Roboto",
+    class: "font-roboto",
+    category: "sans-serif",
   },
-  qrCodeSize: 64,  // Default size for image QR codes in grid
-  headerQRCodeSize: 48, // Default size for header QR code
-  viewerQRCodeSize: 100, // Increased default size for image viewer QR code
-  refreshInterval: 5,
-  qrCodePosition: "bottomRight",
-  showHeaderQR: false,
-  logoUrl: null,
-  logoSize: 100,
-  bannerUrl: null,
-  bannerSize: 200, // Changed from string to number (pixels)
-  bannerPosition: "bottomLeft",
-  autoScrollEnabled: false,
-  autoScrollDirection: "down",
-  autoScrollSpeed: 10,
-  gridLayout: "googlePhotos", // Set to googlePhotos as the default layout
+  fontSize: {
+    title: 24,
+    subtitle: 16, 
+    body: 14
+  },
+  titleSize: 24,
+  qrCodeSize: 100, // Default QR code size for image cards
+  headerQRCodeSize: 128, // QR code in header
+  viewerQRCodeSize: 160, // QR code in image viewer
+  language: "en",
+  galleryName: "Photo Gallery",
+  showGalleryName: true,
+  logoUrl: "",
+  showLogo: false,
+  logoSize: 80,
+  bannerUrl: "",
+  bannerPosition: "bottomRight",
+  bannerSize: 200,
+  showHeaderQR: true,
+  refreshInterval: 30, // seconds
+  gridLayout: "googlePhotos",
   gridColumns: 4,
-  gridRows: 0,
+  gridRows: 2,
+  qrCodePosition: "bottomRight"
 };

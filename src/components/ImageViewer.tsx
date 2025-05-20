@@ -85,6 +85,11 @@ const ImageViewer: React.FC = () => {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [currentPhotoIndex, photos, selectedPhoto]);
   
+  // Toggle view mode
+  const toggleViewMode = () => {
+    setViewMode(prev => prev === "standard" ? "carousel" : "standard");
+  };
+  
   // Handle download
   const handleDownload = () => {
     if (!selectedPhoto) return;
@@ -121,7 +126,6 @@ const ImageViewer: React.FC = () => {
           <div className="relative flex flex-col w-full h-full p-2 md:p-4">
             {/* Controls */}
             <div className="absolute top-2 right-2 z-50 flex gap-2">
-              {/* ไอคอนคอมพิวเตอร์ถูกลบออกตามที่ลูกค้าต้องการ */}
               <Button
                 variant="ghost"
                 size="icon"
@@ -159,6 +163,7 @@ const ImageViewer: React.FC = () => {
                       url={photoUrl}
                       size={settings.viewerQRCodeSize}
                       className="mx-auto"
+                      padding={4}
                     />
                   </div>
                   <Button
@@ -205,7 +210,6 @@ const ImageViewer: React.FC = () => {
         <div className="relative flex flex-col w-full h-full p-2 md:p-4">
           {/* Controls */}
           <div className="absolute top-2 right-2 z-50 flex gap-2">
-            {/* ไอคอนคอมพิวเตอร์ถูกลบออกตามที่ลูกค้าต้องการ */}
             <Button
               variant="ghost"
               size="icon"
