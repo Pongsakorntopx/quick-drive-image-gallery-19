@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from "react";
 import { ApiConfig, Photo, AppSettings } from "../types";
 import { useToast } from "@/components/ui/use-toast";
@@ -174,23 +173,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       const result = await fetchAndProcessPhotos(apiConfig, settings.language, sortOrder);
       
       if (result.success && result.data) {
-        // Find new photos (not in the current photos array)
-        if (photos.length > 0) {
-          const currentIds = new Set(photos.map(p => p.id));
-          const newPhotos = result.data.filter(p => !currentIds.has(p.id));
-          
-          // If we have new photos, notify user if notifications are enabled
-          if (newPhotos.length > 0 && notificationsEnabled) {
-            toast({
-              title: settings.language === "th" ? "พบรูปภาพใหม่" : "New photos found",
-              description: settings.language === "th" 
-                ? `พบรูปภาพใหม่ ${newPhotos.length} รูป` 
-                : `Found ${newPhotos.length} new photos`
-            });
-          }
-        }
-        
-        // Apply sorting and update photos
+        // Update photos without showing notifications for new photos
         setPhotos(result.data);
         setError(null);
         return true;
@@ -211,7 +194,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     } finally {
       setIsLoading(false);
     }
-  }, [apiConfig, photos.length, settings.language, sortOrder, notificationsEnabled, toast]);
+  }, [apiConfig, photos.length, settings.language, sortOrder]);
 
   // Helper function to clear existing interval
   const clearRefreshInterval = useCallback(() => {
