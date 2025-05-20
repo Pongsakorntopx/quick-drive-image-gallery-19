@@ -245,9 +245,9 @@ const ImageViewer: React.FC = () => {
             <Carousel 
               className="w-full h-full" 
               ref={emblaRef}
-              onSelect={(api) => {
-                if (api && photos.length > 0) {
-                  const index = api.selectedScrollSnap();
+              onSelect={() => {
+                if (emblaApi && photos.length > 0) {
+                  const index = emblaApi.selectedScrollSnap();
                   setSelectedPhoto(photos[index]);
                 }
               }}
@@ -287,7 +287,8 @@ const ImageViewer: React.FC = () => {
           </div>
         </div>
         
-        <style jsx>{`
+        <style>
+          {`
           .animate-scale-in {
             animation: scaleIn 0.3s ease-out forwards;
           }
@@ -302,7 +303,8 @@ const ImageViewer: React.FC = () => {
               transform: scale(1);
             }
           }
-        `}</style>
+          `}
+        </style>
       </DialogContent>
     </Dialog>
   );

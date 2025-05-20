@@ -1,5 +1,5 @@
 
-import React, { useMemo } from "react";
+import React, { useMemo, forwardRef } from "react";
 import { Photo } from "@/types";
 
 interface GridContainerProps {
@@ -10,13 +10,13 @@ interface GridContainerProps {
   photos: Photo[];
 }
 
-const GridContainer: React.FC<GridContainerProps> = ({ 
+const GridContainer = forwardRef<HTMLDivElement, GridContainerProps>(({ 
   children, 
   gridLayout, 
   gridColumns,
   className = "",
   photos
-}) => {
+}, ref) => {
   // Get grid layout class based on settings
   const getGridLayoutClass = () => {
     if (gridLayout === "googlePhotos") {
@@ -68,11 +68,14 @@ const GridContainer: React.FC<GridContainerProps> = ({
       <div 
         className={`${getGridLayoutClass()} ${className}`}
         style={getGridStyle()}
+        ref={ref}
       >
         {children}
       </div>
     </>
   );
-};
+});
+
+GridContainer.displayName = "GridContainer";
 
 export default GridContainer;
