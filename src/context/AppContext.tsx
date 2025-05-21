@@ -1,10 +1,11 @@
+
 import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from "react";
 import { ApiConfig, Photo, AppSettings } from "../types";
 import { useToast } from "@/components/ui/use-toast";
 import { allFonts } from "../config/fonts";
 import { AppContextType, SortOrder, defaultSortOrder } from "./AppContextTypes";
 import { predefinedThemes, defaultSettings } from "./AppDefaults";
-import { fetchAndProcessPhotos, sortPhotos as sortPhotoUtil } from "./PhotoUtils";
+import { fetchAndProcessPhotos, sortPhotos as sortPhotoUtil, findNewPhotos } from "./PhotoUtils";
 
 // Create the context
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -153,7 +154,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }
   };
 
-  // Improved refresh photos function with optimized performance
+  // Improved refresh photos function with optimized performance and real-time updates
   const refreshPhotos = useCallback(async (): Promise<boolean> => {
     if (!apiConfig.apiKey || !apiConfig.folderId) {
       setError(settings.language === "th" ? "กรุณาระบุ API Key และ Folder ID" : "Please provide API Key and Folder ID");
@@ -167,15 +168,32 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       }
       
       console.log("Refreshing photos at:", new Date().toISOString());
-      lastRefreshTimeRef.current = Date.now();
+      const currentTime = Date.now(); 
+      lastRefreshTimeRef.current = currentTime;
       
       // Fetch and sort photos with optimized background processing
       const result = await fetchAndProcessPhotos(apiConfig, settings.language, sortOrder);
       
       if (result.success && result.data) {
-        // Update photos without showing notifications for new photos
+        // Check for new photos to potentially show notifications
+        const newPhotos = findNewPhotos(photos, result.data);
+        
+        // Update photos
         setPhotos(result.data);
         setError(null);
+        
+        // Show notification for new photos if there are any
+        if (notificationsEnabled && newPhotos.length > 0 && photos.length > 0) {
+          toast({
+            title: settings.language === "th" 
+              ? `พบรูปภาพใหม่ ${newPhotos.length} รูป` 
+              : `Found ${newPhotos.length} new photos`,
+            description: settings.language === "th"
+              ? "มีรูปภาพใหม่เพิ่มเข้ามาในแกลเลอรี่"
+              : "New photos have been added to the gallery"
+          });
+        }
+        
         return true;
       } else {
         setError(result.error || (settings.language === "th" ? 
@@ -194,7 +212,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     } finally {
       setIsLoading(false);
     }
-  }, [apiConfig, photos.length, settings.language, sortOrder]);
+  }, [apiConfig, photos, settings.language, sortOrder, notificationsEnabled, toast]);
 
   // Helper function to clear existing interval
   const clearRefreshInterval = useCallback(() => {
