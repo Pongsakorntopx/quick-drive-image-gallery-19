@@ -40,7 +40,7 @@ export interface AppSettings {
   theme: Theme;
   font: Font;
   fontSize: {
-    title: number; // Added title property
+    title: number;
     subtitle: number;
     body: number;
   };
@@ -49,10 +49,10 @@ export interface AppSettings {
   headerQRCodeSize: number;
   viewerQRCodeSize: number;
   language: Language;
-  galleryName: string; // Added galleryName property
-  showGalleryName: boolean; // Added showGalleryName property
+  galleryName: string;
+  showGalleryName: boolean;
   logoUrl: string | null;
-  showLogo: boolean; // Added showLogo property
+  showLogo: boolean;
   logoSize: number;
   bannerUrl: string | null;
   bannerPosition: "bottomLeft" | "bottomRight" | "topLeft" | "topRight";
@@ -66,6 +66,9 @@ export interface AppSettings {
   autoScrollEnabled?: boolean;
   autoScrollDirection?: "up" | "down";
   autoScrollSpeed?: number;
+  // Adding the missing properties
+  title?: string;
+  showTitle?: boolean;
 }
 
 // Add interface for photo fetch result to fix the context errors

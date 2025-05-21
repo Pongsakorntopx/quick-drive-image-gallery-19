@@ -60,5 +60,8 @@ export const defaultSettings: AppSettings = {
   gridLayout: "googlePhotos",
   gridColumns: 4,
   gridRows: 2,
-  qrCodePosition: "bottomRight"
+  qrCodePosition: "bottomRight",
+  // Adding the missing properties with default values
+  title: "Photo Gallery", // Same as galleryName by default
+  showTitle: true
 };
