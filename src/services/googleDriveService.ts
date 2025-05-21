@@ -4,7 +4,7 @@ import { ApiConfig, Photo } from "../types";
 const DRIVE_API_BASE_URL = "https://www.googleapis.com/drive/v3";
 const DEFAULT_FIELDS = "files(id,name,mimeType,thumbnailLink,webContentLink,createdTime,modifiedTime,size,iconLink)";
 const MAX_RESULTS = 1000; // Increase max results
-const CACHE_TIMEOUT = 30000; // Reduce cache timeout to 30 seconds for more frequent updates
+const CACHE_TIMEOUT = 300000; // 5 minutes cache for API responses
 
 // Cache for API responses to reduce API calls
 let photosCache = {
@@ -13,17 +13,16 @@ let photosCache = {
   folderId: ''
 };
 
-export const fetchPhotosFromDrive = async (config: ApiConfig, skipCache: boolean = false): Promise<Photo[]> => {
+export const fetchPhotosFromDrive = async (config: ApiConfig): Promise<Photo[]> => {
   try {
     if (!config.apiKey || !config.folderId) {
       console.error("API Key or Folder ID is missing");
       return [];
     }
     
-    // Check if we have a valid recent cache for this folder and not skipping cache
+    // Check if we have a valid recent cache for this folder
     const now = Date.now();
     if (
-      !skipCache &&
       photosCache.folderId === config.folderId &&
       photosCache.photos.length > 0 &&
       now - photosCache.timestamp < CACHE_TIMEOUT
@@ -32,7 +31,7 @@ export const fetchPhotosFromDrive = async (config: ApiConfig, skipCache: boolean
       return photosCache.photos;
     }
 
-    console.log(`Fetching ${skipCache ? 'fresh' : 'new'} photos from Google Drive API`);
+    console.log("Fetching fresh photos from Google Drive API");
     let allPhotos: any[] = [];
     let pageToken: string | null = null;
     
@@ -43,9 +42,7 @@ export const fetchPhotosFromDrive = async (config: ApiConfig, skipCache: boolean
         fields: `${DEFAULT_FIELDS}, nextPageToken`,
         key: config.apiKey,
         orderBy: "modifiedTime desc",
-        pageSize: "100",
-        // Add a unique timestamp to prevent browser caching
-        _: Date.now().toString()
+        pageSize: "100"
       });
       
       if (pageToken) {
@@ -55,9 +52,8 @@ export const fetchPhotosFromDrive = async (config: ApiConfig, skipCache: boolean
       const response = await fetch(`${DRIVE_API_BASE_URL}/files?${params}`, {
         cache: 'no-store',
         headers: {
-          'Cache-Control': 'no-cache, no-store, must-revalidate',
-          'Pragma': 'no-cache',
-          'Expires': '0'
+          'Cache-Control': 'no-cache',
+          'Pragma': 'no-cache'
         }
       });
       
@@ -76,7 +72,7 @@ export const fetchPhotosFromDrive = async (config: ApiConfig, skipCache: boolean
       }
     } while (pageToken);
     
-    // Transform API response into Photo objects with multiple URL options and optimized performance
+    // Transform API response into Photo objects with multiple URL options
     const processedPhotos = allPhotos.map((file: any) => ({
       id: file.id,
       name: file.name,
@@ -96,9 +92,7 @@ export const fetchPhotosFromDrive = async (config: ApiConfig, skipCache: boolean
     }));
     
     // Only log when there's an actual change in the number of photos
-    if (processedPhotos.length !== photosCache.photos.length) {
-      console.log(`Fetched ${processedPhotos.length} photos from Google Drive (previously had ${photosCache.photos.length})`);
-    }
+    console.log(`Fetched ${processedPhotos.length} photos from Google Drive`);
     
     // Update cache
     photosCache = {
@@ -119,7 +113,7 @@ export const fetchPhotosFromDrive = async (config: ApiConfig, skipCache: boolean
   }
 };
 
-// Get different types of URLs for photos for maximum compatibility and performance
+// Get different types of URLs for photos for maximum compatibility
 export const getPhotoUrl = (photoId: string): string => {
   // Direct link with caching prevention
   return `https://drive.google.com/uc?export=view&id=${photoId}&t=${Date.now()}`;
@@ -130,7 +124,7 @@ export const getPhotoDownloadUrl = (photoId: string): string => {
   return `https://drive.google.com/uc?export=download&id=${photoId}&confirm=t&uuid=${Date.now()}`;
 };
 
-// More reliable direct image URL for viewing with improved performance
+// More reliable direct image URL for viewing
 export const getDirectImageUrl = (photoId: string): string => {
   return `https://lh3.googleusercontent.com/d/${photoId}?t=${Date.now()}`;
 };
@@ -153,14 +147,6 @@ export const preloadImage = (url: string): Promise<boolean> => {
     img.onerror = () => resolve(false);
     img.src = url;
   });
-};
-
-// Pre-fetch multiple images in batches to improve loading performance
-export const preloadImages = async (urls: string[], batchSize: number = 5): Promise<void> => {
-  for (let i = 0; i < urls.length; i += batchSize) {
-    const batch = urls.slice(i, i + batchSize);
-    await Promise.all(batch.map(url => preloadImage(url)));
-  }
 };
 
 // Helper to get best available image URL with fallbacks

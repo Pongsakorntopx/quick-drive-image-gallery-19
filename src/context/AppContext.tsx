@@ -1,11 +1,10 @@
-
 import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from "react";
 import { ApiConfig, Photo, AppSettings } from "../types";
 import { useToast } from "@/components/ui/use-toast";
 import { allFonts } from "../config/fonts";
 import { AppContextType, SortOrder, defaultSortOrder } from "./AppContextTypes";
 import { predefinedThemes, defaultSettings } from "./AppDefaults";
-import { fetchAndProcessPhotos, sortPhotos as sortPhotoUtil, findNewPhotos } from "./PhotoUtils";
+import { fetchAndProcessPhotos, sortPhotos as sortPhotoUtil } from "./PhotoUtils";
 
 // Create the context
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -105,12 +104,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   // Last refresh timestamp
   const lastRefreshTimeRef = useRef<number>(Date.now());
   
-  // Last notification timestamp to prevent spam
-  const lastNotificationTimeRef = useRef<number>(0);
-  
-  // Flag to check for real-time updates
-  const [realTimeUpdatesEnabled, setRealTimeUpdatesEnabled] = useState<boolean>(true);
-  
   // Save API config to local storage
   useEffect(() => {
     localStorage.setItem("gdrive-app-config", JSON.stringify(apiConfig));
@@ -159,60 +152,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       });
     }
   };
-
-  // Check for new photos function - Optimized for real-time updates
-  const checkForNewPhotos = useCallback(async (): Promise<boolean> => {
-    if (!apiConfig.apiKey || !apiConfig.folderId) {
-      return false;
-    }
-    
-    try {
-      console.log("Checking for new photos...");
-      
-      // Skip cache to get fresh results
-      const result = await fetchAndProcessPhotos(apiConfig, settings.language, sortOrder, true);
-      
-      if (result.success && result.data) {
-        // Find new photos that weren't in the previous array
-        const newPhotosFound = findNewPhotos(photos, result.data);
-        
-        if (newPhotosFound.length > 0) {
-          console.log(`Found ${newPhotosFound.length} new photos!`);
-          
-          // Update photos without refreshing the entire array to improve performance
-          setPhotos(prevPhotos => {
-            // Combine new and old photos and sort them
-            const combinedPhotos = [...newPhotosFound, ...prevPhotos];
-            return sortPhotoUtil(combinedPhotos, sortOrder);
-          });
-          
-          // Only show notification if enabled and not too frequent
-          const now = Date.now();
-          if (notificationsEnabled && now - lastNotificationTimeRef.current > 10000) {
-            lastNotificationTimeRef.current = now;
-            toast({
-              title: settings.language === "th" ? 
-                `พบรูปภาพใหม่ ${newPhotosFound.length} รูป` : 
-                `Found ${newPhotosFound.length} new photos`,
-              description: settings.language === "th" ? 
-                "รูปภาพใหม่ถูกเพิ่มเข้ามาแล้ว" : 
-                "New photos have been added",
-            });
-          }
-          
-          return true;
-        } else {
-          console.log("No new photos found.");
-          return false;
-        }
-      }
-      
-      return false;
-    } catch (error) {
-      console.error("Error checking for new photos:", error);
-      return false;
-    }
-  }, [apiConfig, photos, settings.language, sortOrder, notificationsEnabled]);
 
   // Improved refresh photos function with optimized performance
   const refreshPhotos = useCallback(async (): Promise<boolean> => {
@@ -264,23 +203,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       refreshIntervalRef.current = null;
     }
   }, []);
-
-  // Set up real-time updates with fast polling for new photos
-  useEffect(() => {
-    if (!apiConfig.apiKey || !apiConfig.folderId || !realTimeUpdatesEnabled) {
-      return;
-    }
-    
-    // Set up a separate fast polling interval to check for new photos frequently
-    const fastPollingInterval = window.setInterval(() => {
-      checkForNewPhotos();
-    }, 5000); // Check every 5 seconds for new photos
-    
-    // Clean up on unmount
-    return () => {
-      clearInterval(fastPollingInterval);
-    };
-  }, [apiConfig.apiKey, apiConfig.folderId, realTimeUpdatesEnabled, checkForNewPhotos]);
 
   // Set up the refresh interval whenever settings.refreshInterval changes
   useEffect(() => {
