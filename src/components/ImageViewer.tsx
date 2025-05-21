@@ -85,6 +85,11 @@ const ImageViewer: React.FC = () => {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [currentPhotoIndex, photos, selectedPhoto]);
   
+  // Toggle view mode
+  const toggleViewMode = () => {
+    setViewMode(prev => prev === "standard" ? "carousel" : "standard");
+  };
+  
   // Handle download
   const handleDownload = () => {
     if (!selectedPhoto) return;

@@ -1,4 +1,3 @@
-
 export interface ApiConfig {
   apiKey: string;
   folderId: string;
@@ -36,39 +35,35 @@ export type Language = "th" | "en";
 export type ThemeMode = "light" | "dark";
 
 export interface AppSettings {
-  themeMode: ThemeMode;
+  title: string;
+  showTitle: boolean; // Added showTitle setting
+  titleSize: number; // Renamed from fontSize.title for simplicity
   theme: Theme;
+  themeMode: ThemeMode; // Added theme mode (light/dark)
+  language: Language; // Added language setting
   font: Font;
   fontSize: {
-    title: number;
     subtitle: number;
     body: number;
   };
-  titleSize: number;
-  qrCodeSize: number;
-  headerQRCodeSize: number;
-  viewerQRCodeSize: number;
-  language: Language;
-  galleryName: string;
-  showGalleryName: boolean;
+  qrCodeSize: number; // Main QR code size (for images)
+  headerQRCodeSize: number; // Header QR code size
+  viewerQRCodeSize: number; // New property for image viewer QR code size
+  refreshInterval: number;
+  qrCodePosition: "bottomRight" | "bottomLeft" | "topRight" | "topLeft" | "center";
+  showHeaderQR: boolean;
   logoUrl: string | null;
-  showLogo: boolean;
   logoSize: number;
   bannerUrl: string | null;
+  bannerSize: number; // Changed from string to number for pixel-based sizing
   bannerPosition: "bottomLeft" | "bottomRight" | "topLeft" | "topRight";
-  bannerSize: number;
-  showHeaderQR: boolean;
-  refreshInterval: number;
+  autoScrollEnabled: boolean;
+  autoScrollDirection: "up" | "down";
+  autoScrollSpeed: number;
+  // Grid layout options
   gridLayout: "googlePhotos" | "auto" | "fixed" | "custom";
   gridColumns: number;
   gridRows: number;
-  qrCodePosition: "bottomRight" | "bottomLeft" | "topRight" | "topLeft" | "center";
-  autoScrollEnabled?: boolean;
-  autoScrollDirection?: "up" | "down";
-  autoScrollSpeed?: number;
-  // Adding the missing properties
-  title?: string;
-  showTitle?: boolean;
 }
 
 // Add interface for photo fetch result to fix the context errors
