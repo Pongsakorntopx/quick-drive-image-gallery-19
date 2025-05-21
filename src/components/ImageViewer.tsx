@@ -3,7 +3,7 @@ import React, { useEffect, useState } from "react";
 import { useAppContext } from "../context/AppContext";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { ChevronLeft, ChevronRight, X, Download } from "lucide-react";
+import { ChevronLeft, ChevronRight, X, Download, Image } from "lucide-react";
 import QRCode from "./QRCode";
 import { useTranslation } from "../hooks/useTranslation";
 import { 
@@ -132,7 +132,7 @@ const ImageViewer: React.FC = () => {
                 className="bg-background/50 hover:bg-background/80 backdrop-blur-sm rounded-full"
                 onClick={toggleViewMode}
               >
-                <Slideshow className="h-5 w-5" />
+                <Image className="h-5 w-5" />
               </Button>
               <Button
                 variant="ghost"
@@ -150,10 +150,10 @@ const ImageViewer: React.FC = () => {
             </div>
             
             <div className="flex-1 flex items-center justify-center relative overflow-hidden">
-              {/* Main content container with animation */}
+              {/* Main content container with animation - improved layout */}
               <div className="flex flex-col md:flex-row items-center justify-center gap-4 p-4 rounded-xl bg-black/10 dark:bg-white/5 backdrop-blur-sm border border-black/10 dark:border-white/10 shadow-lg w-full h-full animate-scale-in">
-                {/* Image container */}
-                <div className="flex-1 h-full flex items-center justify-center overflow-hidden">
+                {/* Image container - adjusted to be on left side */}
+                <div className="md:w-3/5 h-full flex items-center justify-center overflow-hidden rounded-lg">
                   <img
                     src={photoUrl}
                     alt={selectedPhoto.name}
@@ -161,25 +161,25 @@ const ImageViewer: React.FC = () => {
                   />
                 </div>
                 
-                {/* QR code container - only on medium screens and up */}
-                <div className="md:w-1/4 p-3 flex flex-col items-center justify-center">
-                  <div className="mb-2 text-sm font-medium text-center">
+                {/* QR code container - enlarged and positioned on right side */}
+                <div className="md:w-2/5 p-3 flex flex-col items-center justify-center bg-white/10 dark:bg-black/20 rounded-lg backdrop-blur-sm shadow-inner">
+                  <div className="mb-4 text-lg font-medium text-center">
                     {settings.language === "th" ? "สแกนเพื่อดาวน์โหลด" : "Scan to download"}
                   </div>
-                  <div className="bg-white/95 dark:bg-black/50 p-3 rounded-lg shadow-md">
+                  <div className="bg-white/95 dark:bg-black/50 p-4 rounded-lg shadow-md">
                     <QRCode
                       url={photoUrl}
-                      size={settings.viewerQRCodeSize}
+                      size={settings.viewerQRCodeSize * 1.3} // Made QR code 30% larger
                       className="mx-auto"
                     />
                   </div>
                   <Button
                     variant="outline"
-                    size="sm"
-                    className="mt-4"
+                    size="lg" // Larger button
+                    className="mt-6"
                     onClick={handleDownload}
                   >
-                    <Download className="mr-2 h-4 w-4" />
+                    <Download className="mr-2 h-5 w-5" />
                     {settings.language === "th" ? "ดาวน์โหลด" : "Download"}
                   </Button>
                 </div>
@@ -287,8 +287,7 @@ const ImageViewer: React.FC = () => {
           </div>
         </div>
         
-        <style>
-          {`
+        <style jsx global>{`
           .animate-scale-in {
             animation: scaleIn 0.3s ease-out forwards;
           }
@@ -303,54 +302,9 @@ const ImageViewer: React.FC = () => {
               transform: scale(1);
             }
           }
-          `}
-        </style>
+        `}</style>
       </DialogContent>
     </Dialog>
-  );
-};
-
-// Import Lucide icons
-const Slideshow = (props: any) => {
-  return (
-    <svg
-      {...props}
-      xmlns="http://www.w3.org/2000/svg"
-      width="24"
-      height="24"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    >
-      <rect width="18" height="14" x="3" y="3" rx="2" />
-      <line x1="8" x2="8" y1="21" y2="21" />
-      <line x1="16" x2="16" y1="21" y2="21" />
-      <line x1="12" x2="12" y1="17" y2="21" />
-    </svg>
-  );
-};
-
-const Image = (props: any) => {
-  return (
-    <svg
-      {...props}
-      xmlns="http://www.w3.org/2000/svg"
-      width="24"
-      height="24"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    >
-      <rect width="18" height="18" x="3" y="3" rx="2" ry="2" />
-      <circle cx="9" cy="9" r="2" />
-      <path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21" />
-    </svg>
   );
 };
 
