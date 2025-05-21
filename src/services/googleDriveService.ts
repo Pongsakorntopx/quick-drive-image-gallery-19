@@ -4,8 +4,8 @@ import { ApiConfig, Photo } from "../types";
 const DRIVE_API_BASE_URL = "https://www.googleapis.com/drive/v3";
 const DEFAULT_FIELDS = "files(id,name,mimeType,thumbnailLink,webContentLink,createdTime,modifiedTime,size,iconLink)";
 const MAX_RESULTS = 1000; // Increase max results
-const CACHE_TIMEOUT = 30000; // ลดเหลือ 30 วินาที (จากเดิม 60 วินาที) เพื่อให้แสดงผลใหม่เร็วขึ้น
-const PRIORITY_CACHE_TIMEOUT = 3000; // ลดเหลือ 3 วินาที (จากเดิม 10 วินาที) เพื่อตรวจสอบบ่อยขึ้น
+const CACHE_TIMEOUT = 30000; // 30 วินาที
+const PRIORITY_CACHE_TIMEOUT = 2000; // ลดเหลือ 2 วินาที เพื่อตรวจสอบบ่อยยิ่งขึ้น
 
 // Cache for API responses to reduce API calls
 let photosCache = {
@@ -14,7 +14,7 @@ let photosCache = {
   folderId: ''
 };
 
-// New cache for latest photo check (เพิ่มแคชสำหรับการตรวจสอบภาพล่าสุดแยกต่างหาก)
+// Cache for latest photo check
 let latestPhotoCache = {
   timestamp: 0,
   latestId: '',
@@ -22,7 +22,10 @@ let latestPhotoCache = {
 };
 
 // Fetch only the latest photo for quick check - optimized for real-time updates
-export const fetchLatestPhotoFromDrive = async (config: ApiConfig): Promise<Photo | null> => {
+export const fetchLatestPhotoFromDrive = async (
+  config: ApiConfig, 
+  forceRefresh: boolean = false // Add force refresh param
+): Promise<Photo | null> => {
   try {
     if (!config.apiKey || !config.folderId) {
       return null;
@@ -30,32 +33,38 @@ export const fetchLatestPhotoFromDrive = async (config: ApiConfig): Promise<Phot
     
     const now = Date.now();
     
-    // Check if we have a valid recent cache for quick check - ลดเงื่อนไขเพื่อตรวจสอบบ่อยขึ้น
+    // Skip cache if forceRefresh is true or cache timeout is expired
     if (
+      !forceRefresh && 
       latestPhotoCache.folderId === config.folderId &&
       latestPhotoCache.latestId &&
       now - latestPhotoCache.timestamp < PRIORITY_CACHE_TIMEOUT
     ) {
-      return null; // No need to check so frequently
+      return null; // Use cache
     }
+
+    // Generate a unique timestamp to prevent API caching
+    const cacheBreaker = `&_nocache=${Date.now()}`;
 
     const params = new URLSearchParams({
       q: `'${config.folderId}' in parents and mimeType contains 'image/' and trashed = false`,
       fields: DEFAULT_FIELDS,
       key: config.apiKey,
       orderBy: "modifiedTime desc",
-      pageSize: "1" // เอาเฉพาะภาพล่าสุดหนึ่งภาพ
+      pageSize: "1" // Only get the latest photo
     });
 
-    const response = await fetch(`${DRIVE_API_BASE_URL}/files?${params}`, {
+    const response = await fetch(`${DRIVE_API_BASE_URL}/files?${params}${cacheBreaker}`, {
       cache: 'no-store',
       headers: {
-        'Cache-Control': 'no-cache',
-        'Pragma': 'no-cache'
+        'Cache-Control': 'no-cache, no-store, must-revalidate',
+        'Pragma': 'no-cache',
+        'Expires': '0'
       }
     });
     
     if (!response.ok) {
+      console.error("Error fetching latest photo:", response.statusText);
       return null;
     }
 
@@ -74,28 +83,35 @@ export const fetchLatestPhotoFromDrive = async (config: ApiConfig): Promise<Phot
       folderId: config.folderId
     };
     
-    // ปรับเงื่อนไขเพื่อให้ตรวจจับรูปภาพใหม่ได้ดีขึ้น - ไม่ต้องเช็คจากแคชหลัก
+    // Check if this photo already exists in main cache
+    const existsInCache = photosCache.photos.some(p => p.id === latestFile.id);
+    
     // Process the latest photo
+    const timestamp = Date.now();
     const latestPhoto = {
       id: latestFile.id,
       name: latestFile.name,
-      url: latestFile.thumbnailLink ? latestFile.thumbnailLink.replace('=s220', '=s1000') + `&t=${Date.now()}` : getPhotoUrl(latestFile.id),
-      thumbnailLink: latestFile.thumbnailLink ? latestFile.thumbnailLink + `&t=${Date.now()}` : `https://drive.google.com/thumbnail?id=${latestFile.id}&t=${Date.now()}`,
-      iconLink: latestFile.iconLink || `https://drive.google.com/icon?id=${latestFile.id}&t=${Date.now()}`,
+      url: latestFile.thumbnailLink ? latestFile.thumbnailLink.replace('=s220', '=s1000') + `&t=${timestamp}` : getPhotoUrl(latestFile.id, timestamp),
+      thumbnailLink: latestFile.thumbnailLink ? latestFile.thumbnailLink + `&t=${timestamp}` : `https://drive.google.com/thumbnail?id=${latestFile.id}&t=${timestamp}`,
+      iconLink: latestFile.iconLink || `https://drive.google.com/icon?id=${latestFile.id}&t=${timestamp}`,
       mimeType: latestFile.mimeType,
       createdTime: latestFile.createdTime,
       modifiedTime: latestFile.modifiedTime,
       size: latestFile.size || "Unknown",
-      webContentLink: latestFile.webContentLink || getPhotoDownloadUrl(latestFile.id),
-      fullSizeUrl: getDirectImageUrl(latestFile.id),
-      directDownloadUrl: getDirectDownloadUrl(latestFile.id)
+      webContentLink: latestFile.webContentLink || getPhotoDownloadUrl(latestFile.id, timestamp),
+      fullSizeUrl: getDirectImageUrl(latestFile.id, timestamp),
+      directDownloadUrl: getDirectDownloadUrl(latestFile.id, timestamp)
     };
     
-    // ตรวจสอบว่ารูปภาพนี้มีอยู่ในแคชหลักหรือไม่
-    const existsInCache = photosCache.photos.some(p => p.id === latestFile.id);
-    
-    // ส่งคืนรูปภาพล่าสุดเฉพาะเมื่อเป็นรูปภาพใหม่ที่ไม่อยู่ในแคช
-    if (!existsInCache) {
+    // If the photo is new or force refresh is true, return it for immediate update
+    if (!existsInCache || forceRefresh) {
+      console.log("New photo detected or force refresh requested:", latestFile.name);
+      
+      // Add to cache if it's a new photo
+      if (!existsInCache) {
+        photosCache.photos = [latestPhoto, ...photosCache.photos];
+      }
+      
       return latestPhoto;
     }
     
@@ -106,7 +122,10 @@ export const fetchLatestPhotoFromDrive = async (config: ApiConfig): Promise<Phot
   }
 };
 
-export const fetchPhotosFromDrive = async (config: ApiConfig): Promise<Photo[]> => {
+export const fetchPhotosFromDrive = async (
+  config: ApiConfig,
+  forceRefresh: boolean = false // Add force refresh parameter
+): Promise<Photo[]> => {
   try {
     if (!config.apiKey || !config.folderId) {
       console.error("API Key or Folder ID is missing");
@@ -116,6 +135,7 @@ export const fetchPhotosFromDrive = async (config: ApiConfig): Promise<Photo[]> 
     // Check if we have a valid recent cache for this folder
     const now = Date.now();
     if (
+      !forceRefresh &&
       photosCache.folderId === config.folderId &&
       photosCache.photos.length > 0 &&
       now - photosCache.timestamp < CACHE_TIMEOUT
@@ -127,6 +147,9 @@ export const fetchPhotosFromDrive = async (config: ApiConfig): Promise<Photo[]> 
     console.log("Fetching fresh photos from Google Drive API");
     let allPhotos: any[] = [];
     let pageToken: string | null = null;
+    
+    // Generate a unique timestamp to prevent API caching
+    const cacheBreaker = `&_nocache=${Date.now()}`;
     
     // Use pagination to get all photos
     do {
@@ -142,11 +165,12 @@ export const fetchPhotosFromDrive = async (config: ApiConfig): Promise<Photo[]> 
         params.append("pageToken", pageToken);
       }
 
-      const response = await fetch(`${DRIVE_API_BASE_URL}/files?${params}`, {
+      const response = await fetch(`${DRIVE_API_BASE_URL}/files?${params}${cacheBreaker}`, {
         cache: 'no-store',
         headers: {
-          'Cache-Control': 'no-cache',
-          'Pragma': 'no-cache'
+          'Cache-Control': 'no-cache, no-store, must-revalidate',
+          'Pragma': 'no-cache',
+          'Expires': '0'
         }
       });
       
@@ -165,26 +189,25 @@ export const fetchPhotosFromDrive = async (config: ApiConfig): Promise<Photo[]> 
       }
     } while (pageToken);
     
+    // Generate a timestamp for all URLs to prevent browser caching
+    const timestamp = Date.now();
+    
     // Transform API response into Photo objects with multiple URL options
     const processedPhotos = allPhotos.map((file: any) => ({
       id: file.id,
       name: file.name,
-      // Improved URL generation with multiple fallbacks and timestamp to prevent caching
-      url: file.thumbnailLink ? file.thumbnailLink.replace('=s220', '=s1000') + `&t=${Date.now()}` : getPhotoUrl(file.id),
-      thumbnailLink: file.thumbnailLink ? file.thumbnailLink + `&t=${Date.now()}` : `https://drive.google.com/thumbnail?id=${file.id}&t=${Date.now()}`,
-      iconLink: file.iconLink || `https://drive.google.com/icon?id=${file.id}&t=${Date.now()}`,
+      url: file.thumbnailLink ? file.thumbnailLink.replace('=s220', '=s1000') + `&t=${timestamp}` : getPhotoUrl(file.id, timestamp),
+      thumbnailLink: file.thumbnailLink ? file.thumbnailLink + `&t=${timestamp}` : `https://drive.google.com/thumbnail?id=${file.id}&t=${timestamp}`,
+      iconLink: file.iconLink || `https://drive.google.com/icon?id=${file.id}&t=${timestamp}`,
       mimeType: file.mimeType,
       createdTime: file.createdTime,
       modifiedTime: file.modifiedTime,
       size: file.size || "Unknown",
-      webContentLink: file.webContentLink || getPhotoDownloadUrl(file.id),
-      // Add multiple direct URLs for better compatibility
-      fullSizeUrl: getDirectImageUrl(file.id),
-      // Add direct download link that doesn't require login
-      directDownloadUrl: getDirectDownloadUrl(file.id)
+      webContentLink: file.webContentLink || getPhotoDownloadUrl(file.id, timestamp),
+      fullSizeUrl: getDirectImageUrl(file.id, timestamp),
+      directDownloadUrl: getDirectDownloadUrl(file.id, timestamp)
     }));
     
-    // Only log when there's an actual change in the number of photos
     console.log(`Fetched ${processedPhotos.length} photos from Google Drive`);
     
     // Update latest photo cache if we have photos
@@ -216,24 +239,24 @@ export const fetchPhotosFromDrive = async (config: ApiConfig): Promise<Photo[]> 
 };
 
 // Get different types of URLs for photos for maximum compatibility
-export const getPhotoUrl = (photoId: string): string => {
+export const getPhotoUrl = (photoId: string, timestamp: number = Date.now()): string => {
   // Direct link with caching prevention
-  return `https://drive.google.com/uc?export=view&id=${photoId}&t=${Date.now()}`;
+  return `https://drive.google.com/uc?export=view&id=${photoId}&t=${timestamp}`;
 };
 
-export const getPhotoDownloadUrl = (photoId: string): string => {
+export const getPhotoDownloadUrl = (photoId: string, timestamp: number = Date.now()): string => {
   // Add parameters to bypass login
-  return `https://drive.google.com/uc?export=download&id=${photoId}&confirm=t&uuid=${Date.now()}`;
+  return `https://drive.google.com/uc?export=download&id=${photoId}&confirm=t&uuid=${timestamp}`;
 };
 
 // More reliable direct image URL for viewing
-export const getDirectImageUrl = (photoId: string): string => {
-  return `https://lh3.googleusercontent.com/d/${photoId}?t=${Date.now()}`;
+export const getDirectImageUrl = (photoId: string, timestamp: number = Date.now()): string => {
+  return `https://lh3.googleusercontent.com/d/${photoId}?t=${timestamp}`;
 };
 
 // Direct download URL that doesn't require login
-export const getDirectDownloadUrl = (photoId: string): string => {
-  return `https://drive.usercontent.google.com/download?id=${photoId}&export=download&authuser=0&confirm=t&uuid=${Date.now()}`;
+export const getDirectDownloadUrl = (photoId: string, timestamp: number = Date.now()): string => {
+  return `https://drive.usercontent.google.com/download?id=${photoId}&export=download&authuser=0&confirm=t&uuid=${timestamp}`;
 };
 
 // Get the folder URL from folder ID
@@ -254,4 +277,21 @@ export const preloadImage = (url: string): Promise<boolean> => {
 // Helper to get best available image URL with fallbacks
 export const getBestImageUrl = (photo: Photo): string => {
   return photo.fullSizeUrl || photo.webContentLink || photo.url;
+};
+
+// Function to clear service cache - useful for forcing a full refresh
+export const clearServiceCache = (): void => {
+  photosCache = {
+    timestamp: 0,
+    photos: [],
+    folderId: ''
+  };
+  
+  latestPhotoCache = {
+    timestamp: 0,
+    latestId: '',
+    folderId: ''
+  };
+  
+  console.log("Service cache cleared");
 };

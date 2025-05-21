@@ -1,3 +1,4 @@
+
 import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from "react";
 import { ApiConfig, Photo, AppSettings } from "../types";
 import { useToast } from "@/components/ui/use-toast";
@@ -11,7 +12,8 @@ import {
   findNewPhotos, 
   checkForNewPhotos,
   insertNewPhoto,
-  getLatestPhotoTimestamp
+  getLatestPhotoTimestamp,
+  clearServiceCache
 } from "./PhotoUtils";
 
 // Create the context
@@ -124,6 +126,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   // Latest photo timestamp for efficient checking
   const latestPhotoTimestampRef = useRef<string | undefined>(undefined);
   
+  // Flag to track if new photos have been detected during auto-check
+  const newPhotosDetectedRef = useRef<boolean>(false);
+  
   // Save API config to local storage
   useEffect(() => {
     localStorage.setItem("gdrive-app-config", JSON.stringify(apiConfig));
@@ -170,6 +175,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setNotificationsEnabled(true);
     setToastDuration(3);
     
+    // Clear caches
+    clearServiceCache();
+    
     if (notificationsEnabled) {
       toast({
         title: settings.language === "th" ? "ล้างข้อมูลทั้งหมดสำเร็จ" : "All data has been reset successfully",
@@ -181,7 +189,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }
   };
 
-  // Improved function to quickly check for new photos with enhanced real-time updates
+  // Improved function to quickly check for new photos with instant updates
   const quickCheckNewPhotos = useCallback(async (): Promise<boolean> => {
     if (!apiConfig.apiKey || !apiConfig.folderId) {
       return false;
@@ -190,15 +198,17 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     try {
       console.log("Quick checking for new photos at:", new Date().toISOString());
       
-      // Check for new photos without fetching all, passing the latest timestamp we know about
+      // Check for new photos without fetching all, passing the latest timestamp
+      // and forcing a refresh if new photos were previously detected
       const latestPhoto = await checkForNewPhotos(
         apiConfig, 
         settings.language, 
-        latestPhotoTimestampRef.current
+        latestPhotoTimestampRef.current,
+        newPhotosDetectedRef.current // Force refresh if new photos were detected
       );
       
       if (latestPhoto) {
-        console.log("New photo detected:", latestPhoto.name);
+        console.log("New photo detected in quick check:", latestPhoto.name);
         
         // Update latest timestamp reference
         const newTimestamp = latestPhoto.modifiedTime || latestPhoto.createdTime;
@@ -209,7 +219,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         // Add the new photo to the beginning of the array and preserve sort order
         const updatedPhotos = insertNewPhoto(photos, latestPhoto, sortOrder);
         
-        // Update the photos state immediately without waiting for the next full refresh
+        // Set the flag to indicate new photos have been detected
+        newPhotosDetectedRef.current = true;
+        
+        // Update the photos state immediately
         setPhotos(updatedPhotos);
         
         // Show notification if enabled
@@ -249,8 +262,18 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       console.log("Refreshing photos at:", new Date().toISOString());
       lastRefreshTimeRef.current = Date.now();
       
+      // Reset the new photos detected flag before a full refresh
+      const wasNewPhotosDetected = newPhotosDetectedRef.current;
+      newPhotosDetectedRef.current = false;
+      
       // Fetch and sort photos with optimized background processing
-      const result = await fetchAndProcessPhotos(apiConfig, settings.language, sortOrder);
+      // Use forceRefresh if new photos were detected
+      const result = await fetchAndProcessPhotos(
+        apiConfig, 
+        settings.language, 
+        sortOrder, 
+        wasNewPhotosDetected
+      );
       
       if (result.success && result.data) {
         // Update latest photo timestamp reference
@@ -314,7 +337,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }
   }, []);
 
-  // Set up the refresh interval with improved frequency
+  // Set up the refresh interval with improved real-time updates
   useEffect(() => {
     // Clear any existing interval
     clearIntervals();
@@ -324,12 +347,12 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       // Initial fetch when component mounts or dependencies change
       refreshPhotos();
       
-      // Set up a full refresh interval (ลดลงเหลือ 3 วินาที เพื่อการตอบสนองดีขึ้น)
-      const fullRefreshMs = Math.max(3000, settings.refreshInterval * 1000); // Minimum 3 seconds
+      // Set up a full refresh interval (ลดลงเหลือ 2 วินาที เพื่อการตอบสนองดีขึ้น)
+      const fullRefreshMs = Math.max(2000, settings.refreshInterval * 1000); // Minimum 2 seconds
       console.log(`Setting up full refresh interval: ${fullRefreshMs / 1000} seconds`);
       
-      // Set up a quick check interval - more frequent (every 1.5 seconds)
-      const quickCheckMs = Math.min(1500, settings.refreshInterval * 250); // 1/4 of full refresh but max 1.5 seconds
+      // Set up a quick check interval - even more frequent (every 800ms)
+      const quickCheckMs = Math.min(800, settings.refreshInterval * 200); // 1/5 of full refresh but max 800ms
       console.log(`Setting up quick check interval: ${quickCheckMs / 1000} seconds`);
       
       // Use more efficient setTimeout-based polling for full refresh

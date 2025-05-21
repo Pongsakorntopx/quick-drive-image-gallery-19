@@ -1,3 +1,4 @@
+
 import { Photo, PhotoFetchResult } from "../types";
 import { fetchPhotosFromDrive, fetchLatestPhotoFromDrive } from "../services/googleDriveService";
 import { ApiConfig } from "../types";
@@ -43,42 +44,51 @@ export const sortPhotos = (photos: Photo[], sortOrder: SortOrder): Photo[] => {
   });
 };
 
-// Enhanced check for new photos without fetching all photos
+// Enhanced check for new photos with immediate detection
 export const checkForNewPhotos = async (
   apiConfig: ApiConfig,
   language: string,
-  cachedPhotoTimestamp?: string // Add timestamp parameter
+  cachedPhotoTimestamp?: string,
+  forceRefresh: boolean = false // Add forceRefresh parameter
 ): Promise<Photo | null> => {
   try {
     // Fetch only the latest photo to check if there's something new
-    const latestPhoto = await fetchLatestPhotoFromDrive(apiConfig);
+    const latestPhoto = await fetchLatestPhotoFromDrive(apiConfig, forceRefresh);
     
-    // If we got a photo and it has a timestamp newer than our cached one
-    if (latestPhoto && cachedPhotoTimestamp) {
+    if (!latestPhoto) return null;
+    
+    // If we have a cached timestamp, compare with the latest photo's timestamp
+    if (cachedPhotoTimestamp) {
       const latestTimestamp = latestPhoto.modifiedTime || latestPhoto.createdTime;
-      // ตรวจสอบโดยใช้ ID แทนการใช้เวลาเพื่อป้องกันปัญหาจากการซิงค์เวลา
-      if (latestTimestamp && new Date(latestTimestamp) <= new Date(cachedPhotoTimestamp)) {
-        // No new photo
-        return null;
+      
+      if (latestTimestamp) {
+        // Always return the photo for immediate update if it's newer
+        if (new Date(latestTimestamp) > new Date(cachedPhotoTimestamp)) {
+          return latestPhoto;
+        }
       }
+    } else {
+      // If we don't have a cached timestamp, return the latest photo
+      return latestPhoto;
     }
     
-    return latestPhoto;
+    return null;
   } catch (err) {
     console.error("Error checking for new photos:", err);
     return null;
   }
 };
 
-// Function to fetch photos from Google Drive
+// Function to fetch photos from Google Drive with improved real-time capabilities
 export const fetchAndProcessPhotos = async (
   apiConfig: ApiConfig, 
   language: string,
-  sortOrder: SortOrder
+  sortOrder: SortOrder,
+  forceRefresh: boolean = false // Add forceRefresh parameter
 ): Promise<PhotoFetchResult> => {
   try {
-    // Fetch photos from Google Drive
-    const photosData = await fetchPhotosFromDrive(apiConfig);
+    // Fetch photos from Google Drive with force refresh option
+    const photosData = await fetchPhotosFromDrive(apiConfig, forceRefresh);
     
     // Create a PhotoFetchResult object from the photos array
     const result: PhotoFetchResult = {

@@ -1,3 +1,4 @@
+
 import React, { useEffect, useRef, useState, useMemo } from "react";
 import { useAppContext } from "../context/AppContext";
 import { useInView } from "react-intersection-observer";
@@ -41,6 +42,8 @@ const PhotoGrid: React.FC = () => {
   const prevPhotosLength = useRef<number>(0);
   // Keep track of the last known photo IDs for quick comparison
   const lastKnownPhotoIds = useRef<Set<string>>(new Set());
+  // Track if initial setup has been done
+  const initialSetupDone = useRef<boolean>(false);
 
   // Batch size for virtualization - increased for better initial load
   const batchSize = 32; // Increased from 24 for better initial experience
@@ -48,7 +51,7 @@ const PhotoGrid: React.FC = () => {
   // Sorted photos using the context sort function
   const sortedPhotos = useMemo(() => sortPhotos(photos), [photos, sortOrder]);
   
-  // New function to check for new photos and update virtualized list accordingly
+  // New function with improved real-time updates for adding new photos
   const updateVirtualizedPhotosWithNewOnes = (newSortedPhotos: Photo[]) => {
     if (newSortedPhotos.length === 0) return;
     
@@ -58,56 +61,85 @@ const PhotoGrid: React.FC = () => {
     
     // Find truly new photos (not in current virtualized list)
     const newPhotosToAdd: VirtualizedPhoto[] = [];
+    let hasNewPhotos = false;
+    
     for (let i = 0; i < newSortedPhotos.length; i++) {
       const photo = newSortedPhotos[i];
-      if (!currentIds.has(photo.id) && !lastKnownPhotoIds.current.has(photo.id)) {
+      // Check if this is a new photo to add to virtualized list
+      if (!currentIds.has(photo.id)) {
         newPhotosToAdd.push({
           id: photo.id,
           index: i
         });
         // Update our set of known photo IDs
         lastKnownPhotoIds.current.add(photo.id);
+        hasNewPhotos = true;
       }
     }
     
     // If we found new photos, add them to the virtualized list at the beginning
-    if (newPhotosToAdd.length > 0) {
+    if (hasNewPhotos && newPhotosToAdd.length > 0) {
       console.log(`Adding ${newPhotosToAdd.length} new photos to the virtualized list`);
-      // Prepend new photos to the existing virtualized list
-      setVirtualizedPhotos(prev => [...newPhotosToAdd, ...prev]);
+      // Prepend new photos to the existing virtualized list and update indices
+      setVirtualizedPhotos(prev => {
+        // Create a fresh array with updated indices
+        const updatedPrevPhotos = prev.map((vp, idx) => ({
+          id: vp.id,
+          index: idx + newPhotosToAdd.length
+        }));
+        return [...newPhotosToAdd, ...updatedPrevPhotos];
+      });
+    }
+    
+    // Handle case where photos were removed
+    const deletedPhotos = Array.from(currentIds).filter(id => !newPhotoIds.has(id));
+    if (deletedPhotos.length > 0) {
+      console.log(`Removing ${deletedPhotos.length} deleted photos from the virtualized list`);
+      setVirtualizedPhotos(prev => 
+        prev.filter(vp => newPhotoIds.has(vp.id))
+           .map((vp, idx) => ({
+             ...vp,
+             index: idx
+           }))
+      );
     }
   };
   
-  // Calculate optimized layout for masonry grid
+  // Improved effect to handle new photos with immediate UI updates
   useEffect(() => {
     if (sortedPhotos.length > 0) {
-      // Update our set of known photo IDs with all current photos
       const currentIds = new Set(sortedPhotos.map(p => p.id));
-      lastKnownPhotoIds.current = currentIds;
+      const previousIds = new Set(lastKnownPhotoIds.current);
       
-      // Check if we have a different number of photos than before
-      const isDifferentLength = prevPhotosLength.current !== sortedPhotos.length;
-      
-      if (isDifferentLength) {
-        if (virtualizedPhotos.length === 0) {
-          // Initial batch of photos - load more initially
-          const initialBatch = sortedPhotos.slice(0, batchSize).map((photo, index) => ({
-            id: photo.id,
-            index,
-          }));
-          setVirtualizedPhotos(initialBatch);
-        } else if (sortedPhotos.length > prevPhotosLength.current) {
-          // New photos detected - prioritize them at the beginning
-          updateVirtualizedPhotosWithNewOnes(sortedPhotos);
+      // Check if there are new photos by comparing IDs
+      let hasNewPhotos = false;
+      for (const id of currentIds) {
+        if (!previousIds.has(id)) {
+          hasNewPhotos = true;
+          break;
         }
+      }
+      
+      // Handle different scenarios based on virtualized photos state
+      if (!initialSetupDone.current || virtualizedPhotos.length === 0) {
+        // Initial batch of photos - load more initially
+        const initialBatch = sortedPhotos.slice(0, batchSize).map((photo, index) => ({
+          id: photo.id,
+          index,
+        }));
+        setVirtualizedPhotos(initialBatch);
+        initialSetupDone.current = true;
         
-        prevPhotosLength.current = sortedPhotos.length;
-      } else {
-        // Even if length is the same, check for new photos by ID
+        // Set up the initial known photo IDs
+        lastKnownPhotoIds.current = currentIds;
+      } else if (hasNewPhotos || sortedPhotos.length !== prevPhotosLength.current) {
+        // New photos detected - update virtualized list immediately
         updateVirtualizedPhotosWithNewOnes(sortedPhotos);
       }
+      
+      prevPhotosLength.current = sortedPhotos.length;
     }
-  }, [sortedPhotos, virtualizedPhotos.length]);
+  }, [sortedPhotos]);
 
   // Handle sort order changes
   useEffect(() => {
@@ -133,7 +165,7 @@ const PhotoGrid: React.FC = () => {
       
       setVirtualizedPhotos(prev => [...prev, ...nextBatch]);
     }
-  }, [inView, sortedPhotos, virtualizedPhotos]);
+  }, [inView, sortedPhotos, virtualizedPhotos.length]);
 
   // Memoize the photo lookup for better performance
   const photoMap = useMemo(() => {
@@ -326,6 +358,7 @@ const PhotoGrid: React.FC = () => {
           opacity: 0;
           transform: translateY(20px);
           transition: opacity 0.4s ease-out, transform 0.4s ease-out;
+          will-change: opacity, transform;
         }
         .masonry-item.loaded {
           opacity: 1;
@@ -337,6 +370,7 @@ const PhotoGrid: React.FC = () => {
           overflow: hidden;
           box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
           transition: transform 0.3s ease, box-shadow 0.3s ease;
+          will-change: transform, box-shadow;
         }
         .masonry-content:hover {
           transform: translateY(-2px);
@@ -392,6 +426,25 @@ const PhotoGrid: React.FC = () => {
           to {
             opacity: 1;
             transform: translateY(0);
+          }
+        }
+
+        /* New animation for fresh images */
+        .fresh-image {
+          animation: pulseIn 0.8s ease-out;
+        }
+        
+        @keyframes pulseIn {
+          0% {
+            opacity: 0;
+            transform: scale(0.95);
+          }
+          50% {
+            opacity: 1;
+            transform: scale(1.05);
+          }
+          100% {
+            transform: scale(1);
           }
         }
         `}
