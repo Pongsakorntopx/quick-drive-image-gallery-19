@@ -12,7 +12,7 @@ import { createGoogleFontUrl } from "../config/fonts";
 import { getFolderUrl } from "../services/googleDriveService";
 
 const Index = () => {
-  const { apiConfig, refreshPhotos, settings, photos } = useAppContext();
+  const { apiConfig, refreshPhotos, settings } = useAppContext();
   const [isInitialLoad, setIsInitialLoad] = useState(true);
 
   useEffect(() => {
@@ -68,10 +68,8 @@ const Index = () => {
     }
   }
   
-  // Use direct image URL format matching the example
-  const qrCodeUrl = photos && photos.length > 0 
-    ? `https://lh3.googleusercontent.com/d/${photos[0].id}?t=${Date.now()}` 
-    : apiConfig.folderId ? getFolderUrl(apiConfig.folderId) : "";
+  // Generate the Google Drive folder URL for QR code
+  const folderUrl = apiConfig.folderId ? getFolderUrl(apiConfig.folderId) : "";
 
   return (
     <div className={`min-h-screen flex flex-col bg-background ${settings.font.class}`}>
@@ -106,7 +104,7 @@ const Index = () => {
       {settings.showHeaderQR && (!settings.bannerUrl || settings.bannerPosition !== "topRight") && (
         <div className="fixed top-24 right-8 z-40">
           <QRCode 
-            url={qrCodeUrl} 
+            url={folderUrl} 
             size={settings.headerQRCodeSize} 
             className="shadow-lg bg-white/90 backdrop-blur-sm"
           />

@@ -9,7 +9,7 @@ import { createGoogleFontUrl } from "../config/fonts";
 import { useTranslation } from "../hooks/useTranslation";
 
 const ViewerMode = () => {
-  const { apiConfig, refreshPhotos, settings, photos } = useAppContext();
+  const { apiConfig, refreshPhotos, settings } = useAppContext();
   const { t } = useTranslation();
 
   useEffect(() => {
@@ -59,11 +59,6 @@ const ViewerMode = () => {
         return "bottom-8 left-8";
     }
   }
-  
-  // Use direct image URL format matching the example
-  const qrCodeUrl = photos && photos.length > 0 
-    ? `https://lh3.googleusercontent.com/d/${photos[0].id}?t=${Date.now()}` 
-    : window.location.href;
 
   return (
     <div className={`min-h-screen flex flex-col bg-background ${settings.font.class}`}>
@@ -116,7 +111,7 @@ const ViewerMode = () => {
       {settings.showHeaderQR && (!settings.bannerUrl || settings.bannerPosition !== "topRight") && (
         <div className="fixed top-24 right-8 z-40 qr-code-container">
           <QRCode 
-            url={qrCodeUrl} 
+            url={window.location.href} 
             size={settings.headerQRCodeSize} 
             className="shadow-lg bg-white/90 backdrop-blur-sm rounded-lg"
           />
