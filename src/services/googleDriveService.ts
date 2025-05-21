@@ -4,7 +4,7 @@ import { ApiConfig, Photo } from "../types";
 const DRIVE_API_BASE_URL = "https://www.googleapis.com/drive/v3";
 const DEFAULT_FIELDS = "files(id,name,mimeType,thumbnailLink,webContentLink,createdTime,modifiedTime,size,iconLink)";
 const MAX_RESULTS = 1000; // Increase max results
-const CACHE_TIMEOUT = 10000; // Reduced to 10 seconds for more frequent updates
+const CACHE_TIMEOUT = 300000; // 5 minutes cache for API responses
 
 // Cache for API responses to reduce API calls
 let photosCache = {
@@ -42,9 +42,7 @@ export const fetchPhotosFromDrive = async (config: ApiConfig): Promise<Photo[]> 
         fields: `${DEFAULT_FIELDS}, nextPageToken`,
         key: config.apiKey,
         orderBy: "modifiedTime desc",
-        pageSize: "100",
-        // Add timestamp to prevent browser caching
-        _: now.toString()
+        pageSize: "100"
       });
       
       if (pageToken) {
@@ -54,9 +52,8 @@ export const fetchPhotosFromDrive = async (config: ApiConfig): Promise<Photo[]> 
       const response = await fetch(`${DRIVE_API_BASE_URL}/files?${params}`, {
         cache: 'no-store',
         headers: {
-          'Cache-Control': 'no-cache, no-store, must-revalidate',
-          'Pragma': 'no-cache',
-          'Expires': '0'
+          'Cache-Control': 'no-cache',
+          'Pragma': 'no-cache'
         }
       });
       

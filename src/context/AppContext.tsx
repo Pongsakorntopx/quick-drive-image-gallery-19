@@ -1,11 +1,10 @@
-
 import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from "react";
 import { ApiConfig, Photo, AppSettings } from "../types";
 import { useToast } from "@/components/ui/use-toast";
 import { allFonts } from "../config/fonts";
 import { AppContextType, SortOrder, defaultSortOrder } from "./AppContextTypes";
 import { predefinedThemes, defaultSettings } from "./AppDefaults";
-import { fetchAndProcessPhotos, sortPhotos as sortPhotoUtil, checkIfPhotosChanged } from "./PhotoUtils";
+import { fetchAndProcessPhotos, sortPhotos as sortPhotoUtil } from "./PhotoUtils";
 
 // Create the context
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -105,9 +104,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   // Last refresh timestamp
   const lastRefreshTimeRef = useRef<number>(Date.now());
   
-  // Previous photos reference for comparison
-  const previousPhotosRef = useRef<Photo[]>([]);
-  
   // Save API config to local storage
   useEffect(() => {
     localStorage.setItem("gdrive-app-config", JSON.stringify(apiConfig));
@@ -157,7 +153,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }
   };
 
-  // Improved refresh photos function with real-time updates
+  // Improved refresh photos function with optimized performance
   const refreshPhotos = useCallback(async (): Promise<boolean> => {
     if (!apiConfig.apiKey || !apiConfig.folderId) {
       setError(settings.language === "th" ? "กรุณาระบุ API Key และ Folder ID" : "Please provide API Key and Folder ID");
@@ -177,33 +173,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       const result = await fetchAndProcessPhotos(apiConfig, settings.language, sortOrder);
       
       if (result.success && result.data) {
-        // Check if photos have actually changed using the enhanced comparison function
-        const hasChanges = checkIfPhotosChanged(previousPhotosRef.current, result.data);
-        
-        if (hasChanges) {
-          console.log("Photos have changed, updating state...");
-          // Update photos state with the new data
-          setPhotos(result.data);
-          
-          // Show notification for new photos if there are more photos than before
-          if (notificationsEnabled && previousPhotosRef.current.length > 0 && result.data.length > previousPhotosRef.current.length) {
-            const newPhotoCount = result.data.length - previousPhotosRef.current.length;
-            toast({
-              title: settings.language === "th" 
-                ? `พบรูปภาพใหม่ ${newPhotoCount} รูป` 
-                : `Found ${newPhotoCount} new photos`,
-              description: settings.language === "th"
-                ? "รูปภาพใหม่ถูกเพิ่มเข้ามาและแสดงแล้ว"
-                : "New photos have been added and displayed",
-            });
-          }
-          
-          // Update the reference to current photos for future comparison
-          previousPhotosRef.current = result.data;
-        } else {
-          console.log("No changes detected in photos");
-        }
-        
+        // Update photos without showing notifications for new photos
+        setPhotos(result.data);
         setError(null);
         return true;
       } else {
@@ -223,7 +194,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     } finally {
       setIsLoading(false);
     }
-  }, [apiConfig, photos.length, settings.language, sortOrder, notificationsEnabled]);
+  }, [apiConfig, photos.length, settings.language, sortOrder]);
 
   // Helper function to clear existing interval
   const clearRefreshInterval = useCallback(() => {
