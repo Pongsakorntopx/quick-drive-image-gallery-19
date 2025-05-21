@@ -15,14 +15,6 @@ export const checkIfPhotosChanged = (oldPhotos: Photo[], newPhotos: Photo[]): bo
   return newPhotos.some(p => !oldIds.has(p.id));
 };
 
-// Improved function to find new photos
-export const findNewPhotos = (oldPhotos: Photo[], newPhotos: Photo[]): Photo[] => {
-  if (oldPhotos.length === 0) return newPhotos;
-  
-  const oldIds = new Set(oldPhotos.map(p => p.id));
-  return newPhotos.filter(photo => !oldIds.has(photo.id));
-};
-
 // Modified function to sort photos
 export const sortPhotos = (photos: Photo[], sortOrder: SortOrder): Photo[] => {
   return [...photos].sort((a, b) => {
@@ -59,17 +51,8 @@ export const fetchAndProcessPhotos = async (
   sortOrder: SortOrder
 ): Promise<PhotoFetchResult> => {
   try {
-    if (!apiConfig.apiKey || !apiConfig.folderId) {
-      console.error("API Key or Folder ID is missing");
-      return { success: false, error: language === "th" ? "กรุณาระบุ API Key และ Folder ID" : "API Key and Folder ID are required" };
-    }
-    
-    // Force cache invalidation by adding timestamp to parameters
-    const timestamp = Date.now();
-    console.log(`Fetching photos with timestamp: ${timestamp}`);
-    
     // Fetch photos from Google Drive
-    const photosData = await fetchPhotosFromDrive(apiConfig, timestamp);
+    const photosData = await fetchPhotosFromDrive(apiConfig);
     
     // Create a PhotoFetchResult object from the photos array
     const result: PhotoFetchResult = {
