@@ -1,3 +1,4 @@
+
 import { ApiConfig, Photo, AppSettings, Theme, Font, PhotoFetchResult, Language, ThemeMode } from "../types";
 
 // Context interface

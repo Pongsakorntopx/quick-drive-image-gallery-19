@@ -5,7 +5,7 @@ import { useToast } from "@/components/ui/use-toast";
 import { allFonts } from "../config/fonts";
 import { AppContextType, SortOrder, defaultSortOrder } from "./AppContextTypes";
 import { predefinedThemes, defaultSettings } from "./AppDefaults";
-import { fetchAndProcessPhotos, sortPhotos as sortPhotoUtil, findNewPhotos } from "./PhotoUtils";
+import { fetchAndProcessPhotos, sortPhotos as sortPhotoUtil, findNewPhotos, checkIfPhotosChanged } from "./PhotoUtils";
 
 // Create the context
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -154,7 +154,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }
   };
 
-  // Improved refresh photos function with optimized performance
+  // Improved refresh photos function with real-time updates
   const refreshPhotos = useCallback(async (): Promise<boolean> => {
     if (!apiConfig.apiKey || !apiConfig.folderId) {
       setError(settings.language === "th" ? "กรุณาระบุ API Key และ Folder ID" : "Please provide API Key and Folder ID");
@@ -174,16 +174,30 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       const result = await fetchAndProcessPhotos(apiConfig, settings.language, sortOrder);
       
       if (result.success && result.data) {
-        // Detect new photos without showing notifications
-        const newPhotos = findNewPhotos(photos, result.data);
+        // Check if the photos array has actually changed
+        const hasChanged = checkIfPhotosChanged(photos, result.data);
         
-        // If we have new photos or first load, immediately update the photos state
-        if (newPhotos.length > 0 || photos.length === 0) {
-          console.log(`Found ${newPhotos.length} new photos, updating display`);
+        if (hasChanged) {
+          // Find new photos
+          const newPhotos = findNewPhotos(photos, result.data);
+          
+          // Update photos state
           setPhotos(result.data);
+          
+          // Show notification for new photos if enabled
+          if (notificationsEnabled && newPhotos.length > 0 && photos.length > 0) {
+            toast({
+              title: settings.language === "th" 
+                ? `พบรูปภาพใหม่ ${newPhotos.length} รูป` 
+                : `Found ${newPhotos.length} new photos`,
+              description: settings.language === "th"
+                ? "รูปภาพใหม่ถูกเพิ่มเข้าไปในแกลเลอรีแล้ว"
+                : "New photos have been added to the gallery",
+            });
+          }
         }
         
-        // Always update state if there are any changes to ensure consistent display
+        // Clear any error state
         setError(null);
         return true;
       } else {
@@ -203,7 +217,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     } finally {
       setIsLoading(false);
     }
-  }, [apiConfig, photos, settings.language, sortOrder]);
+  }, [apiConfig, photos, settings.language, sortOrder, notificationsEnabled, toast]);
 
   // Helper function to clear existing interval
   const clearRefreshInterval = useCallback(() => {
