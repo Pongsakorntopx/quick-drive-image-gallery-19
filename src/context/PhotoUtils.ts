@@ -1,6 +1,6 @@
 
 import { Photo, PhotoFetchResult } from "../types";
-import { fetchPhotosFromDrive } from "../services/googleDriveService";
+import { fetchPhotosFromDrive, fetchLatestPhotoFromDrive } from "../services/googleDriveService";
 import { ApiConfig } from "../types";
 import { SortOrder } from "./AppContextTypes";
 
@@ -42,6 +42,21 @@ export const sortPhotos = (photos: Photo[], sortOrder: SortOrder): Photo[] => {
     
     return 0;
   });
+};
+
+// Check for new photos without fetching all photos
+export const checkForNewPhotos = async (
+  apiConfig: ApiConfig,
+  language: string
+): Promise<Photo | null> => {
+  try {
+    // Fetch only the latest photo to check if there's something new
+    const latestPhoto = await fetchLatestPhotoFromDrive(apiConfig);
+    return latestPhoto;
+  } catch (err) {
+    console.error("Error checking for new photos:", err);
+    return null;
+  }
 };
 
 // Function to fetch photos from Google Drive
@@ -93,4 +108,18 @@ export const findNewPhotos = (currentPhotos: Photo[], newPhotos: Photo[]): Photo
   
   const currentIds = new Set(currentPhotos.map(p => p.id));
   return newPhotos.filter(photo => !currentIds.has(photo.id));
+};
+
+// Insert a new photo at the beginning of the current photos array and maintain sorting
+export const insertNewPhoto = (currentPhotos: Photo[], newPhoto: Photo, sortOrder: SortOrder): Photo[] => {
+  // Check if the photo already exists
+  if (currentPhotos.some(p => p.id === newPhoto.id)) {
+    return currentPhotos;
+  }
+  
+  // Create a new array with the new photo at beginning
+  const updatedPhotos = [newPhoto, ...currentPhotos];
+  
+  // Sort according to current sort order
+  return sortPhotos(updatedPhotos, sortOrder);
 };

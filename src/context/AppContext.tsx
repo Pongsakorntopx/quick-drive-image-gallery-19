@@ -5,7 +5,14 @@ import { useToast } from "@/components/ui/use-toast";
 import { allFonts } from "../config/fonts";
 import { AppContextType, SortOrder, defaultSortOrder } from "./AppContextTypes";
 import { predefinedThemes, defaultSettings } from "./AppDefaults";
-import { fetchAndProcessPhotos, sortPhotos as sortPhotoUtil, checkIfPhotosChanged, findNewPhotos } from "./PhotoUtils";
+import { 
+  fetchAndProcessPhotos, 
+  sortPhotos as sortPhotoUtil, 
+  checkIfPhotosChanged, 
+  findNewPhotos, 
+  checkForNewPhotos,
+  insertNewPhoto
+} from "./PhotoUtils";
 
 // Create the context
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -47,6 +54,12 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [notificationsEnabled, setNotificationsEnabled] = useState<boolean>(() => {
     const savedNotificationsState = localStorage.getItem("gdrive-app-notifications");
     return savedNotificationsState ? JSON.parse(savedNotificationsState) : true;
+  });
+  
+  // Duration for toast notifications (seconds)
+  const [toastDuration, setToastDuration] = useState<number>(() => {
+    const savedDuration = localStorage.getItem("gdrive-app-toast-duration");
+    return savedDuration ? parseInt(savedDuration) : 3;
   });
 
   // Selected photo for the viewer
@@ -102,6 +115,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   // Reference for the refresh interval
   const refreshIntervalRef = useRef<number | null>(null);
   
+  // Reference for the quick check interval
+  const quickCheckIntervalRef = useRef<number | null>(null);
+  
   // Last refresh timestamp
   const lastRefreshTimeRef = useRef<number>(Date.now());
   
@@ -125,6 +141,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     localStorage.setItem("gdrive-app-notifications", JSON.stringify(notificationsEnabled));
   }, [notificationsEnabled]);
   
+  // Save toast duration to local storage
+  useEffect(() => {
+    localStorage.setItem("gdrive-app-toast-duration", toastDuration.toString());
+  }, [toastDuration]);
+  
   // Function to apply sort order to photos
   const sortPhotos = (photosToSort: Photo[]) => {
     return sortPhotoUtil(photosToSort, sortOrder);
@@ -136,6 +157,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     localStorage.removeItem("gdrive-app-settings");
     localStorage.removeItem("gdrive-app-sort");
     localStorage.removeItem("gdrive-app-notifications");
+    localStorage.removeItem("gdrive-app-toast-duration");
     
     setApiConfig({ apiKey: "", folderId: "" });
     setSettings(defaultSettings);
@@ -143,6 +165,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setSelectedPhoto(null);
     setSortOrder(defaultSortOrder);
     setNotificationsEnabled(true);
+    setToastDuration(3);
     
     if (notificationsEnabled) {
       toast({
@@ -150,9 +173,52 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         description: settings.language === "th" 
           ? "การตั้งค่าทั้งหมดถูกรีเซ็ตเป็นค่าเริ่มต้น" 
           : "All settings have been reset to defaults",
+        duration: toastDuration * 1000
       });
     }
   };
+
+  // Function to quickly check for new photos
+  const quickCheckNewPhotos = useCallback(async (): Promise<boolean> => {
+    if (!apiConfig.apiKey || !apiConfig.folderId) {
+      return false;
+    }
+    
+    try {
+      console.log("Quick checking for new photos at:", new Date().toISOString());
+      
+      // Check for new photos without fetching all
+      const latestPhoto = await checkForNewPhotos(apiConfig, settings.language);
+      
+      if (latestPhoto) {
+        console.log("New photo detected:", latestPhoto.name);
+        
+        // Add the new photo to the beginning of the array
+        const updatedPhotos = insertNewPhoto(photos, latestPhoto, sortOrder);
+        
+        // Update the photos state
+        setPhotos(updatedPhotos);
+        
+        // Show notification if enabled
+        if (notificationsEnabled) {
+          toast({
+            title: settings.language === "th" ? "พบรูปภาพใหม่" : "New photo detected",
+            description: settings.language === "th" 
+              ? `รูปภาพใหม่: ${latestPhoto.name}` 
+              : `New photo: ${latestPhoto.name}`,
+            duration: toastDuration * 1000
+          });
+        }
+        
+        return true;
+      }
+      
+      return false;
+    } catch (err) {
+      console.error("Error during quick check for new photos:", err);
+      return false;
+    }
+  }, [apiConfig, photos, settings.language, sortOrder, notificationsEnabled, toast, toastDuration]);
 
   // Improved refresh photos function with optimized performance
   const refreshPhotos = useCallback(async (): Promise<boolean> => {
@@ -187,6 +253,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
               toast({
                 title: settings.language === "th" ? `พบรูปภาพใหม่ ${newPhotos.length} รูป` : `Found ${newPhotos.length} new photos`,
                 description: settings.language === "th" ? "รูปภาพใหม่ถูกเพิ่มแล้ว" : "New photos have been added",
+                duration: toastDuration * 1000
               });
             }
             
@@ -217,49 +284,61 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     } finally {
       setIsLoading(false);
     }
-  }, [apiConfig, photos, settings.language, sortOrder, notificationsEnabled, toast]);
+  }, [apiConfig, photos, settings.language, sortOrder, notificationsEnabled, toast, toastDuration]);
 
-  // Helper function to clear existing interval
-  const clearRefreshInterval = useCallback(() => {
+  // Helper function to clear existing intervals
+  const clearIntervals = useCallback(() => {
     if (refreshIntervalRef.current !== null) {
       clearInterval(refreshIntervalRef.current);
       refreshIntervalRef.current = null;
+    }
+    if (quickCheckIntervalRef.current !== null) {
+      clearInterval(quickCheckIntervalRef.current);
+      quickCheckIntervalRef.current = null;
     }
   }, []);
 
   // Set up the refresh interval whenever settings.refreshInterval changes
   useEffect(() => {
     // Clear any existing interval
-    clearRefreshInterval();
+    clearIntervals();
     
     // Only set up interval if we have API configs
     if (apiConfig.apiKey && apiConfig.folderId) {
       // Initial fetch when component mounts or dependencies change
       refreshPhotos();
       
-      // Set up a new interval with the current refreshInterval (convert to milliseconds)
-      const intervalMs = Math.max(1000, settings.refreshInterval * 1000); 
-      console.log(`Setting up refresh interval: ${settings.refreshInterval} seconds`);
+      // Set up a full refresh interval
+      const fullRefreshMs = Math.max(10000, settings.refreshInterval * 1000); // Minimum 10 seconds
+      console.log(`Setting up full refresh interval: ${settings.refreshInterval} seconds`);
       
-      // Use more efficient setTimeout-based polling instead of setInterval
-      // This ensures we don't stack refreshes if one takes longer than the interval
-      const setupNextRefresh = () => {
+      // Set up a quick check interval - more frequent (every 5 seconds)
+      const quickCheckMs = Math.min(5000, settings.refreshInterval * 250); // 1/4 of full refresh but max 5 seconds
+      console.log(`Setting up quick check interval: ${quickCheckMs / 1000} seconds`);
+      
+      // Use more efficient setTimeout-based polling for full refresh
+      const setupNextFullRefresh = () => {
         refreshIntervalRef.current = window.setTimeout(async () => {
-          console.log(`Auto refresh triggered after ${settings.refreshInterval} seconds`);
+          console.log(`Full refresh triggered after ${settings.refreshInterval} seconds`);
           await refreshPhotos();
           // Set up the next refresh after this one completes
-          setupNextRefresh();
-        }, intervalMs);
+          setupNextFullRefresh();
+        }, fullRefreshMs);
       };
       
-      setupNextRefresh();
+      // Set up quick check interval
+      quickCheckIntervalRef.current = window.setInterval(async () => {
+        await quickCheckNewPhotos();
+      }, quickCheckMs);
+      
+      setupNextFullRefresh();
       
       // Clean up on unmount
       return () => {
-        clearRefreshInterval();
+        clearIntervals();
       };
     }
-  }, [apiConfig.apiKey, apiConfig.folderId, settings.refreshInterval, refreshPhotos, clearRefreshInterval]);
+  }, [apiConfig.apiKey, apiConfig.folderId, settings.refreshInterval, refreshPhotos, clearIntervals, quickCheckNewPhotos]);
 
   // Apply theme mode
   useEffect(() => {
@@ -294,6 +373,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setSortOrder,
     notificationsEnabled,
     setNotificationsEnabled,
+    toastDuration,
+    setToastDuration,
     sortPhotos
   };
 

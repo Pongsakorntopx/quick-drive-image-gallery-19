@@ -23,6 +23,8 @@ export interface AppContextType {
   setSortOrder: React.Dispatch<React.SetStateAction<SortOrder>>;
   notificationsEnabled: boolean;
   setNotificationsEnabled: React.Dispatch<React.SetStateAction<boolean>>;
+  toastDuration: number;
+  setToastDuration: React.Dispatch<React.SetStateAction<number>>;
   sortPhotos: (photos: Photo[]) => Photo[];
 }
 

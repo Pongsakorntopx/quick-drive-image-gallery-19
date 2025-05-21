@@ -4,13 +4,102 @@ import { ApiConfig, Photo } from "../types";
 const DRIVE_API_BASE_URL = "https://www.googleapis.com/drive/v3";
 const DEFAULT_FIELDS = "files(id,name,mimeType,thumbnailLink,webContentLink,createdTime,modifiedTime,size,iconLink)";
 const MAX_RESULTS = 1000; // Increase max results
-const CACHE_TIMEOUT = 300000; // 5 minutes cache for API responses
+const CACHE_TIMEOUT = 60000; // 1 minute cache for API responses (ลดลงจาก 5 นาที เหลือ 1 นาที เพื่อให้แสดงผลใหม่เร็วขึ้น)
+const PRIORITY_CACHE_TIMEOUT = 10000; // 10 seconds cache for latest photos
 
 // Cache for API responses to reduce API calls
 let photosCache = {
   timestamp: 0,
   photos: [] as Photo[],
   folderId: ''
+};
+
+// New cache for latest photo check (เพิ่มแคชสำหรับการตรวจสอบภาพล่าสุดแยกต่างหาก)
+let latestPhotoCache = {
+  timestamp: 0,
+  latestId: '',
+  folderId: ''
+};
+
+// Fetch only the latest photo for quick check
+export const fetchLatestPhotoFromDrive = async (config: ApiConfig): Promise<Photo | null> => {
+  try {
+    if (!config.apiKey || !config.folderId) {
+      return null;
+    }
+    
+    const now = Date.now();
+    
+    // Check if we have a valid recent cache for quick check
+    if (
+      latestPhotoCache.folderId === config.folderId &&
+      latestPhotoCache.latestId &&
+      now - latestPhotoCache.timestamp < PRIORITY_CACHE_TIMEOUT
+    ) {
+      return null; // No need to check so frequently
+    }
+
+    const params = new URLSearchParams({
+      q: `'${config.folderId}' in parents and mimeType contains 'image/' and trashed = false`,
+      fields: DEFAULT_FIELDS,
+      key: config.apiKey,
+      orderBy: "modifiedTime desc",
+      pageSize: "1" // เอาเฉพาะภาพล่าสุดหนึ่งภาพ
+    });
+
+    const response = await fetch(`${DRIVE_API_BASE_URL}/files?${params}`, {
+      cache: 'no-store',
+      headers: {
+        'Cache-Control': 'no-cache',
+        'Pragma': 'no-cache'
+      }
+    });
+    
+    if (!response.ok) {
+      return null;
+    }
+
+    const data = await response.json();
+    
+    if (!data.files || data.files.length === 0) {
+      return null;
+    }
+    
+    const latestFile = data.files[0];
+    
+    // Update latest photo cache
+    latestPhotoCache = {
+      timestamp: now,
+      latestId: latestFile.id,
+      folderId: config.folderId
+    };
+    
+    // ถ้าไม่มีภาพในแคชหลัก หรือ ภาพล่าสุดไม่ตรงกับภาพล่าสุดในแคชหลัก
+    if (photosCache.photos.length === 0 || photosCache.photos[0].id !== latestFile.id) {
+      // Process the latest photo
+      const latestPhoto = {
+        id: latestFile.id,
+        name: latestFile.name,
+        url: latestFile.thumbnailLink ? latestFile.thumbnailLink.replace('=s220', '=s1000') + `&t=${Date.now()}` : getPhotoUrl(latestFile.id),
+        thumbnailLink: latestFile.thumbnailLink ? latestFile.thumbnailLink + `&t=${Date.now()}` : `https://drive.google.com/thumbnail?id=${latestFile.id}&t=${Date.now()}`,
+        iconLink: latestFile.iconLink || `https://drive.google.com/icon?id=${latestFile.id}&t=${Date.now()}`,
+        mimeType: latestFile.mimeType,
+        createdTime: latestFile.createdTime,
+        modifiedTime: latestFile.modifiedTime,
+        size: latestFile.size || "Unknown",
+        webContentLink: latestFile.webContentLink || getPhotoDownloadUrl(latestFile.id),
+        fullSizeUrl: getDirectImageUrl(latestFile.id),
+        directDownloadUrl: getDirectDownloadUrl(latestFile.id)
+      };
+      
+      return latestPhoto;
+    }
+    
+    return null;
+  } catch (error) {
+    console.error("Error checking latest photo:", error);
+    return null;
+  }
 };
 
 export const fetchPhotosFromDrive = async (config: ApiConfig): Promise<Photo[]> => {
@@ -93,6 +182,15 @@ export const fetchPhotosFromDrive = async (config: ApiConfig): Promise<Photo[]> 
     
     // Only log when there's an actual change in the number of photos
     console.log(`Fetched ${processedPhotos.length} photos from Google Drive`);
+    
+    // Update latest photo cache if we have photos
+    if (processedPhotos.length > 0) {
+      latestPhotoCache = {
+        timestamp: now,
+        latestId: processedPhotos[0].id,
+        folderId: config.folderId
+      };
+    }
     
     // Update cache
     photosCache = {

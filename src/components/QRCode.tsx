@@ -1,5 +1,5 @@
 
-import React from "react";
+import React, { memo } from "react";
 import { QRCodeCanvas } from "qrcode.react";
 
 interface QRCodeProps {
@@ -8,13 +8,13 @@ interface QRCodeProps {
   className?: string;
 }
 
-export const QRCode: React.FC<QRCodeProps> = ({ url, size = 128, className = "" }) => {
+const QRCode: React.FC<QRCodeProps> = ({ url, size = 128, className = "" }) => {
   return (
     <div className={`bg-white p-2 rounded-md ${className}`}>
       <QRCodeCanvas
         value={url}
         size={size}
-        level="H"
+        level="M" // Change from H to M for faster rendering
         includeMargin={false}
         bgColor="#FFFFFF"
         fgColor="#000000"
@@ -29,4 +29,5 @@ export const QRCode: React.FC<QRCodeProps> = ({ url, size = 128, className = "" 
   );
 };
 
-export default QRCode;
+// Memoize for better performance
+export default memo(QRCode);
