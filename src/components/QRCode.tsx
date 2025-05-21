@@ -18,6 +18,12 @@ export const QRCode: React.FC<QRCodeProps> = ({ url, size = 128, className = "" 
         includeMargin={false}
         bgColor="#FFFFFF"
         fgColor="#000000"
+        imageSettings={{
+          src: "",
+          height: 24,
+          width: 24,
+          excavate: true
+        }}
       />
     </div>
   );

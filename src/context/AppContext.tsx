@@ -1,10 +1,11 @@
+
 import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from "react";
 import { ApiConfig, Photo, AppSettings } from "../types";
 import { useToast } from "@/components/ui/use-toast";
 import { allFonts } from "../config/fonts";
 import { AppContextType, SortOrder, defaultSortOrder } from "./AppContextTypes";
 import { predefinedThemes, defaultSettings } from "./AppDefaults";
-import { fetchAndProcessPhotos, sortPhotos as sortPhotoUtil } from "./PhotoUtils";
+import { fetchAndProcessPhotos, sortPhotos as sortPhotoUtil, checkIfPhotosChanged, findNewPhotos } from "./PhotoUtils";
 
 // Create the context
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -173,8 +174,30 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       const result = await fetchAndProcessPhotos(apiConfig, settings.language, sortOrder);
       
       if (result.success && result.data) {
-        // Update photos without showing notifications for new photos
-        setPhotos(result.data);
+        // Check if there are any new photos to add
+        if (photos.length > 0) {
+          const hasChanges = checkIfPhotosChanged(photos, result.data);
+          
+          if (hasChanges) {
+            // Find new photos 
+            const newPhotos = findNewPhotos(photos, result.data);
+            
+            // Notify if there are new photos
+            if (newPhotos.length > 0 && notificationsEnabled) {
+              toast({
+                title: settings.language === "th" ? `พบรูปภาพใหม่ ${newPhotos.length} รูป` : `Found ${newPhotos.length} new photos`,
+                description: settings.language === "th" ? "รูปภาพใหม่ถูกเพิ่มแล้ว" : "New photos have been added",
+              });
+            }
+            
+            // Update photos with the latest data
+            setPhotos(result.data);
+          }
+        } else {
+          // Initial load
+          setPhotos(result.data);
+        }
+        
         setError(null);
         return true;
       } else {
@@ -194,7 +217,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     } finally {
       setIsLoading(false);
     }
-  }, [apiConfig, photos.length, settings.language, sortOrder]);
+  }, [apiConfig, photos, settings.language, sortOrder, notificationsEnabled, toast]);
 
   // Helper function to clear existing interval
   const clearRefreshInterval = useCallback(() => {

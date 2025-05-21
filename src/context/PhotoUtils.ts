@@ -86,3 +86,11 @@ export const fetchAndProcessPhotos = async (
     };
   }
 };
+
+// Function to find new photos that aren't in the current list
+export const findNewPhotos = (currentPhotos: Photo[], newPhotos: Photo[]): Photo[] => {
+  if (currentPhotos.length === 0) return newPhotos;
+  
+  const currentIds = new Set(currentPhotos.map(p => p.id));
+  return newPhotos.filter(photo => !currentIds.has(photo.id));
+};
