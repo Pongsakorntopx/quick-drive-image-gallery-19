@@ -181,7 +181,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }
   };
 
-  // Improved function to quickly check for new photos
+  // Improved function to quickly check for new photos with enhanced real-time updates
   const quickCheckNewPhotos = useCallback(async (): Promise<boolean> => {
     if (!apiConfig.apiKey || !apiConfig.folderId) {
       return false;
@@ -206,10 +206,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           latestPhotoTimestampRef.current = newTimestamp;
         }
         
-        // Add the new photo to the beginning of the array
+        // Add the new photo to the beginning of the array and preserve sort order
         const updatedPhotos = insertNewPhoto(photos, latestPhoto, sortOrder);
         
-        // Update the photos state
+        // Update the photos state immediately without waiting for the next full refresh
         setPhotos(updatedPhotos);
         
         // Show notification if enabled
@@ -324,25 +324,25 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       // Initial fetch when component mounts or dependencies change
       refreshPhotos();
       
-      // Set up a full refresh interval (ปรับให้ต่ำสุดเป็น 5 วินาทีตามที่ต้องการ)
-      const fullRefreshMs = Math.max(5000, settings.refreshInterval * 1000); // Minimum 5 seconds
-      console.log(`Setting up full refresh interval: ${settings.refreshInterval} seconds`);
+      // Set up a full refresh interval (ลดลงเหลือ 3 วินาที เพื่อการตอบสนองดีขึ้น)
+      const fullRefreshMs = Math.max(3000, settings.refreshInterval * 1000); // Minimum 3 seconds
+      console.log(`Setting up full refresh interval: ${fullRefreshMs / 1000} seconds`);
       
-      // Set up a quick check interval - more frequent (every 3 seconds)
-      const quickCheckMs = Math.min(3000, settings.refreshInterval * 250); // 1/4 of full refresh but max 3 seconds
+      // Set up a quick check interval - more frequent (every 1.5 seconds)
+      const quickCheckMs = Math.min(1500, settings.refreshInterval * 250); // 1/4 of full refresh but max 1.5 seconds
       console.log(`Setting up quick check interval: ${quickCheckMs / 1000} seconds`);
       
       // Use more efficient setTimeout-based polling for full refresh
       const setupNextFullRefresh = () => {
         refreshIntervalRef.current = window.setTimeout(async () => {
-          console.log(`Full refresh triggered after ${settings.refreshInterval} seconds`);
+          console.log(`Full refresh triggered after ${fullRefreshMs / 1000} seconds`);
           await refreshPhotos();
           // Set up the next refresh after this one completes
           setupNextFullRefresh();
         }, fullRefreshMs);
       };
       
-      // Set up quick check interval - more aggressive for better responsiveness
+      // Set up quick check interval - more aggressive for better real-time updates
       quickCheckIntervalRef.current = window.setInterval(async () => {
         await quickCheckNewPhotos();
       }, quickCheckMs);

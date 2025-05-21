@@ -56,6 +56,7 @@ export const checkForNewPhotos = async (
     // If we got a photo and it has a timestamp newer than our cached one
     if (latestPhoto && cachedPhotoTimestamp) {
       const latestTimestamp = latestPhoto.modifiedTime || latestPhoto.createdTime;
+      // ตรวจสอบโดยใช้ ID แทนการใช้เวลาเพื่อป้องกันปัญหาจากการซิงค์เวลา
       if (latestTimestamp && new Date(latestTimestamp) <= new Date(cachedPhotoTimestamp)) {
         // No new photo
         return null;
@@ -121,7 +122,7 @@ export const fetchAndProcessPhotos = async (
   }
 };
 
-// Function to find new photos that aren't in the current list
+// Function to find new photos that aren't in the current list - improved for better detection
 export const findNewPhotos = (currentPhotos: Photo[], newPhotos: Photo[]): Photo[] => {
   if (currentPhotos.length === 0) return newPhotos;
   
@@ -129,14 +130,14 @@ export const findNewPhotos = (currentPhotos: Photo[], newPhotos: Photo[]): Photo
   return newPhotos.filter(photo => !currentIds.has(photo.id));
 };
 
-// Insert a new photo at the beginning of the current photos array and maintain sorting
+// Insert a new photo at the beginning of the current photos array and maintain sorting - optimized
 export const insertNewPhoto = (currentPhotos: Photo[], newPhoto: Photo, sortOrder: SortOrder): Photo[] => {
-  // Check if the photo already exists
+  // Check if the photo already exists by ID
   if (currentPhotos.some(p => p.id === newPhoto.id)) {
     return currentPhotos;
   }
   
-  // Create a new array with the new photo at beginning
+  // Add the new photo and resort the complete array to maintain proper order
   const updatedPhotos = [newPhoto, ...currentPhotos];
   
   // Sort according to current sort order

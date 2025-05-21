@@ -4,8 +4,8 @@ import { ApiConfig, Photo } from "../types";
 const DRIVE_API_BASE_URL = "https://www.googleapis.com/drive/v3";
 const DEFAULT_FIELDS = "files(id,name,mimeType,thumbnailLink,webContentLink,createdTime,modifiedTime,size,iconLink)";
 const MAX_RESULTS = 1000; // Increase max results
-const CACHE_TIMEOUT = 60000; // 1 minute cache for API responses (ลดลงจาก 5 นาที เหลือ 1 นาที เพื่อให้แสดงผลใหม่เร็วขึ้น)
-const PRIORITY_CACHE_TIMEOUT = 10000; // 10 seconds cache for latest photos
+const CACHE_TIMEOUT = 30000; // ลดเหลือ 30 วินาที (จากเดิม 60 วินาที) เพื่อให้แสดงผลใหม่เร็วขึ้น
+const PRIORITY_CACHE_TIMEOUT = 3000; // ลดเหลือ 3 วินาที (จากเดิม 10 วินาที) เพื่อตรวจสอบบ่อยขึ้น
 
 // Cache for API responses to reduce API calls
 let photosCache = {
@@ -21,7 +21,7 @@ let latestPhotoCache = {
   folderId: ''
 };
 
-// Fetch only the latest photo for quick check
+// Fetch only the latest photo for quick check - optimized for real-time updates
 export const fetchLatestPhotoFromDrive = async (config: ApiConfig): Promise<Photo | null> => {
   try {
     if (!config.apiKey || !config.folderId) {
@@ -30,7 +30,7 @@ export const fetchLatestPhotoFromDrive = async (config: ApiConfig): Promise<Phot
     
     const now = Date.now();
     
-    // Check if we have a valid recent cache for quick check
+    // Check if we have a valid recent cache for quick check - ลดเงื่อนไขเพื่อตรวจสอบบ่อยขึ้น
     if (
       latestPhotoCache.folderId === config.folderId &&
       latestPhotoCache.latestId &&
@@ -74,24 +74,28 @@ export const fetchLatestPhotoFromDrive = async (config: ApiConfig): Promise<Phot
       folderId: config.folderId
     };
     
-    // ถ้าไม่มีภาพในแคชหลัก หรือ ภาพล่าสุดไม่ตรงกับภาพล่าสุดในแคชหลัก
-    if (photosCache.photos.length === 0 || photosCache.photos[0].id !== latestFile.id) {
-      // Process the latest photo
-      const latestPhoto = {
-        id: latestFile.id,
-        name: latestFile.name,
-        url: latestFile.thumbnailLink ? latestFile.thumbnailLink.replace('=s220', '=s1000') + `&t=${Date.now()}` : getPhotoUrl(latestFile.id),
-        thumbnailLink: latestFile.thumbnailLink ? latestFile.thumbnailLink + `&t=${Date.now()}` : `https://drive.google.com/thumbnail?id=${latestFile.id}&t=${Date.now()}`,
-        iconLink: latestFile.iconLink || `https://drive.google.com/icon?id=${latestFile.id}&t=${Date.now()}`,
-        mimeType: latestFile.mimeType,
-        createdTime: latestFile.createdTime,
-        modifiedTime: latestFile.modifiedTime,
-        size: latestFile.size || "Unknown",
-        webContentLink: latestFile.webContentLink || getPhotoDownloadUrl(latestFile.id),
-        fullSizeUrl: getDirectImageUrl(latestFile.id),
-        directDownloadUrl: getDirectDownloadUrl(latestFile.id)
-      };
-      
+    // ปรับเงื่อนไขเพื่อให้ตรวจจับรูปภาพใหม่ได้ดีขึ้น - ไม่ต้องเช็คจากแคชหลัก
+    // Process the latest photo
+    const latestPhoto = {
+      id: latestFile.id,
+      name: latestFile.name,
+      url: latestFile.thumbnailLink ? latestFile.thumbnailLink.replace('=s220', '=s1000') + `&t=${Date.now()}` : getPhotoUrl(latestFile.id),
+      thumbnailLink: latestFile.thumbnailLink ? latestFile.thumbnailLink + `&t=${Date.now()}` : `https://drive.google.com/thumbnail?id=${latestFile.id}&t=${Date.now()}`,
+      iconLink: latestFile.iconLink || `https://drive.google.com/icon?id=${latestFile.id}&t=${Date.now()}`,
+      mimeType: latestFile.mimeType,
+      createdTime: latestFile.createdTime,
+      modifiedTime: latestFile.modifiedTime,
+      size: latestFile.size || "Unknown",
+      webContentLink: latestFile.webContentLink || getPhotoDownloadUrl(latestFile.id),
+      fullSizeUrl: getDirectImageUrl(latestFile.id),
+      directDownloadUrl: getDirectDownloadUrl(latestFile.id)
+    };
+    
+    // ตรวจสอบว่ารูปภาพนี้มีอยู่ในแคชหลักหรือไม่
+    const existsInCache = photosCache.photos.some(p => p.id === latestFile.id);
+    
+    // ส่งคืนรูปภาพล่าสุดเฉพาะเมื่อเป็นรูปภาพใหม่ที่ไม่อยู่ในแคช
+    if (!existsInCache) {
       return latestPhoto;
     }
     

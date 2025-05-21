@@ -39,6 +39,8 @@ const PhotoGrid: React.FC = () => {
 
   // Previous photos ref to prevent unnecessary updates
   const prevPhotosLength = useRef<number>(0);
+  // Keep track of the last known photo IDs for quick comparison
+  const lastKnownPhotoIds = useRef<Set<string>>(new Set());
 
   // Batch size for virtualization - increased for better initial load
   const batchSize = 32; // Increased from 24 for better initial experience
@@ -46,38 +48,66 @@ const PhotoGrid: React.FC = () => {
   // Sorted photos using the context sort function
   const sortedPhotos = useMemo(() => sortPhotos(photos), [photos, sortOrder]);
   
+  // New function to check for new photos and update virtualized list accordingly
+  const updateVirtualizedPhotosWithNewOnes = (newSortedPhotos: Photo[]) => {
+    if (newSortedPhotos.length === 0) return;
+    
+    // Create a set of existing IDs for quick lookup
+    const currentIds = new Set(virtualizedPhotos.map(vp => vp.id));
+    const newPhotoIds = new Set(newSortedPhotos.map(p => p.id));
+    
+    // Find truly new photos (not in current virtualized list)
+    const newPhotosToAdd: VirtualizedPhoto[] = [];
+    for (let i = 0; i < newSortedPhotos.length; i++) {
+      const photo = newSortedPhotos[i];
+      if (!currentIds.has(photo.id) && !lastKnownPhotoIds.current.has(photo.id)) {
+        newPhotosToAdd.push({
+          id: photo.id,
+          index: i
+        });
+        // Update our set of known photo IDs
+        lastKnownPhotoIds.current.add(photo.id);
+      }
+    }
+    
+    // If we found new photos, add them to the virtualized list at the beginning
+    if (newPhotosToAdd.length > 0) {
+      console.log(`Adding ${newPhotosToAdd.length} new photos to the virtualized list`);
+      // Prepend new photos to the existing virtualized list
+      setVirtualizedPhotos(prev => [...newPhotosToAdd, ...prev]);
+    }
+  };
+  
   // Calculate optimized layout for masonry grid
   useEffect(() => {
-    if (sortedPhotos.length > 0 && prevPhotosLength.current !== sortedPhotos.length) {
-      // Only update when the photos array actually changes
-      if (virtualizedPhotos.length === 0) {
-        // Initial batch of photos - load more initially
-        const initialBatch = sortedPhotos.slice(0, batchSize).map((photo, index) => ({
-          id: photo.id,
-          index,
-        }));
-        setVirtualizedPhotos(initialBatch);
-      } else if (sortedPhotos.length > prevPhotosLength.current) {
-        // New photos detected - prioritize them at the beginning
-        const newPhotosCount = sortedPhotos.length - prevPhotosLength.current;
-        const newPhotos = sortedPhotos.slice(0, newPhotosCount).map((photo, index) => ({
-          id: photo.id,
-          index,
-        }));
-        
-        // Add new photos at the beginning, keeping already loaded photos
-        const existingIds = new Set(newPhotos.map(p => p.id));
-        const updatedPhotos = [
-          ...newPhotos,
-          ...virtualizedPhotos.filter(vp => !existingIds.has(vp.id))
-        ];
-        
-        setVirtualizedPhotos(updatedPhotos);
-      }
+    if (sortedPhotos.length > 0) {
+      // Update our set of known photo IDs with all current photos
+      const currentIds = new Set(sortedPhotos.map(p => p.id));
+      lastKnownPhotoIds.current = currentIds;
       
-      prevPhotosLength.current = sortedPhotos.length;
+      // Check if we have a different number of photos than before
+      const isDifferentLength = prevPhotosLength.current !== sortedPhotos.length;
+      
+      if (isDifferentLength) {
+        if (virtualizedPhotos.length === 0) {
+          // Initial batch of photos - load more initially
+          const initialBatch = sortedPhotos.slice(0, batchSize).map((photo, index) => ({
+            id: photo.id,
+            index,
+          }));
+          setVirtualizedPhotos(initialBatch);
+        } else if (sortedPhotos.length > prevPhotosLength.current) {
+          // New photos detected - prioritize them at the beginning
+          updateVirtualizedPhotosWithNewOnes(sortedPhotos);
+        }
+        
+        prevPhotosLength.current = sortedPhotos.length;
+      } else {
+        // Even if length is the same, check for new photos by ID
+        updateVirtualizedPhotosWithNewOnes(sortedPhotos);
+      }
     }
-  }, [sortedPhotos, virtualizedPhotos]);
+  }, [sortedPhotos, virtualizedPhotos.length]);
 
   // Handle sort order changes
   useEffect(() => {
