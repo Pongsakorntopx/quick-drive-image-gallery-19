@@ -5,7 +5,7 @@ const DRIVE_API_BASE_URL = "https://www.googleapis.com/drive/v3";
 const DEFAULT_FIELDS = "files(id,name,mimeType,thumbnailLink,webContentLink,createdTime,modifiedTime,size,iconLink)";
 const MAX_RESULTS = 1000; // Increase max results
 const CACHE_TIMEOUT = 30000; // 30 วินาที
-const PRIORITY_CACHE_TIMEOUT = 2000; // ลดเหลือ 2 วินาที เพื่อตรวจสอบบ่อยยิ่งขึ้น
+const PRIORITY_CACHE_TIMEOUT = 1000; // ลดเหลือ 1 วินาที เพื่อตรวจสอบบ่อยยิ่งขึ้น
 
 // Cache for API responses to reduce API calls
 let photosCache = {
@@ -92,7 +92,7 @@ export const fetchLatestPhotoFromDrive = async (
       id: latestFile.id,
       name: latestFile.name,
       url: latestFile.thumbnailLink ? latestFile.thumbnailLink.replace('=s220', '=s1000') + `&t=${timestamp}` : getPhotoUrl(latestFile.id, timestamp),
-      thumbnailLink: latestFile.thumbnailLink ? latestFile.thumbnailLink + `&t=${timestamp}` : `https://drive.google.com/thumbnail?id=${latestFile.id}&t=${timestamp}`,
+      thumbnailLink: latestFile.thumbnailLink ? latestFile.thumbnailLink.replace('=s220', '=s400') + `&t=${timestamp}` : `https://drive.google.com/thumbnail?id=${latestFile.id}&t=${timestamp}`,
       iconLink: latestFile.iconLink || `https://drive.google.com/icon?id=${latestFile.id}&t=${timestamp}`,
       mimeType: latestFile.mimeType,
       createdTime: latestFile.createdTime,
@@ -105,7 +105,10 @@ export const fetchLatestPhotoFromDrive = async (
     
     // If the photo is new or force refresh is true, return it for immediate update
     if (!existsInCache || forceRefresh) {
-      console.log("New photo detected or force refresh requested:", latestFile.name);
+      console.log("🔔 New photo detected or force refresh requested:", latestFile.name);
+      
+      // Preload the image for instant display
+      preloadImage(latestPhoto.thumbnailLink);
       
       // Add to cache if it's a new photo
       if (!existsInCache) {
@@ -193,20 +196,29 @@ export const fetchPhotosFromDrive = async (
     const timestamp = Date.now();
     
     // Transform API response into Photo objects with multiple URL options
-    const processedPhotos = allPhotos.map((file: any) => ({
-      id: file.id,
-      name: file.name,
-      url: file.thumbnailLink ? file.thumbnailLink.replace('=s220', '=s1000') + `&t=${timestamp}` : getPhotoUrl(file.id, timestamp),
-      thumbnailLink: file.thumbnailLink ? file.thumbnailLink + `&t=${timestamp}` : `https://drive.google.com/thumbnail?id=${file.id}&t=${timestamp}`,
-      iconLink: file.iconLink || `https://drive.google.com/icon?id=${file.id}&t=${timestamp}`,
-      mimeType: file.mimeType,
-      createdTime: file.createdTime,
-      modifiedTime: file.modifiedTime,
-      size: file.size || "Unknown",
-      webContentLink: file.webContentLink || getPhotoDownloadUrl(file.id, timestamp),
-      fullSizeUrl: getDirectImageUrl(file.id, timestamp),
-      directDownloadUrl: getDirectDownloadUrl(file.id, timestamp)
-    }));
+    const processedPhotos = allPhotos.map((file: any) => {
+      const photo = {
+        id: file.id,
+        name: file.name,
+        url: file.thumbnailLink ? file.thumbnailLink.replace('=s220', '=s1000') + `&t=${timestamp}` : getPhotoUrl(file.id, timestamp),
+        thumbnailLink: file.thumbnailLink ? file.thumbnailLink.replace('=s220', '=s400') + `&t=${timestamp}` : `https://drive.google.com/thumbnail?id=${file.id}&t=${timestamp}`,
+        iconLink: file.iconLink || `https://drive.google.com/icon?id=${file.id}&t=${timestamp}`,
+        mimeType: file.mimeType,
+        createdTime: file.createdTime,
+        modifiedTime: file.modifiedTime,
+        size: file.size || "Unknown",
+        webContentLink: file.webContentLink || getPhotoDownloadUrl(file.id, timestamp),
+        fullSizeUrl: getDirectImageUrl(file.id, timestamp),
+        directDownloadUrl: getDirectDownloadUrl(file.id, timestamp)
+      };
+      
+      // Start preloading thumbnails for instant display
+      if (file.thumbnailLink) {
+        preloadImage(photo.thumbnailLink);
+      }
+      
+      return photo;
+    });
     
     console.log(`Fetched ${processedPhotos.length} photos from Google Drive`);
     
@@ -293,5 +305,5 @@ export const clearServiceCache = (): void => {
     folderId: ''
   };
   
-  console.log("Service cache cleared");
+  console.log("🧹 Service cache cleared");
 };

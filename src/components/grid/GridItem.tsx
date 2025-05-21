@@ -9,6 +9,7 @@ interface GridItemProps {
   gridLayout: string;
   gridRows: number;
   index: number;
+  isNew?: boolean; // Flag for new photos
 }
 
 const GridItem: React.FC<GridItemProps> = ({ 
@@ -16,7 +17,8 @@ const GridItem: React.FC<GridItemProps> = ({
   onClick, 
   gridLayout,
   gridRows,
-  index
+  index,
+  isNew = false // Default to false
 }) => {
   // Get grid item class based on settings
   const getGridItemClass = () => {
@@ -26,12 +28,12 @@ const GridItem: React.FC<GridItemProps> = ({
           height: gridRows === 1 ? "calc(100vh - 120px)" : `calc((100vh - 120px) / ${gridRows})`,
           minHeight: "150px"
         };
-        return { className: "", style: gridRowStyles };
+        return { className: isNew ? "new-photo" : "", style: gridRowStyles };
       }
-      return { className: "", style: {} };
+      return { className: isNew ? "new-photo" : "", style: {} };
     }
     return { 
-      className: "masonry-item", 
+      className: `masonry-item ${isNew ? "new-photo" : ""}`, 
       style: { 
         opacity: 0, 
         transform: "translateY(20px)", 
@@ -78,9 +80,10 @@ const GridItem: React.FC<GridItemProps> = ({
         animationDelay: `${Math.min(index * 0.05, 1)}s`
       }}
       data-index={index}
+      data-new={isNew ? "true" : "false"}
     >
       <div 
-        className={getContentClass()}
+        className={`${getContentClass()} ${isNew ? "fresh-image" : ""}`}
         style={getImageContainerStyle()}
       >
         <ImageCard 
