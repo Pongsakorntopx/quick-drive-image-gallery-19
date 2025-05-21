@@ -8,11 +8,13 @@ import { getFolderUrl } from "../services/googleDriveService";
 import { useTranslation } from "../hooks/useTranslation";
 
 const Header: React.FC = () => {
-  const { settings, setIsSettingsOpen, apiConfig, setSettings } = useAppContext();
+  const { settings, setIsSettingsOpen, apiConfig, setSettings, photos } = useAppContext();
   const { t } = useTranslation();
   
-  // Generate the Google Drive folder URL
-  const folderUrl = apiConfig.folderId ? getFolderUrl(apiConfig.folderId) : "";
+  // ใช้ URL ของภาพแรกในคอลเลกชัน หรือ fallback ไปที่ URL ของโฟลเดอร์
+  const qrCodeUrl = photos && photos.length > 0 
+    ? (photos[0].fullSizeUrl || photos[0].url) 
+    : apiConfig.folderId ? getFolderUrl(apiConfig.folderId) : "";
 
   // Toggle dark/light mode
   const toggleThemeMode = () => {
@@ -58,7 +60,7 @@ const Header: React.FC = () => {
               <QrCode className="h-4 w-4" />
             </Button>
             <div className="absolute right-0 top-full mt-1 hidden group-hover:block z-50">
-              <QRCode url={folderUrl} size={settings.headerQRCodeSize} className="shadow-lg bg-white/90 backdrop-blur-sm" />
+              <QRCode url={qrCodeUrl} size={settings.headerQRCodeSize} className="shadow-lg bg-white/90 backdrop-blur-sm" />
             </div>
           </div>
 

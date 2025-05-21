@@ -9,7 +9,7 @@ import { createGoogleFontUrl } from "../config/fonts";
 import { useTranslation } from "../hooks/useTranslation";
 
 const ViewerMode = () => {
-  const { apiConfig, refreshPhotos, settings } = useAppContext();
+  const { apiConfig, refreshPhotos, settings, photos } = useAppContext();
   const { t } = useTranslation();
 
   useEffect(() => {
@@ -59,6 +59,11 @@ const ViewerMode = () => {
         return "bottom-8 left-8";
     }
   }
+  
+  // ใช้ URL ของภาพแรกในคอลเลกชันถ้ามี หรือมิฉะนั้นใช้ URL ของหน้าปัจจุบัน
+  const qrCodeUrl = photos && photos.length > 0 
+    ? (photos[0].fullSizeUrl || photos[0].url) 
+    : window.location.href;
 
   return (
     <div className={`min-h-screen flex flex-col bg-background ${settings.font.class}`}>
@@ -111,7 +116,7 @@ const ViewerMode = () => {
       {settings.showHeaderQR && (!settings.bannerUrl || settings.bannerPosition !== "topRight") && (
         <div className="fixed top-24 right-8 z-40 qr-code-container">
           <QRCode 
-            url={window.location.href} 
+            url={qrCodeUrl} 
             size={settings.headerQRCodeSize} 
             className="shadow-lg bg-white/90 backdrop-blur-sm rounded-lg"
           />
