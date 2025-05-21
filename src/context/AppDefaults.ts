@@ -27,21 +27,21 @@ export const defaultSettings: AppSettings = {
     subtitle: 16,
     body: 14,
   },
-  qrCodeSize: 64,
-  headerQRCodeSize: 48,
-  viewerQRCodeSize: 80, // Default size for image viewer QR code
+  qrCodeSize: 64,                // General QR code size for gallery items
+  headerQRCodeSize: 48,          // QR code size in header 
+  viewerQRCodeSize: 80,          // QR code size for image viewer
   refreshInterval: 5,
   qrCodePosition: "bottomRight",
   showHeaderQR: false,
   logoUrl: null,
   logoSize: 100,
   bannerUrl: null,
-  bannerSize: 200, // Changed from string to number (pixels)
+  bannerSize: 200,
   bannerPosition: "bottomLeft",
   autoScrollEnabled: false,
   autoScrollDirection: "down",
   autoScrollSpeed: 10,
-  gridLayout: "googlePhotos", // Set to googlePhotos as the default layout
+  gridLayout: "googlePhotos",
   gridColumns: 4,
   gridRows: 0,
 };
