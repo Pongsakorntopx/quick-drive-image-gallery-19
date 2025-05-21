@@ -9,6 +9,7 @@ import SettingsDialog from "../components/SettingsDialog";
 import QRCode from "../components/QRCode";
 import AutoScroll from "../components/AutoScroll";
 import { createGoogleFontUrl } from "../config/fonts";
+import { getFolderUrl } from "../services/googleDriveService";
 
 const Index = () => {
   const { apiConfig, refreshPhotos, settings } = useAppContext();
@@ -66,6 +67,9 @@ const Index = () => {
         return "bottom-8 left-8";
     }
   }
+  
+  // Generate the Google Drive folder URL for QR code
+  const folderUrl = apiConfig.folderId ? getFolderUrl(apiConfig.folderId) : "";
 
   return (
     <div className={`min-h-screen flex flex-col bg-background ${settings.font.class}`}>
@@ -96,11 +100,11 @@ const Index = () => {
         </div>
       )}
       
-      {/* Header QR code if enabled */}
+      {/* Header QR code if enabled - ปรับตำแหน่งให้อยู่ชิดขวามากขึ้น */}
       {settings.showHeaderQR && (!settings.bannerUrl || settings.bannerPosition !== "topRight") && (
-        <div className="fixed top-24 right-24 z-40">
+        <div className="fixed top-24 right-8 z-40">
           <QRCode 
-            url={window.location.href} 
+            url={folderUrl} 
             size={settings.headerQRCodeSize} 
             className="shadow-lg bg-white/90 backdrop-blur-sm"
           />

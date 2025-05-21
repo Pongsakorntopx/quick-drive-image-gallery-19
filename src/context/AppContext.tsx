@@ -324,8 +324,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       // Initial fetch when component mounts or dependencies change
       refreshPhotos();
       
-      // Set up a full refresh interval
-      const fullRefreshMs = Math.max(10000, settings.refreshInterval * 1000); // Minimum 10 seconds
+      // Set up a full refresh interval (ปรับให้ต่ำสุดเป็น 5 วินาทีตามที่ต้องการ)
+      const fullRefreshMs = Math.max(5000, settings.refreshInterval * 1000); // Minimum 5 seconds
       console.log(`Setting up full refresh interval: ${settings.refreshInterval} seconds`);
       
       // Set up a quick check interval - more frequent (every 3 seconds)
