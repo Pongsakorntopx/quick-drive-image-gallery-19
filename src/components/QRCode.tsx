@@ -11,8 +11,8 @@ interface QRCodeProps {
   level?: "L" | "M" | "Q" | "H";
   includeMargin?: boolean;
   imageSettings?: {
-    src: string; // Changed from optional to required to match the QRCodeCanvas component's expectations
-    height?: number;
+    src: string; // Required to match the QRCodeCanvas component's expectations
+    height: number; // Changed from optional to required to match the QRCodeCanvas component's expectations
     width?: number;
     excavate?: boolean;
   };
