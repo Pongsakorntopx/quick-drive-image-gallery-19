@@ -35,7 +35,10 @@ const GridItem: React.FC<GridItemProps> = ({
       style: { 
         opacity: 0, 
         transform: "translateY(20px)", 
-        transition: "opacity 0.3s ease, transform 0.3s ease" 
+        transition: "opacity 0.4s ease-out, transform 0.4s ease-out",
+        // Add staggered animation delay based on index
+        animationDelay: `${Math.min(index * 0.05, 1)}s`,
+        transitionDelay: `${Math.min(index * 0.05, 1)}s`
       } 
     };
   };
@@ -53,7 +56,7 @@ const GridItem: React.FC<GridItemProps> = ({
     if ((gridLayout === "fixed" || gridLayout === "custom") && 
         gridRows && gridRows > 0) {
       // Use index for staggered animation
-      const animationDelay = `${index * 0.05}s`;
+      const animationDelay = `${Math.min(index * 0.05, 1)}s`;
       return { 
         height: '100%',
         objectFit: 'cover' as const,
@@ -61,7 +64,7 @@ const GridItem: React.FC<GridItemProps> = ({
       };
     }
     return {
-      animationDelay: `${index * 0.05}s`
+      animationDelay: `${Math.min(index * 0.05, 1)}s`
     };
   };
 
@@ -72,7 +75,7 @@ const GridItem: React.FC<GridItemProps> = ({
       className={`${gridItemProps.className} animate-fade-in`}
       style={{
         ...gridItemProps.style,
-        animationDelay: `${index * 0.05}s`
+        animationDelay: `${Math.min(index * 0.05, 1)}s`
       }}
       data-index={index}
     >

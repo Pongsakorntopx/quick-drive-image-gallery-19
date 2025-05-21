@@ -37,16 +37,18 @@ const GridContainer = forwardRef<HTMLDivElement, GridContainerProps>(({
         display: "grid", 
         gridTemplateColumns: "repeat(auto-fill, minmax(250px, 1fr))",
         gridAutoRows: "10px",
-        gridGap: "16px"
+        gridGap: "16px",
+        willChange: "transform", // Performance optimization
+        contain: "layout style paint" // More performance optimizations
       };
     }
     return {};
   };
 
-  // Prefetch images for better performance
+  // Prefetch images for better performance - increased number of images to preload
   const prefetchImages = useMemo(() => {
-    // Only prefetch a reasonable number of images
-    const imagesToPrefetch = photos.slice(0, 10);
+    // Increased to prefetch more images for smoother scrolling
+    const imagesToPrefetch = photos.slice(0, 20);
     
     return (
       <div style={{ display: 'none' }}>
@@ -56,11 +58,13 @@ const GridContainer = forwardRef<HTMLDivElement, GridContainerProps>(({
             rel="prefetch"
             href={photo.thumbnailLink || `https://drive.google.com/thumbnail?id=${photo.id}`}
             as="image"
+            crossOrigin="anonymous"
+            fetchpriority="high"
           />
         ))}
       </div>
     );
-  }, [photos.slice(0, 10).map(p => p.id).join(',')]);
+  }, [photos.slice(0, 20).map(p => p.id).join(',')]);
 
   return (
     <>

@@ -1,5 +1,5 @@
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Photo } from "../types";
 import { useAppContext } from "../context/AppContext";
 import QRCode from "./QRCode";
@@ -18,6 +18,24 @@ const ImageCard: React.FC<ImageCardProps> = ({ photo, onClick }) => {
   const [imageLoaded, setImageLoaded] = useState(false);
   const [isHovering, setIsHovering] = useState(false);
   const isMobile = useIsMobile();
+  
+  // Preload high-quality image
+  const [highQualityLoaded, setHighQualityLoaded] = useState(false);
+  const [highQualityUrl, setHighQualityUrl] = useState<string | null>(null);
+  
+  // Preload high-quality version in the background
+  useEffect(() => {
+    if (photo.thumbnailLink) {
+      const img = new Image();
+      // Try to get a higher quality thumbnail for smoother experience
+      const betterQualityUrl = photo.thumbnailLink.replace('=s220', '=s400');
+      img.onload = () => {
+        setHighQualityUrl(betterQualityUrl);
+        setHighQualityLoaded(true);
+      };
+      img.src = betterQualityUrl;
+    }
+  }, [photo.thumbnailLink]);
 
   const handleDownload = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -83,13 +101,18 @@ const ImageCard: React.FC<ImageCardProps> = ({ photo, onClick }) => {
     >
       {/* Image and overlay */}
       <div className="relative overflow-hidden w-full h-full flex items-center justify-center">
-        {/* Use thumbnailLink for grid display with fallback options */}
+        {/* Initial low-quality image for fast loading */}
         <img
           src={photo.thumbnailLink || `https://drive.google.com/thumbnail?id=${photo.id}`}
           alt={photo.name}
           loading="lazy"
           className={`w-full h-auto object-contain transition-transform duration-500 ${(isHovering || isMobile) ? 'scale-105' : ''} ${imageLoaded ? 'opacity-100' : 'opacity-0'}`}
           onLoad={handleImageLoad}
+          style={{
+            transform: `scale(${isHovering || isMobile ? '1.05' : '1'})`,
+            opacity: imageLoaded ? 1 : 0,
+            transition: 'transform 0.5s ease, opacity 0.3s ease'
+          }}
           onError={(e) => {
             // Fallback chain if thumbnail fails
             const imgElement = e.target as HTMLImageElement;
@@ -101,6 +124,20 @@ const ImageCard: React.FC<ImageCardProps> = ({ photo, onClick }) => {
             }
           }}
         />
+        
+        {/* High-quality image that fades in when loaded */}
+        {highQualityLoaded && highQualityUrl && (
+          <img
+            src={highQualityUrl}
+            alt={photo.name}
+            className="absolute inset-0 w-full h-auto object-contain transition-opacity duration-300 opacity-0"
+            style={{
+              opacity: highQualityLoaded ? 1 : 0,
+              transform: `scale(${isHovering || isMobile ? '1.05' : '1'})`,
+              transition: 'transform 0.5s ease, opacity 0.3s ease'
+            }}
+          />
+        )}
         
         {/* Loader placeholder until image loads */}
         {!imageLoaded && (

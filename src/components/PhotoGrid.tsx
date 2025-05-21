@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useRef, useState, useMemo } from "react";
 import { useAppContext } from "../context/AppContext";
 import { useInView } from "react-intersection-observer";
 import { Photo } from "../types";
@@ -34,47 +34,50 @@ const PhotoGrid: React.FC = () => {
   const { ref: loadMoreRef, inView } = useInView({
     threshold: 0.1,
     triggerOnce: false,
+    rootMargin: '300px', // Increased to preload more images
   });
 
   // Previous photos ref to prevent unnecessary updates
   const prevPhotosLength = useRef<number>(0);
 
   // Batch size for virtualization - increased for better initial load
-  const batchSize = 24; 
-
+  const batchSize = 32; // Increased from 24 for better initial experience
+  
   // Sorted photos using the context sort function
-  const sortedPhotos = sortPhotos(photos);
+  const sortedPhotos = useMemo(() => sortPhotos(photos), [photos, sortOrder]);
   
   // Calculate optimized layout for masonry grid
   useEffect(() => {
     if (sortedPhotos.length > 0 && prevPhotosLength.current !== sortedPhotos.length) {
       // Only update when the photos array actually changes
       if (virtualizedPhotos.length === 0) {
-        // Initial batch of photos
+        // Initial batch of photos - load more initially
         const initialBatch = sortedPhotos.slice(0, batchSize).map((photo, index) => ({
           id: photo.id,
           index,
         }));
         setVirtualizedPhotos(initialBatch);
-      } else {
-        // Keep existing photos and add any new ones if needed
-        const existingIds = new Set(virtualizedPhotos.map(vp => vp.id));
-        const newBatch = sortedPhotos
-          .slice(0, Math.max(virtualizedPhotos.length, batchSize))
-          .map((photo, index) => ({
-            id: photo.id,
-            index,
-          }))
-          .filter(vp => !existingIds.has(vp.id));
-          
-        if (newBatch.length > 0) {
-          setVirtualizedPhotos(prev => [...newBatch, ...prev]); // New photos at the beginning
-        }
+      } else if (sortedPhotos.length > prevPhotosLength.current) {
+        // New photos detected - prioritize them at the beginning
+        const newPhotosCount = sortedPhotos.length - prevPhotosLength.current;
+        const newPhotos = sortedPhotos.slice(0, newPhotosCount).map((photo, index) => ({
+          id: photo.id,
+          index,
+        }));
+        
+        // Add new photos at the beginning, keeping already loaded photos
+        const existingIds = new Set(newPhotos.map(p => p.id));
+        const updatedPhotos = [
+          ...newPhotos,
+          ...virtualizedPhotos.filter(vp => !existingIds.has(vp.id))
+        ];
+        
+        setVirtualizedPhotos(updatedPhotos);
       }
       
       prevPhotosLength.current = sortedPhotos.length;
     }
-  }, [sortedPhotos]);
+  }, [sortedPhotos, virtualizedPhotos]);
 
   // Handle sort order changes
   useEffect(() => {
@@ -88,7 +91,7 @@ const PhotoGrid: React.FC = () => {
     }
   }, [sortOrder]);
 
-  // Handle lazy loading of more photos when scrolling
+  // Handle lazy loading of more photos when scrolling - improved with preloading
   useEffect(() => {
     if (inView && sortedPhotos.length > virtualizedPhotos.length) {
       const nextBatch = sortedPhotos
@@ -103,7 +106,7 @@ const PhotoGrid: React.FC = () => {
   }, [inView, sortedPhotos, virtualizedPhotos]);
 
   // Memoize the photo lookup for better performance
-  const photoMap = React.useMemo(() => {
+  const photoMap = useMemo(() => {
     const map = new Map();
     sortedPhotos.forEach(photo => {
       map.set(photo.id, photo);
@@ -135,7 +138,7 @@ const PhotoGrid: React.FC = () => {
               );
               itemElement.style.gridRowEnd = `span ${rowSpan}`;
               
-              // Add fade-in effect when loaded
+              // Improve fade-in animation
               if (!itemElement.classList.contains('loaded')) {
                 itemElement.classList.add('loaded');
                 itemElement.style.opacity = "1";
@@ -146,7 +149,7 @@ const PhotoGrid: React.FC = () => {
         }
       };
 
-      // Use IntersectionObserver for improved lazy loading images
+      // Use IntersectionObserver with bigger margins for improved lazy loading images
       const observer = new IntersectionObserver((entries) => {
         entries.forEach(entry => {
           if (entry.isIntersecting) {
@@ -157,7 +160,14 @@ const PhotoGrid: React.FC = () => {
               preloadImg.onload = () => {
                 if (img) {
                   img.src = img.dataset.src as string;
-                  img.onload = resizeAllGridItems;
+                  img.onload = () => {
+                    resizeAllGridItems();
+                    // Add loaded class to parent for animation
+                    const parentItem = img.closest('.masonry-item');
+                    if (parentItem) {
+                      parentItem.classList.add('image-loaded');
+                    }
+                  };
                   delete img.dataset.src;
                 }
               };
@@ -167,7 +177,7 @@ const PhotoGrid: React.FC = () => {
           }
         });
       }, {
-        rootMargin: '200px', // Start loading before visible
+        rootMargin: '300px', // Load images further outside viewport (increased from 200px)
         threshold: 0.01
       });
       
@@ -187,8 +197,10 @@ const PhotoGrid: React.FC = () => {
       // Initial layout calculation
       resizeAllGridItems();
       
-      // Add a small delay for initial layout calculation to ensure images are measured correctly
-      setTimeout(resizeAllGridItems, 100);
+      // Improved initial layout timing with multiple passes
+      setTimeout(resizeAllGridItems, 50);
+      setTimeout(resizeAllGridItems, 300);
+      setTimeout(resizeAllGridItems, 1000);
 
       return () => {
         if (gridRef.current) {
@@ -275,11 +287,19 @@ const PhotoGrid: React.FC = () => {
           grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
           grid-auto-rows: 10px;
           grid-gap: 16px;
+          will-change: transform; /* Performance optimization */
         }
         .masonry-item {
           margin-bottom: 0;
           overflow: hidden;
           border-radius: 8px;
+          opacity: 0;
+          transform: translateY(20px);
+          transition: opacity 0.4s ease-out, transform 0.4s ease-out;
+        }
+        .masonry-item.loaded {
+          opacity: 1;
+          transform: translateY(0);
         }
         .masonry-content {
           width: 100%;
@@ -291,6 +311,11 @@ const PhotoGrid: React.FC = () => {
         .masonry-content:hover {
           transform: translateY(-2px);
           box-shadow: 0 5px 15px rgba(0, 0, 0, 0.12);
+        }
+
+        /* Improved animation for newly loaded images */
+        .image-loaded img {
+          animation: fadeIn 0.5s ease-out forwards;
         }
 
         /* Responsive grid for different screen sizes */
@@ -322,10 +347,11 @@ const PhotoGrid: React.FC = () => {
           }
         }
 
-        /* New animation classes */
+        /* Enhanced animation classes */
         .animate-fade-in {
           animation: fadeIn 0.5s ease-out forwards;
           opacity: 0;
+          will-change: opacity, transform; /* Performance hint */
         }
         
         @keyframes fadeIn {

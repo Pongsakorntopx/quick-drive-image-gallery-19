@@ -44,14 +44,25 @@ export const sortPhotos = (photos: Photo[], sortOrder: SortOrder): Photo[] => {
   });
 };
 
-// Check for new photos without fetching all photos
+// Enhanced check for new photos without fetching all photos
 export const checkForNewPhotos = async (
   apiConfig: ApiConfig,
-  language: string
+  language: string,
+  cachedPhotoTimestamp?: string // Add timestamp parameter
 ): Promise<Photo | null> => {
   try {
     // Fetch only the latest photo to check if there's something new
-    const latestPhoto = await fetchLatestPhotoFromDrive(apiConfig);
+    const latestPhoto = await fetchLatestPhotoFromDrive(apiConfig, cachedPhotoTimestamp);
+    
+    // If we got a photo and it has a timestamp newer than our cached one
+    if (latestPhoto && cachedPhotoTimestamp) {
+      const latestTimestamp = latestPhoto.modifiedTime || latestPhoto.createdTime;
+      if (latestTimestamp && new Date(latestTimestamp) <= new Date(cachedPhotoTimestamp)) {
+        // No new photo
+        return null;
+      }
+    }
+    
     return latestPhoto;
   } catch (err) {
     console.error("Error checking for new photos:", err);
@@ -76,6 +87,15 @@ export const fetchAndProcessPhotos = async (
     };
     
     if (result.success && result.data) {
+      // Process thumbnails to ensure higher quality
+      result.data = result.data.map(photo => {
+        if (photo.thumbnailLink) {
+          // Try to get a higher quality thumbnail
+          photo.thumbnailLink = photo.thumbnailLink.replace('=s220', '=s400');
+        }
+        return photo;
+      });
+      
       // Sort photos based on current sort order
       const sortedPhotos = sortPhotos(result.data, sortOrder);
       
@@ -122,4 +142,18 @@ export const insertNewPhoto = (currentPhotos: Photo[], newPhoto: Photo, sortOrde
   
   // Sort according to current sort order
   return sortPhotos(updatedPhotos, sortOrder);
+};
+
+// Get the latest timestamp from a photos array
+export const getLatestPhotoTimestamp = (photos: Photo[]): string | undefined => {
+  if (photos.length === 0) return undefined;
+  
+  // Find the photo with the most recent modification time
+  return photos.reduce((latest, photo) => {
+    const photoTime = photo.modifiedTime || photo.createdTime;
+    if (!latest) return photoTime;
+    if (!photoTime) return latest;
+    
+    return new Date(photoTime) > new Date(latest) ? photoTime : latest;
+  }, undefined as string | undefined);
 };
