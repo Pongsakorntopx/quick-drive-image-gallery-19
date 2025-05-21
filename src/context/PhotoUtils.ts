@@ -4,15 +4,25 @@ import { fetchPhotosFromDrive } from "../services/googleDriveService";
 import { ApiConfig } from "../types";
 import { SortOrder } from "./AppContextTypes";
 
-// Helper function to check if photos array has actually changed
+// Enhanced helper function to check if photos array has actually changed
 export const checkIfPhotosChanged = (oldPhotos: Photo[], newPhotos: Photo[]): boolean => {
+  // If the length is different, photos have definitely changed
   if (oldPhotos.length !== newPhotos.length) {
     return true;
   }
   
-  // Check if any IDs are different
-  const oldIds = new Set(oldPhotos.map(p => p.id));
-  return newPhotos.some(p => !oldIds.has(p.id));
+  // Create a map of existing photo IDs for faster lookup
+  const oldPhotoMap = new Map(oldPhotos.map(p => [p.id, p]));
+  
+  // Check if any new photos aren't in the old collection or have different modified times
+  for (const newPhoto of newPhotos) {
+    const oldPhoto = oldPhotoMap.get(newPhoto.id);
+    if (!oldPhoto || oldPhoto.modifiedTime !== newPhoto.modifiedTime) {
+      return true;
+    }
+  }
+  
+  return false;
 };
 
 // Modified function to sort photos

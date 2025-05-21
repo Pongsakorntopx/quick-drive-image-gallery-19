@@ -6,18 +6,38 @@ interface QRCodeProps {
   url: string;
   size?: number;
   className?: string;
+  bgColor?: string;
+  fgColor?: string;
+  level?: "L" | "M" | "Q" | "H";
+  includeMargin?: boolean;
+  imageSettings?: {
+    src?: string;
+    height?: number;
+    width?: number;
+    excavate?: boolean;
+  };
 }
 
-export const QRCode: React.FC<QRCodeProps> = ({ url, size = 128, className = "" }) => {
+export const QRCode: React.FC<QRCodeProps> = ({ 
+  url, 
+  size = 128, 
+  className = "",
+  bgColor = "#FFFFFF",
+  fgColor = "#000000", 
+  level = "H",
+  includeMargin = false,
+  imageSettings
+}) => {
   return (
     <div className={`bg-white p-2 rounded-md ${className}`}>
       <QRCodeCanvas
         value={url}
         size={size}
-        level="H"
-        includeMargin={false}
-        bgColor="#FFFFFF"
-        fgColor="#000000"
+        level={level}
+        includeMargin={includeMargin}
+        bgColor={bgColor}
+        fgColor={fgColor}
+        imageSettings={imageSettings}
       />
     </div>
   );
