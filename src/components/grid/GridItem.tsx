@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from "react";
+import React from "react";
 import { Photo } from "@/types";
 import ImageCard from "../ImageCard";
 
@@ -9,7 +9,6 @@ interface GridItemProps {
   gridLayout: string;
   gridRows: number;
   index: number;
-  isNew?: boolean; // เพิ่ม prop สำหรับรูปใหม่
 }
 
 const GridItem: React.FC<GridItemProps> = ({ 
@@ -17,24 +16,8 @@ const GridItem: React.FC<GridItemProps> = ({
   onClick, 
   gridLayout,
   gridRows,
-  index,
-  isNew = false
+  index
 }) => {
-  // State to control the highlight animation
-  const [showHighlight, setShowHighlight] = useState(isNew);
-  
-  // Effect to handle highlight animation timing
-  useEffect(() => {
-    if (isNew) {
-      setShowHighlight(true);
-      const timer = setTimeout(() => {
-        setShowHighlight(false);
-      }, 3000); // Remove the highlight after 3 seconds
-      
-      return () => clearTimeout(timer);
-    }
-  }, [isNew, photo.id]);
-  
   // Get grid item class based on settings
   const getGridItemClass = () => {
     if (gridLayout === "fixed" || gridLayout === "custom") {
@@ -62,58 +45,47 @@ const GridItem: React.FC<GridItemProps> = ({
 
   // Get content class based on settings
   const getContentClass = () => {
-    const baseClass = gridLayout === "fixed" || gridLayout === "custom" ? "h-full" : "masonry-content";
-    
-    // Add highlight class for new photos
-    return showHighlight ? `${baseClass} new-photo-highlight` : baseClass;
+    if (gridLayout === "fixed" || gridLayout === "custom") {
+      return "h-full";
+    }
+    return "masonry-content";
   };
 
   // Calculate aspect ratio for fixed grid
   const getImageContainerStyle = () => {
-    const baseStyle: React.CSSProperties = {
-      animationDelay: `${Math.min(index * 0.05, 1)}s`
-    };
-    
     if ((gridLayout === "fixed" || gridLayout === "custom") && 
         gridRows && gridRows > 0) {
+      // Use index for staggered animation
+      const animationDelay = `${Math.min(index * 0.05, 1)}s`;
       return { 
-        ...baseStyle,
         height: '100%',
         objectFit: 'cover' as const,
+        animationDelay
       };
     }
-    
-    return baseStyle;
+    return {
+      animationDelay: `${Math.min(index * 0.05, 1)}s`
+    };
   };
 
   const gridItemProps = getGridItemClass();
   
-  // Generate a unique key for images to prevent stale cache issues
-  const uniqueKey = `${photo.id}_${Date.now()}`;
-  
   return (
     <div 
-      className={`${gridItemProps.className} animate-fade-in ${isNew ? 'fresh-image' : ''}`}
+      className={`${gridItemProps.className} animate-fade-in`}
       style={{
         ...gridItemProps.style,
         animationDelay: `${Math.min(index * 0.05, 1)}s`
       }}
       data-index={index}
-      data-photo-id={photo.id}
     >
       <div 
         className={getContentClass()}
         style={getImageContainerStyle()}
       >
         <ImageCard 
-          photo={{
-            ...photo,
-            // เพิ่ม timestamp ในลิงก์ภาพเพื่อป้องกันแคช
-            thumbnailLink: photo.thumbnailLink ? `${photo.thumbnailLink.split('&t=')[0]}&t=${Date.now()}_${photo.id}` : photo.thumbnailLink,
-            url: photo.url ? `${photo.url.split('&t=')[0]}&t=${Date.now()}_${photo.id}` : photo.url,
-          }} 
+          photo={photo} 
           onClick={() => onClick(photo)} 
-          key={uniqueKey}
         />
       </div>
     </div>

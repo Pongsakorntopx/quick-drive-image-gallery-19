@@ -15,7 +15,6 @@ import SortControls from "./grid/SortControls";
 interface VirtualizedPhoto {
   id: string;
   index: number;
-  isNew?: boolean; // เพิ่ม flag เพื่อทำเอฟเฟคสำหรับรูปใหม่
 }
 
 const PhotoGrid: React.FC = () => {
@@ -70,8 +69,7 @@ const PhotoGrid: React.FC = () => {
       if (!currentIds.has(photo.id)) {
         newPhotosToAdd.push({
           id: photo.id,
-          index: i,
-          isNew: true // Mark as new for animation effect
+          index: i
         });
         // Update our set of known photo IDs
         lastKnownPhotoIds.current.add(photo.id);
@@ -87,16 +85,10 @@ const PhotoGrid: React.FC = () => {
         // Create a fresh array with updated indices
         const updatedPrevPhotos = prev.map((vp, idx) => ({
           id: vp.id,
-          index: idx + newPhotosToAdd.length,
-          isNew: vp.isNew // Preserve isNew flag
+          index: idx + newPhotosToAdd.length
         }));
         return [...newPhotosToAdd, ...updatedPrevPhotos];
       });
-      
-      // กระตุ้น full refresh ให้เร็วขึ้นหลังพบภาพใหม่
-      setTimeout(() => {
-        refreshPhotos();
-      }, 500);
     }
     
     // Handle case where photos were removed
@@ -117,9 +109,7 @@ const PhotoGrid: React.FC = () => {
   useEffect(() => {
     if (sortedPhotos.length > 0) {
       const currentIds = new Set(sortedPhotos.map(p => p.id));
-      const previousIds = lastKnownPhotoIds.current.size > 0 
-        ? new Set(lastKnownPhotoIds.current) 
-        : new Set();
+      const previousIds = new Set(lastKnownPhotoIds.current);
       
       // Check if there are new photos by comparing IDs
       let hasNewPhotos = false;
@@ -141,7 +131,7 @@ const PhotoGrid: React.FC = () => {
         initialSetupDone.current = true;
         
         // Set up the initial known photo IDs
-        sortedPhotos.forEach(p => lastKnownPhotoIds.current.add(p.id));
+        lastKnownPhotoIds.current = currentIds;
       } else if (hasNewPhotos || sortedPhotos.length !== prevPhotosLength.current) {
         // New photos detected - update virtualized list immediately
         updateVirtualizedPhotosWithNewOnes(sortedPhotos);
@@ -149,7 +139,7 @@ const PhotoGrid: React.FC = () => {
       
       prevPhotosLength.current = sortedPhotos.length;
     }
-  }, [sortedPhotos, refreshPhotos]);
+  }, [sortedPhotos]);
 
   // Handle sort order changes
   useEffect(() => {
@@ -322,13 +312,12 @@ const PhotoGrid: React.FC = () => {
               
               return photo ? (
                 <GridItem 
-                  key={`${vPhoto.id}_${Date.now()}`} // เปลี่ยน key ให้ไม่ซ้ำกันเพื่อบังคับให้ render ใหม่
+                  key={vPhoto.id} 
                   photo={photo} 
                   onClick={setSelectedPhoto}
                   gridLayout={settings.gridLayout}
                   gridRows={settings.gridRows}
                   index={idx}
-                  isNew={vPhoto.isNew} // ส่งค่า isNew ให้ GridItem
                 />
               ) : null;
             })}
@@ -458,23 +447,6 @@ const PhotoGrid: React.FC = () => {
             transform: scale(1);
           }
         }
-        
-        /* เพิ่ม animation สำหรับรูปใหม่ */
-        .new-photo-highlight {
-          animation: highlightNewPhoto 2s ease-in-out;
-          box-shadow: 0 0 15px 5px rgba(59, 130, 246, 0.8);
-          position: relative;
-          z-index: 10;
-        }
-        
-        @keyframes highlightNewPhoto {
-          0%, 100% {
-            box-shadow: 0 0 8px 2px rgba(59, 130, 246, 0);
-          }
-          50% {
-            box-shadow: 0 0 15px 5px rgba(59, 130, 246, 0.8);
-          }
-        }
         `}
       </style>
     </div>
@@ -482,4 +454,3 @@ const PhotoGrid: React.FC = () => {
 };
 
 export default PhotoGrid;
-

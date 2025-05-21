@@ -1,6 +1,6 @@
 
 import { Photo, PhotoFetchResult } from "../types";
-import { fetchPhotosFromDrive, fetchLatestPhotoFromDrive, clearServiceCache as clearServiceCacheFromDrive } from "../services/googleDriveService";
+import { fetchPhotosFromDrive, fetchLatestPhotoFromDrive } from "../services/googleDriveService";
 import { ApiConfig } from "../types";
 import { SortOrder } from "./AppContextTypes";
 
@@ -49,7 +49,7 @@ export const checkForNewPhotos = async (
   apiConfig: ApiConfig,
   language: string,
   cachedPhotoTimestamp?: string,
-  forceRefresh: boolean = false 
+  forceRefresh: boolean = false // Add forceRefresh parameter
 ): Promise<Photo | null> => {
   try {
     // Fetch only the latest photo to check if there's something new
@@ -84,7 +84,7 @@ export const fetchAndProcessPhotos = async (
   apiConfig: ApiConfig, 
   language: string,
   sortOrder: SortOrder,
-  forceRefresh: boolean = false 
+  forceRefresh: boolean = false // Add forceRefresh parameter
 ): Promise<PhotoFetchResult> => {
   try {
     // Fetch photos from Google Drive with force refresh option
@@ -167,9 +167,3 @@ export const getLatestPhotoTimestamp = (photos: Photo[]): string | undefined => 
     return new Date(photoTime) > new Date(latest) ? photoTime : latest;
   }, undefined as string | undefined);
 };
-
-// Clear service cache - เพิ่มฟังก์ชันนี้เพื่อให้ AppContext.tsx สามารถใช้งานได้
-export const clearServiceCache = (): void => {
-  clearServiceCacheFromDrive();
-};
-
