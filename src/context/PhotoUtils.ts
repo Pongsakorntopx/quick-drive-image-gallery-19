@@ -1,4 +1,3 @@
-
 import { Photo, PhotoFetchResult } from "../types";
 import { fetchPhotosFromDrive, fetchLatestPhotoFromDrive } from "../services/googleDriveService";
 import { ApiConfig } from "../types";
@@ -52,7 +51,7 @@ export const checkForNewPhotos = async (
 ): Promise<Photo | null> => {
   try {
     // Fetch only the latest photo to check if there's something new
-    const latestPhoto = await fetchLatestPhotoFromDrive(apiConfig, cachedPhotoTimestamp);
+    const latestPhoto = await fetchLatestPhotoFromDrive(apiConfig);
     
     // If we got a photo and it has a timestamp newer than our cached one
     if (latestPhoto && cachedPhotoTimestamp) {

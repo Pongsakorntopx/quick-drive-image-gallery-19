@@ -1,3 +1,4 @@
+
 export interface ApiConfig {
   apiKey: string;
   folderId: string;
@@ -12,6 +13,7 @@ export interface Photo {
   directDownloadUrl?: string;
   fullSizeUrl?: string;
   modifiedTime?: string;
+  createdTime?: string;
   iconLink?: string; // Added iconLink property
 }
 

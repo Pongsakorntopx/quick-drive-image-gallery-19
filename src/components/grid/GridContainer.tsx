@@ -1,4 +1,3 @@
-
 import React, { useMemo, forwardRef } from "react";
 import { Photo } from "@/types";
 
@@ -59,7 +58,7 @@ const GridContainer = forwardRef<HTMLDivElement, GridContainerProps>(({
             href={photo.thumbnailLink || `https://drive.google.com/thumbnail?id=${photo.id}`}
             as="image"
             crossOrigin="anonymous"
-            fetchpriority="high"
+            fetchPriority="high"
           />
         ))}
       </div>
