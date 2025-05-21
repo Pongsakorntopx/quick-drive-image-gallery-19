@@ -1,3 +1,4 @@
+
 import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from "react";
 import { ApiConfig, Photo, AppSettings } from "../types";
 import { useToast } from "@/components/ui/use-toast";
@@ -128,9 +129,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   // Flag to track if new photos have been detected during auto-check
   const newPhotosDetectedRef = useRef<boolean>(false);
   
-  // New state for tracking pending photo updates
-  const [pendingPhoto, setPendingPhoto] = useState<Photo | null>(null);
-  
   // Save API config to local storage
   useEffect(() => {
     localStorage.setItem("gdrive-app-config", JSON.stringify(apiConfig));
@@ -191,44 +189,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }
   };
 
-  // Ultra-responsive function to update photos state with new photos immediately
-  const addNewPhotoInstantly = useCallback((newPhoto: Photo) => {
-    console.log("👁️ Instantly adding new photo:", newPhoto.name);
-    
-    // First check if the photo already exists
-    setPhotos(prevPhotos => {
-      if (prevPhotos.some(p => p.id === newPhoto.id)) {
-        return prevPhotos; // Photo already exists, no change
-      }
-      
-      // Insert at beginning and maintain sort order
-      const updatedPhotos = insertNewPhoto([...prevPhotos], newPhoto, sortOrder);
-      
-      // Show notification for the new photo if enabled
-      if (notificationsEnabled) {
-        toast({
-          title: settings.language === "th" ? "มีภาพใหม่เพิ่มเข้ามา! 🎉" : "New photo added! 🎉",
-          description: settings.language === "th" 
-            ? `"${newPhoto.name}" ถูกเพิ่มเข้าในคลังภาพแล้ว` 
-            : `"${newPhoto.name}" has been added to the gallery`,
-          duration: toastDuration * 1000
-        });
-      }
-      
-      return updatedPhotos;
-    });
-    
-    // Reset pending photo
-    setPendingPhoto(null);
-  }, [settings.language, sortOrder, notificationsEnabled, toast, toastDuration]);
-
-  // Effect to add pending photo when detected
-  useEffect(() => {
-    if (pendingPhoto) {
-      addNewPhotoInstantly(pendingPhoto);
-    }
-  }, [pendingPhoto, addNewPhotoInstantly]);
-
   // Improved function to quickly check for new photos with instant updates
   const quickCheckNewPhotos = useCallback(async (): Promise<boolean> => {
     if (!apiConfig.apiKey || !apiConfig.folderId) {
@@ -236,8 +196,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }
     
     try {
-      // Shorter log to reduce noise
-      console.log("🔎 Quick check for new photos...");
+      console.log("Quick checking for new photos at:", new Date().toISOString());
       
       // Check for new photos without fetching all, passing the latest timestamp
       // and forcing a refresh if new photos were previously detected
@@ -249,7 +208,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       );
       
       if (latestPhoto) {
-        console.log("🌟 New photo detected in quick check!", latestPhoto.name);
+        console.log("New photo detected in quick check:", latestPhoto.name);
         
         // Update latest timestamp reference
         const newTimestamp = latestPhoto.modifiedTime || latestPhoto.createdTime;
@@ -257,11 +216,25 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           latestPhotoTimestampRef.current = newTimestamp;
         }
         
-        // Set pending photo to trigger instant update
-        setPendingPhoto(latestPhoto);
+        // Add the new photo to the beginning of the array and preserve sort order
+        const updatedPhotos = insertNewPhoto(photos, latestPhoto, sortOrder);
         
         // Set the flag to indicate new photos have been detected
         newPhotosDetectedRef.current = true;
+        
+        // Update the photos state immediately
+        setPhotos(updatedPhotos);
+        
+        // Show notification if enabled
+        if (notificationsEnabled) {
+          toast({
+            title: settings.language === "th" ? "พบรูปภาพใหม่" : "New photo detected",
+            description: settings.language === "th" 
+              ? `รูปภาพใหม่: ${latestPhoto.name}` 
+              : `New photo: ${latestPhoto.name}`,
+            duration: toastDuration * 1000
+          });
+        }
         
         return true;
       }
@@ -271,7 +244,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       console.error("Error during quick check for new photos:", err);
       return false;
     }
-  }, [apiConfig, settings.language]);
+  }, [apiConfig, photos, settings.language, sortOrder, notificationsEnabled, toast, toastDuration]);
 
   // Improved refresh photos function with optimized performance
   const refreshPhotos = useCallback(async (): Promise<boolean> => {
@@ -286,7 +259,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         setIsLoading(true);
       }
       
-      console.log("♻️ Full refresh at:", new Date().toLocaleTimeString());
+      console.log("Refreshing photos at:", new Date().toISOString());
       lastRefreshTimeRef.current = Date.now();
       
       // Reset the new photos detected flag before a full refresh
@@ -321,18 +294,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
                 description: settings.language === "th" ? "รูปภาพใหม่ถูกเพิ่มแล้ว" : "New photos have been added",
                 duration: toastDuration * 1000
               });
-              
-              // Add each new photo instantly with a small delay between each
-              // This creates a nice staggering effect
-              newPhotos.forEach((photo, index) => {
-                setTimeout(() => {
-                  setPendingPhoto(photo);
-                }, index * 100); // 100ms delay between each photo
-              });
-            } else {
-              // If no new photos or notifications disabled, still update the photo list
-              setPhotos(result.data);
             }
+            
+            // Update photos with the latest data
+            setPhotos(result.data);
           }
         } else {
           // Initial load
@@ -384,15 +349,16 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       
       // Set up a full refresh interval (ลดลงเหลือ 2 วินาที เพื่อการตอบสนองดีขึ้น)
       const fullRefreshMs = Math.max(2000, settings.refreshInterval * 1000); // Minimum 2 seconds
-      console.log(`⏱️ Full refresh interval: ${fullRefreshMs / 1000}s`);
+      console.log(`Setting up full refresh interval: ${fullRefreshMs / 1000} seconds`);
       
-      // Set up a quick check interval - much more frequent (every 500ms)
-      const quickCheckMs = Math.min(500, settings.refreshInterval * 200); // 1/5 of full refresh but max 500ms
-      console.log(`⏱️ Quick check interval: ${quickCheckMs}ms`);
+      // Set up a quick check interval - even more frequent (every 800ms)
+      const quickCheckMs = Math.min(800, settings.refreshInterval * 200); // 1/5 of full refresh but max 800ms
+      console.log(`Setting up quick check interval: ${quickCheckMs / 1000} seconds`);
       
       // Use more efficient setTimeout-based polling for full refresh
       const setupNextFullRefresh = () => {
         refreshIntervalRef.current = window.setTimeout(async () => {
+          console.log(`Full refresh triggered after ${fullRefreshMs / 1000} seconds`);
           await refreshPhotos();
           // Set up the next refresh after this one completes
           setupNextFullRefresh();
