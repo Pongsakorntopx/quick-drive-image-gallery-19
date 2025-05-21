@@ -1,5 +1,6 @@
 
-import { ApiConfig, Photo, AppSettings, Theme, Font, PhotoFetchResult, Language, ThemeMode } from "../types";
+import { ApiConfig, Photo, Theme, Font, PhotoFetchResult, Language, ThemeMode } from "../types";
+import type { AppSettings } from "../types";
 
 // Context interface
 export interface AppContextType {
@@ -37,34 +38,3 @@ export const defaultSortOrder: SortOrder = {
   field: "modifiedTime",
   direction: "desc",
 };
-
-// AppSettings interface
-export interface AppSettings {
-  themeMode: 'light' | 'dark';
-  theme: Theme;
-  font: Font;
-  fontSize: {
-    title: number;
-    subtitle: number;
-    body: number;
-  };
-  titleSize: number;
-  qrCodeSize: number;
-  headerQRCodeSize: number;
-  viewerQRCodeSize: number;
-  language: "en" | "th";
-  galleryName: string;
-  showGalleryName: boolean;
-  logoUrl: string;
-  showLogo: boolean;
-  logoSize: number;
-  bannerUrl: string;
-  bannerPosition: "bottomLeft" | "bottomRight" | "topLeft" | "topRight";
-  bannerSize: number;
-  showHeaderQR: boolean;
-  refreshInterval: number;
-  gridLayout: "googlePhotos" | "fixed" | "auto" | "custom";
-  gridColumns: number;
-  gridRows: number;
-  qrCodePosition: "bottomRight" | "bottomLeft" | "topRight" | "topLeft" | "center";
-}
