@@ -155,9 +155,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   }, [toastDuration]);
   
   // Function to apply sort order to photos
-  const sortPhotos = (photosToSort: Photo[]) => {
+  const sortPhotos = useCallback((photosToSort: Photo[]) => {
     return sortPhotoUtil(photosToSort, sortOrder);
-  };
+  }, [sortOrder]);
   
   // Function to reset all data
   const resetAllData = () => {
@@ -196,15 +196,17 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }
     
     try {
-      console.log("Quick checking for new photos at:", new Date().toISOString());
+      // Use forceRefresh every few checks for better real-time updates - ปรับปรุงให้ข้อมูลมาใหม่
+      const forceRefresh = Math.random() < 0.3; // มีโอกาส 30% ที่จะบังคับรีเฟรช
+      
+      console.log(`Quick checking for new photos (forceRefresh=${forceRefresh}) at:`, new Date().toISOString());
       
       // Check for new photos without fetching all, passing the latest timestamp
-      // and forcing a refresh if new photos were previously detected
       const latestPhoto = await checkForNewPhotos(
         apiConfig, 
         settings.language, 
         latestPhotoTimestampRef.current,
-        newPhotosDetectedRef.current // Force refresh if new photos were detected
+        forceRefresh || newPhotosDetectedRef.current
       );
       
       if (latestPhoto) {
@@ -259,8 +261,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         setIsLoading(true);
       }
       
-      console.log("Refreshing photos at:", new Date().toISOString());
-      lastRefreshTimeRef.current = Date.now();
+      const now = Date.now();
+      console.log(`Refreshing photos at: ${new Date(now).toISOString()}, time since last refresh: ${(now - lastRefreshTimeRef.current) / 1000}s`);
+      lastRefreshTimeRef.current = now;
       
       // Reset the new photos detected flag before a full refresh
       const wasNewPhotosDetected = newPhotosDetectedRef.current;
@@ -272,7 +275,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         apiConfig, 
         settings.language, 
         sortOrder, 
-        wasNewPhotosDetected
+        wasNewPhotosDetected || Math.random() < 0.3 // 30% โอกาสบังคับให้รีเฟรช
       );
       
       if (result.success && result.data) {
@@ -344,15 +347,18 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     
     // Only set up interval if we have API configs
     if (apiConfig.apiKey && apiConfig.folderId) {
+      // Force initial cache clear and fetch when first set up
+      clearServiceCache();
+      
       // Initial fetch when component mounts or dependencies change
       refreshPhotos();
       
-      // Set up a full refresh interval (ลดลงเหลือ 2 วินาที เพื่อการตอบสนองดีขึ้น)
-      const fullRefreshMs = Math.max(2000, settings.refreshInterval * 1000); // Minimum 2 seconds
+      // Set up a full refresh interval - เร็วขึ้นกว่าเดิม
+      const fullRefreshMs = Math.max(1500, settings.refreshInterval * 1000); // Minimum 1.5 seconds
       console.log(`Setting up full refresh interval: ${fullRefreshMs / 1000} seconds`);
       
-      // Set up a quick check interval - even more frequent (every 800ms)
-      const quickCheckMs = Math.min(800, settings.refreshInterval * 200); // 1/5 of full refresh but max 800ms
+      // Set up a quick check interval - even more frequent (every 600ms)
+      const quickCheckMs = Math.min(600, settings.refreshInterval * 200); // 1/5 of full refresh but max 600ms
       console.log(`Setting up quick check interval: ${quickCheckMs / 1000} seconds`);
       
       // Use more efficient setTimeout-based polling for full refresh
@@ -423,3 +429,4 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     </AppContext.Provider>
   );
 };
+
