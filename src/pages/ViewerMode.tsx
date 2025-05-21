@@ -7,7 +7,6 @@ import AutoScroll from "../components/AutoScroll";
 import QRCode from "../components/QRCode";
 import { createGoogleFontUrl } from "../config/fonts";
 import { useTranslation } from "../hooks/useTranslation";
-import { getFolderUrl } from "../services/googleDriveService";
 
 const ViewerMode = () => {
   const { apiConfig, refreshPhotos, settings } = useAppContext();
@@ -60,9 +59,6 @@ const ViewerMode = () => {
         return "bottom-8 left-8";
     }
   }
-  
-  // Generate the Google Drive folder URL for QR code
-  const folderUrl = apiConfig.folderId ? getFolderUrl(apiConfig.folderId) : "";
 
   return (
     <div className={`min-h-screen flex flex-col bg-background ${settings.font.class}`}>
@@ -111,17 +107,14 @@ const ViewerMode = () => {
         </div>
       )}
       
-      {/* Header QR code if enabled - ปรับสไตล์ให้เหมือน ImageViewer */}
+      {/* Header QR code if enabled - only show when banner isn't at topRight position */}
       {settings.showHeaderQR && (!settings.bannerUrl || settings.bannerPosition !== "topRight") && (
         <div className="fixed top-24 right-8 z-40 qr-code-container">
-          <div className="bg-white/95 dark:bg-black/50 p-4 rounded-lg shadow-md border border-gray-200 dark:border-gray-800">
-            <QRCode 
-              url={folderUrl}
-              size={settings.headerQRCodeSize} 
-              className="mx-auto"
-              level="Q"
-            />
-          </div>
+          <QRCode 
+            url={window.location.href} 
+            size={settings.headerQRCodeSize} 
+            className="shadow-lg bg-white/90 backdrop-blur-sm rounded-lg"
+          />
         </div>
       )}
       

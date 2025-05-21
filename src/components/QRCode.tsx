@@ -6,26 +6,9 @@ interface QRCodeProps {
   url: string;
   size?: number;
   className?: string;
-  imageSettings?: {
-    src: string;
-    height: number;
-    width: number;
-    excavate: boolean;
-  };
-  bgColor?: string;
-  fgColor?: string;
-  level?: "L" | "M" | "Q" | "H";
 }
 
-const QRCode: React.FC<QRCodeProps> = ({ 
-  url, 
-  size = 128, 
-  className = "",
-  imageSettings,
-  bgColor = "#FFFFFF",
-  fgColor = "#000000",
-  level = "M"
-}) => {
+const QRCode: React.FC<QRCodeProps> = ({ url, size = 128, className = "" }) => {
   // Ensure size is at least 64px and at most 512px for better visibility and usability
   const safeSize = Math.min(Math.max(size, 64), 512);
   
@@ -34,11 +17,11 @@ const QRCode: React.FC<QRCodeProps> = ({
       <QRCodeCanvas
         value={url}
         size={safeSize}
-        level={level} // Error correction level
+        level="M" // Medium error correction level for better speed/reliability balance
         includeMargin={false}
-        bgColor={bgColor}
-        fgColor={fgColor}
-        imageSettings={imageSettings || {
+        bgColor="#FFFFFF"
+        fgColor="#000000"
+        imageSettings={{
           src: "",
           height: 24,
           width: 24,
