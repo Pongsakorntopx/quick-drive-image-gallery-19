@@ -3,7 +3,7 @@ import React, { useEffect, useState } from "react";
 import { useAppContext } from "../context/AppContext";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { ChevronLeft, ChevronRight, X, Download } from "lucide-react";
+import { ChevronLeft, ChevronRight, X, Download, Image } from "lucide-react";
 import QRCode from "./QRCode";
 import { useTranslation } from "../hooks/useTranslation";
 import { 
@@ -127,6 +127,14 @@ const ImageViewer: React.FC = () => {
             {/* Controls */}
             <div className="absolute top-2 right-2 z-50 flex gap-2">
               <Button
+                variant="outline"
+                size="icon"
+                className="bg-background/50 hover:bg-background/80 backdrop-blur-sm rounded-full"
+                onClick={toggleViewMode}
+              >
+                <Image className="h-5 w-5" />
+              </Button>
+              <Button
                 variant="ghost"
                 size="icon"
                 className="bg-background/50 hover:bg-background/80 backdrop-blur-sm rounded-full"
@@ -142,8 +150,8 @@ const ImageViewer: React.FC = () => {
             </div>
             
             <div className="flex-1 flex items-center justify-center relative overflow-hidden">
-              {/* Main content container with animation */}
-              <div className="flex flex-col md:flex-row items-center justify-center gap-6 p-4 rounded-xl bg-black/10 dark:bg-white/5 backdrop-blur-sm border border-black/10 dark:border-white/10 shadow-lg w-full h-full animate-scale-in">
+              {/* Main content container with animation - improved layout */}
+              <div className="flex flex-col md:flex-row items-center justify-center gap-4 p-4 rounded-xl bg-black/10 dark:bg-white/5 backdrop-blur-sm border border-black/10 dark:border-white/10 shadow-lg w-full h-full animate-scale-in">
                 {/* Image container - adjusted to be on left side */}
                 <div className="md:w-3/5 h-full flex items-center justify-center overflow-hidden rounded-lg">
                   <img
@@ -154,20 +162,20 @@ const ImageViewer: React.FC = () => {
                 </div>
                 
                 {/* QR code container - enlarged and positioned on right side */}
-                <div className="md:w-2/5 p-5 flex flex-col items-center justify-center bg-white/10 dark:bg-black/20 rounded-lg backdrop-blur-sm shadow-inner">
+                <div className="md:w-2/5 p-3 flex flex-col items-center justify-center bg-white/10 dark:bg-black/20 rounded-lg backdrop-blur-sm shadow-inner">
                   <div className="mb-4 text-lg font-medium text-center">
                     {settings.language === "th" ? "สแกนเพื่อดาวน์โหลด" : "Scan to download"}
                   </div>
-                  <div className="bg-white p-6 rounded-lg shadow-lg">
+                  <div className="bg-white/95 dark:bg-black/50 p-4 rounded-lg shadow-md">
                     <QRCode
                       url={photoUrl}
-                      size={settings.viewerQRCodeSize * 1.5}
+                      size={settings.viewerQRCodeSize * 1.3} // Made QR code 30% larger
                       className="mx-auto"
                     />
                   </div>
                   <Button
                     variant="outline"
-                    size="lg"
+                    size="lg" // Larger button
                     className="mt-6"
                     onClick={handleDownload}
                   >
@@ -209,6 +217,14 @@ const ImageViewer: React.FC = () => {
         <div className="relative flex flex-col w-full h-full p-2 md:p-4">
           {/* Controls */}
           <div className="absolute top-2 right-2 z-50 flex gap-2">
+            <Button
+              variant="outline"
+              size="icon"
+              className="bg-background/50 hover:bg-background/80 backdrop-blur-sm rounded-full"
+              onClick={toggleViewMode}
+            >
+              <Image className="h-5 w-5" />
+            </Button>
             <Button
               variant="ghost"
               size="icon"
@@ -271,8 +287,7 @@ const ImageViewer: React.FC = () => {
           </div>
         </div>
         
-        {/* Fixed the style element by removing jsx and global properties */}
-        <style>{`
+        <style jsx global>{`
           .animate-scale-in {
             animation: scaleIn 0.3s ease-out forwards;
           }
