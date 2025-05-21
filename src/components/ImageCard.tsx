@@ -163,10 +163,10 @@ const ImageCard: React.FC<ImageCardProps> = ({ photo, onClick }) => {
         </div>
       </div>
 
-      {/* QR Code with improved appearance */}
+      {/* QR Code with improved appearance - changed to use fullSizeUrl for direct image view */}
       <div className={`absolute ${getQrCodePosition()} z-10 opacity-0 group-hover:opacity-100 transition-opacity duration-300 transform scale-90 group-hover:scale-100 ${isMobile ? 'opacity-100 scale-100' : ''}`}>
         <QRCode 
-          url={photo.directDownloadUrl || photo.webContentLink} 
+          url={photo.fullSizeUrl || getDirectImageUrl(photo.id)} 
           size={settings.qrCodeSize} 
           className="shadow-lg bg-white/90 backdrop-blur-sm rounded-lg"
         />
@@ -186,4 +186,10 @@ const ImageCard: React.FC<ImageCardProps> = ({ photo, onClick }) => {
   );
 };
 
+// Helper function to get direct image URL format (same as in googleDriveService.ts)
+const getDirectImageUrl = (photoId: string): string => {
+  return `https://lh3.googleusercontent.com/d/${photoId}?t=${Date.now()}`;
+};
+
 export default ImageCard;
+
