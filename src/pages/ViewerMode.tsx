@@ -60,9 +60,9 @@ const ViewerMode = () => {
     }
   }
   
-  // ใช้ URL ของภาพแรกในคอลเลกชันถ้ามี หรือมิฉะนั้นใช้ URL ของหน้าปัจจุบัน
+  // Use direct image URL format matching the example
   const qrCodeUrl = photos && photos.length > 0 
-    ? (photos[0].fullSizeUrl || photos[0].url) 
+    ? `https://lh3.googleusercontent.com/d/${photos[0].id}?t=${Date.now()}` 
     : window.location.href;
 
   return (
