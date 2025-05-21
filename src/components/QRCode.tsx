@@ -13,8 +13,8 @@ interface QRCodeProps {
   imageSettings?: {
     src: string; // Required to match the QRCodeCanvas component's expectations
     height: number; // Required to match the QRCodeCanvas component's expectations
-    width: number; // Changed from optional to required to match the QRCodeCanvas component's expectations
-    excavate?: boolean;
+    width: number; // Required to match the QRCodeCanvas component's expectations
+    excavate: boolean; // Changed from optional to required to match the QRCodeCanvas component's expectations
   };
 }
 
