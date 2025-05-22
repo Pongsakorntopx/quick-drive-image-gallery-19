@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from "react";
+import React from "react";
 import { Photo } from "@/types";
 import ImageCard from "../ImageCard";
 
@@ -9,7 +9,6 @@ interface GridItemProps {
   gridLayout: string;
   gridRows: number;
   index: number;
-  isNewPhoto?: boolean;
 }
 
 const GridItem: React.FC<GridItemProps> = ({ 
@@ -17,22 +16,8 @@ const GridItem: React.FC<GridItemProps> = ({
   onClick, 
   gridLayout,
   gridRows,
-  index,
-  isNewPhoto = false
+  index
 }) => {
-  const [animationComplete, setAnimationComplete] = useState(false);
-  
-  // Effect to handle animation completion
-  useEffect(() => {
-    if (isNewPhoto) {
-      // Set a timeout to mark animation as complete after animation duration
-      const timer = setTimeout(() => {
-        setAnimationComplete(true);
-      }, 800); // Match this with the CSS animation duration
-      return () => clearTimeout(timer);
-    }
-  }, [isNewPhoto]);
-
   // Get grid item class based on settings
   const getGridItemClass = () => {
     if (gridLayout === "fixed" || gridLayout === "custom") {
@@ -85,23 +70,14 @@ const GridItem: React.FC<GridItemProps> = ({
 
   const gridItemProps = getGridItemClass();
   
-  // Determine which animation class to apply
-  const getAnimationClass = () => {
-    if (isNewPhoto && !animationComplete) {
-      return "new-photo-animation";
-    }
-    return "animate-fade-in";
-  };
-  
   return (
     <div 
-      className={`${gridItemProps.className} ${getAnimationClass()}`}
+      className={`${gridItemProps.className} animate-fade-in`}
       style={{
         ...gridItemProps.style,
         animationDelay: `${Math.min(index * 0.05, 1)}s`
       }}
       data-index={index}
-      data-isnew={isNewPhoto ? "true" : "false"}
     >
       <div 
         className={getContentClass()}
