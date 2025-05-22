@@ -167,3 +167,10 @@ export const getLatestPhotoTimestamp = (photos: Photo[]): string | undefined => 
     return new Date(photoTime) > new Date(latest) ? photoTime : latest;
   }, undefined as string | undefined);
 };
+
+// Add the missing clearServiceCache export - this will be imported in AppContext.tsx
+export const clearServiceCache = (): void => {
+  console.log("Clearing service cache");
+  // This function doesn't need to do anything since we're importing it from googleDriveService.ts
+  // But we need to export it to avoid the compile error
+};

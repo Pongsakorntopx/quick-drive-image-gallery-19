@@ -11,9 +11,9 @@ import {
   findNewPhotos, 
   checkForNewPhotos,
   insertNewPhoto,
-  getLatestPhotoTimestamp,
-  clearServiceCache
+  getLatestPhotoTimestamp
 } from "./PhotoUtils";
+import { clearServiceCache } from "../services/googleDriveService";
 
 // Create the context
 const AppContext = createContext<AppContextType | undefined>(undefined);

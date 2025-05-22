@@ -57,7 +57,7 @@ const PhotoGrid: React.FC = () => {
     
     // Create a set of existing IDs for quick lookup
     const currentIds = new Set(virtualizedPhotos.map(vp => vp.id));
-    const newPhotoIds = new Set(newSortedPhotos.map(p => p.id));
+    const newPhotosIdSet = new Set(newSortedPhotos.map(p => p.id));
     
     // Find truly new photos (not in current virtualized list)
     const newPhotosToAdd: VirtualizedPhoto[] = [];
@@ -105,11 +105,11 @@ const PhotoGrid: React.FC = () => {
     }
     
     // Handle case where photos were removed
-    const deletedPhotos = Array.from(currentIds).filter(id => !newPhotoIds.has(id));
+    const deletedPhotos = Array.from(currentIds).filter(id => !newPhotosIdSet.has(id));
     if (deletedPhotos.length > 0) {
       console.log(`Removing ${deletedPhotos.length} deleted photos from the virtualized list`);
       setVirtualizedPhotos(prev => 
-        prev.filter(vp => newPhotoIds.has(vp.id))
+        prev.filter(vp => newPhotosIdSet.has(vp.id))
            .map((vp, idx) => ({
              ...vp,
              index: idx
@@ -290,9 +290,6 @@ const PhotoGrid: React.FC = () => {
   const handleSortChange = (newSortOrder: typeof sortOrder) => {
     setSortOrder(newSortOrder);
   };
-
-  // เพิ่มคำสั่งติดตามภาพใหม่
-  const [newPhotoIds, setNewPhotoIds] = useState<Set<string>>(new Set());
   
   // เพิ่ม interval สำหรับลบรายการภาพใหม่หลังจากแสดงผลเรียบร้อยแล้ว
   useEffect(() => {
