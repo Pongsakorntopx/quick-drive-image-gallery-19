@@ -167,9 +167,3 @@ export const getLatestPhotoTimestamp = (photos: Photo[]): string | undefined => 
     return new Date(photoTime) > new Date(latest) ? photoTime : latest;
   }, undefined as string | undefined);
 };
-
-// Function to clear service cache for testing and debugging purposes
-export const clearServiceCache = (): void => {
-  console.log("Clearing service cache");
-  // This function will be implemented in googleDriveService.ts
-};

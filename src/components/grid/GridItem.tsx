@@ -9,7 +9,6 @@ interface GridItemProps {
   gridLayout: string;
   gridRows: number;
   index: number;
-  isNew?: boolean; // Add new prop to track if a photo is new
 }
 
 const GridItem: React.FC<GridItemProps> = ({ 
@@ -17,8 +16,7 @@ const GridItem: React.FC<GridItemProps> = ({
   onClick, 
   gridLayout,
   gridRows,
-  index,
-  isNew = false // Default to false
+  index
 }) => {
   // Get grid item class based on settings
   const getGridItemClass = () => {
@@ -74,13 +72,12 @@ const GridItem: React.FC<GridItemProps> = ({
   
   return (
     <div 
-      className={`${gridItemProps.className} ${isNew ? 'fresh-image' : 'animate-fade-in'}`}
+      className={`${gridItemProps.className} animate-fade-in`}
       style={{
         ...gridItemProps.style,
         animationDelay: `${Math.min(index * 0.05, 1)}s`
       }}
       data-index={index}
-      data-new={isNew ? 'true' : 'false'}
     >
       <div 
         className={getContentClass()}
