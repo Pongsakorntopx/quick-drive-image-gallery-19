@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from "react";
+import React from "react";
 import { Photo } from "@/types";
 import ImageCard from "../ImageCard";
 
@@ -9,7 +9,6 @@ interface GridItemProps {
   gridLayout: string;
   gridRows: number;
   index: number;
-  isNewPhoto?: boolean;
 }
 
 const GridItem: React.FC<GridItemProps> = ({ 
@@ -17,37 +16,22 @@ const GridItem: React.FC<GridItemProps> = ({
   onClick, 
   gridLayout,
   gridRows,
-  index,
-  isNewPhoto = false
+  index
 }) => {
-  const [animated, setAnimated] = useState(false);
-  
-  // Effect to handle new photo animation
-  useEffect(() => {
-    if (isNewPhoto && !animated) {
-      setAnimated(true);
-    }
-  }, [isNewPhoto]);
-  
   // Get grid item class based on settings
   const getGridItemClass = () => {
-    let baseClass = "";
     if (gridLayout === "fixed" || gridLayout === "custom") {
       if (gridRows && gridRows > 0) {
         const gridRowStyles = {
           height: gridRows === 1 ? "calc(100vh - 120px)" : `calc((100vh - 120px) / ${gridRows})`,
           minHeight: "150px"
         };
-        return { className: baseClass, style: gridRowStyles };
+        return { className: "", style: gridRowStyles };
       }
-      return { className: baseClass, style: {} };
+      return { className: "", style: {} };
     }
-    
-    // Add masonry class for masonry layouts
-    baseClass = "masonry-item";
-    
     return { 
-      className: baseClass, 
+      className: "masonry-item", 
       style: { 
         opacity: 0, 
         transform: "translateY(20px)", 
@@ -86,18 +70,14 @@ const GridItem: React.FC<GridItemProps> = ({
 
   const gridItemProps = getGridItemClass();
   
-  // Add special class for new photos
-  const newPhotoClass = isNewPhoto ? "fresh-image" : "";
-  
   return (
     <div 
-      className={`${gridItemProps.className} animate-fade-in ${newPhotoClass}`}
+      className={`${gridItemProps.className} animate-fade-in`}
       style={{
         ...gridItemProps.style,
         animationDelay: `${Math.min(index * 0.05, 1)}s`
       }}
       data-index={index}
-      data-new={isNewPhoto ? "true" : "false"}
     >
       <div 
         className={getContentClass()}
