@@ -1,4 +1,3 @@
-
 import { Photo, PhotoFetchResult } from "../types";
 import { fetchPhotosFromDrive, fetchLatestPhotoFromDrive } from "../services/googleDriveService";
 import { ApiConfig } from "../types";
@@ -55,7 +54,7 @@ export const checkForNewPhotos = async (
     // Add cache busting parameter to ensure we get fresh data
     const cacheBuster = `cb=${Date.now()}`;
     
-    // Fixed: Removed third argument, combining parameters into options object
+    // Fixed: Using the correct options object format
     const latestPhoto = await fetchLatestPhotoFromDrive(
       apiConfig, 
       { forceRefresh, cacheBuster }
@@ -96,7 +95,7 @@ export const fetchAndProcessPhotos = async (
     // Add cache busting parameter to ensure we get fresh data
     const cacheBuster = `cb=${Date.now()}`;
     
-    // Fixed: Removed third argument, combining parameters into options object
+    // Fixed: Using the correct options object format
     const photosData = await fetchPhotosFromDrive(
       apiConfig, 
       { forceRefresh, cacheBuster }
