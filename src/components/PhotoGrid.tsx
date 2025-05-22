@@ -15,6 +15,7 @@ import SortControls from "./grid/SortControls";
 interface VirtualizedPhoto {
   id: string;
   index: number;
+  isNew?: boolean;
 }
 
 const PhotoGrid: React.FC = () => {
@@ -44,6 +45,8 @@ const PhotoGrid: React.FC = () => {
   const lastKnownPhotoIds = useRef<Set<string>>(new Set());
   // Track if initial setup has been done
   const initialSetupDone = useRef<boolean>(false);
+  // Store newly added photo IDs to animate them
+  const newPhotoIds = useRef<Set<string>>(new Set());
 
   // Batch size for virtualization - increased for better initial load
   const batchSize = 32; // Increased from 24 for better initial experience
@@ -69,7 +72,8 @@ const PhotoGrid: React.FC = () => {
       if (!currentIds.has(photo.id)) {
         newPhotosToAdd.push({
           id: photo.id,
-          index: i
+          index: i,
+          isNew: true  // Mark as new for animation
         });
         // Update our set of known photo IDs
         lastKnownPhotoIds.current.add(photo.id);
@@ -85,7 +89,8 @@ const PhotoGrid: React.FC = () => {
         // Create a fresh array with updated indices
         const updatedPrevPhotos = prev.map((vp, idx) => ({
           id: vp.id,
-          index: idx + newPhotosToAdd.length
+          index: idx + newPhotosToAdd.length,
+          isNew: false // Make sure older photos don't have the isNew flag
         }));
         return [...newPhotosToAdd, ...updatedPrevPhotos];
       });
@@ -116,6 +121,8 @@ const PhotoGrid: React.FC = () => {
       for (const id of currentIds) {
         if (!previousIds.has(id)) {
           hasNewPhotos = true;
+          // Add to new photo IDs set
+          newPhotoIds.current.add(id);
           break;
         }
       }
@@ -126,6 +133,7 @@ const PhotoGrid: React.FC = () => {
         const initialBatch = sortedPhotos.slice(0, batchSize).map((photo, index) => ({
           id: photo.id,
           index,
+          isNew: newPhotoIds.current.has(photo.id)
         }));
         setVirtualizedPhotos(initialBatch);
         initialSetupDone.current = true;
@@ -148,6 +156,7 @@ const PhotoGrid: React.FC = () => {
       const initialBatch = sortedPhotos.slice(0, batchSize).map((photo, index) => ({
         id: photo.id,
         index,
+        isNew: newPhotoIds.current.has(photo.id)
       }));
       setVirtualizedPhotos(initialBatch);
     }
@@ -161,11 +170,22 @@ const PhotoGrid: React.FC = () => {
         .map((photo, index) => ({
           id: photo.id,
           index: virtualizedPhotos.length + index,
+          isNew: newPhotoIds.current.has(photo.id)
         }));
       
       setVirtualizedPhotos(prev => [...prev, ...nextBatch]);
     }
   }, [inView, sortedPhotos, virtualizedPhotos.length]);
+
+  // Clear new photo IDs after some time
+  useEffect(() => {
+    if (newPhotoIds.current.size > 0) {
+      const timer = setTimeout(() => {
+        newPhotoIds.current.clear();
+      }, 5000);
+      return () => clearTimeout(timer);
+    }
+  }, [virtualizedPhotos]);
 
   // Memoize the photo lookup for better performance
   const photoMap = useMemo(() => {
@@ -312,12 +332,13 @@ const PhotoGrid: React.FC = () => {
               
               return photo ? (
                 <GridItem 
-                  key={vPhoto.id} 
+                  key={`${vPhoto.id}-${vPhoto.isNew ? 'new' : 'existing'}`} 
                   photo={photo} 
                   onClick={setSelectedPhoto}
                   gridLayout={settings.gridLayout}
                   gridRows={settings.gridRows}
                   index={idx}
+                  isNewPhoto={vPhoto.isNew}
                 />
               ) : null;
             })}
@@ -430,21 +451,32 @@ const PhotoGrid: React.FC = () => {
         }
 
         /* New animation for fresh images */
-        .fresh-image {
-          animation: pulseIn 0.8s ease-out;
+        .new-photo-animation {
+          animation: pushInEffect 0.8s cubic-bezier(0.22, 0.61, 0.36, 1) forwards;
+          opacity: 0;
+          transform: translateY(-40px);
+          z-index: 5;
+          position: relative;
         }
         
-        @keyframes pulseIn {
+        @keyframes pushInEffect {
           0% {
             opacity: 0;
-            transform: scale(0.95);
+            transform: translateY(-40px);
+          }
+          30% {
+            opacity: 1;
+            transform: translateY(5px);
           }
           50% {
-            opacity: 1;
-            transform: scale(1.05);
+            transform: translateY(-3px);
+          }
+          70% {
+            transform: translateY(2px);
           }
           100% {
-            transform: scale(1);
+            opacity: 1;
+            transform: translateY(0);
           }
         }
         `}
