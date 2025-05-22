@@ -1,3 +1,4 @@
+
 import { ApiConfig, Photo } from "../types";
 
 const DRIVE_API_BASE_URL = "https://www.googleapis.com/drive/v3";
@@ -5,12 +6,6 @@ const DEFAULT_FIELDS = "files(id,name,mimeType,thumbnailLink,webContentLink,crea
 const MAX_RESULTS = 1000; // Increase max results
 const CACHE_TIMEOUT = 30000; // 30 วินาที
 const PRIORITY_CACHE_TIMEOUT = 2000; // ลดเหลือ 2 วินาที เพื่อตรวจสอบบ่อยยิ่งขึ้น
-
-// Define options interface for the fetch functions
-interface FetchOptions {
-  forceRefresh?: boolean;
-  cacheBuster?: string;
-}
 
 // Cache for API responses to reduce API calls
 let photosCache = {
@@ -29,7 +24,7 @@ let latestPhotoCache = {
 // Fetch only the latest photo for quick check - optimized for real-time updates
 export const fetchLatestPhotoFromDrive = async (
   config: ApiConfig, 
-  options?: FetchOptions
+  forceRefresh: boolean = false // Add force refresh param
 ): Promise<Photo | null> => {
   try {
     if (!config.apiKey || !config.folderId) {
@@ -37,7 +32,6 @@ export const fetchLatestPhotoFromDrive = async (
     }
     
     const now = Date.now();
-    const forceRefresh = options?.forceRefresh || false;
     
     // Skip cache if forceRefresh is true or cache timeout is expired
     if (
@@ -50,7 +44,7 @@ export const fetchLatestPhotoFromDrive = async (
     }
 
     // Generate a unique timestamp to prevent API caching
-    const cacheBreaker = options?.cacheBuster || `_nocache=${Date.now()}`;
+    const cacheBreaker = `&_nocache=${Date.now()}`;
 
     const params = new URLSearchParams({
       q: `'${config.folderId}' in parents and mimeType contains 'image/' and trashed = false`,
@@ -60,7 +54,7 @@ export const fetchLatestPhotoFromDrive = async (
       pageSize: "1" // Only get the latest photo
     });
 
-    const response = await fetch(`${DRIVE_API_BASE_URL}/files?${params}&${cacheBreaker}`, {
+    const response = await fetch(`${DRIVE_API_BASE_URL}/files?${params}${cacheBreaker}`, {
       cache: 'no-store',
       headers: {
         'Cache-Control': 'no-cache, no-store, must-revalidate',
@@ -130,7 +124,7 @@ export const fetchLatestPhotoFromDrive = async (
 
 export const fetchPhotosFromDrive = async (
   config: ApiConfig,
-  options?: FetchOptions
+  forceRefresh: boolean = false // Add force refresh parameter
 ): Promise<Photo[]> => {
   try {
     if (!config.apiKey || !config.folderId) {
@@ -140,8 +134,6 @@ export const fetchPhotosFromDrive = async (
     
     // Check if we have a valid recent cache for this folder
     const now = Date.now();
-    const forceRefresh = options?.forceRefresh || false;
-    
     if (
       !forceRefresh &&
       photosCache.folderId === config.folderId &&
@@ -157,7 +149,7 @@ export const fetchPhotosFromDrive = async (
     let pageToken: string | null = null;
     
     // Generate a unique timestamp to prevent API caching
-    const cacheBreaker = options?.cacheBuster || `_nocache=${Date.now()}`;
+    const cacheBreaker = `&_nocache=${Date.now()}`;
     
     // Use pagination to get all photos
     do {
@@ -173,7 +165,7 @@ export const fetchPhotosFromDrive = async (
         params.append("pageToken", pageToken);
       }
 
-      const response = await fetch(`${DRIVE_API_BASE_URL}/files?${params}&${cacheBreaker}`, {
+      const response = await fetch(`${DRIVE_API_BASE_URL}/files?${params}${cacheBreaker}`, {
         cache: 'no-store',
         headers: {
           'Cache-Control': 'no-cache, no-store, must-revalidate',
