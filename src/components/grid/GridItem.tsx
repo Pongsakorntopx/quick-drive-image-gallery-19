@@ -1,5 +1,5 @@
 
-import React, { useEffect, useRef } from "react";
+import React from "react";
 import { Photo } from "@/types";
 import ImageCard from "../ImageCard";
 
@@ -9,7 +9,6 @@ interface GridItemProps {
   gridLayout: string;
   gridRows: number;
   index: number;
-  isNewPhoto?: boolean; // เพิ่มคุณสมบัติสำหรับภาพใหม่
 }
 
 const GridItem: React.FC<GridItemProps> = ({ 
@@ -17,29 +16,8 @@ const GridItem: React.FC<GridItemProps> = ({
   onClick, 
   gridLayout,
   gridRows,
-  index,
-  isNewPhoto = false // ค่าเริ่มต้นคือ false
+  index
 }) => {
-  const itemRef = useRef<HTMLDivElement>(null);
-  
-  // เมื่อสร้าง component ครั้งแรกและเป็นภาพใหม่
-  useEffect(() => {
-    if (isNewPhoto && itemRef.current) {
-      // เพิ่มคลาสสำหรับเอฟเฟกต์การเลื่อนเข้า
-      itemRef.current.classList.add('new-photo-push');
-      
-      // หลังจากแอนิเมชันเสร็จสิ้น ลบคลาสออก
-      const timer = setTimeout(() => {
-        if (itemRef.current) {
-          itemRef.current.classList.remove('new-photo-push');
-          itemRef.current.classList.add('photo-settled');
-        }
-      }, 800); // ตามระยะเวลาของแอนิเมชัน
-      
-      return () => clearTimeout(timer);
-    }
-  }, [isNewPhoto]);
-  
   // Get grid item class based on settings
   const getGridItemClass = () => {
     if (gridLayout === "fixed" || gridLayout === "custom") {
@@ -92,22 +70,17 @@ const GridItem: React.FC<GridItemProps> = ({
 
   const gridItemProps = getGridItemClass();
   
-  // กำหนดคลาสสำหรับภาพใหม่
-  const newPhotoClass = isNewPhoto ? 'fresh-image' : '';
-  
   return (
     <div 
-      ref={itemRef}
-      className={`${gridItemProps.className} animate-fade-in ${newPhotoClass} ${isNewPhoto ? 'new-photo' : ''}`}
+      className={`${gridItemProps.className} animate-fade-in`}
       style={{
         ...gridItemProps.style,
         animationDelay: `${Math.min(index * 0.05, 1)}s`
       }}
       data-index={index}
-      data-new={isNewPhoto ? "true" : "false"}
     >
       <div 
-        className={`${getContentClass()} ${isNewPhoto ? 'new-photo-content' : ''}`}
+        className={getContentClass()}
         style={getImageContainerStyle()}
       >
         <ImageCard 
