@@ -1,4 +1,3 @@
-
 import React, { useEffect, useRef, useState, useMemo } from "react";
 import { useAppContext } from "../context/AppContext";
 import { useInView } from "react-intersection-observer";
@@ -32,6 +31,7 @@ const PhotoGrid: React.FC = () => {
 
   const gridRef = useRef<HTMLDivElement>(null);
   const [virtualizedPhotos, setVirtualizedPhotos] = useState<VirtualizedPhoto[]>([]);
+  const [newPhotoIds, setNewPhotoIds] = useState<Set<string>>(new Set());
   const { ref: loadMoreRef, inView } = useInView({
     threshold: 0.1,
     triggerOnce: false,
@@ -63,6 +63,9 @@ const PhotoGrid: React.FC = () => {
     const newPhotosToAdd: VirtualizedPhoto[] = [];
     let hasNewPhotos = false;
     
+    // เก็บ set ของ IDs ของภาพใหม่เพื่อแสดงเอฟเฟกต์
+    const freshPhotoIds = new Set<string>();
+    
     for (let i = 0; i < newSortedPhotos.length; i++) {
       const photo = newSortedPhotos[i];
       // Check if this is a new photo to add to virtualized list
@@ -74,12 +77,22 @@ const PhotoGrid: React.FC = () => {
         // Update our set of known photo IDs
         lastKnownPhotoIds.current.add(photo.id);
         hasNewPhotos = true;
+        // เพิ่ม ID ของภาพใหม่ที่พบ
+        freshPhotoIds.add(photo.id);
       }
     }
     
     // If we found new photos, add them to the virtualized list at the beginning
     if (hasNewPhotos && newPhotosToAdd.length > 0) {
       console.log(`Adding ${newPhotosToAdd.length} new photos to the virtualized list`);
+      
+      // อัปเดตรายการ ID ของภาพใหม่
+      setNewPhotoIds(prev => {
+        const updatedNewPhotoIds = new Set(prev);
+        freshPhotoIds.forEach(id => updatedNewPhotoIds.add(id));
+        return updatedNewPhotoIds;
+      });
+      
       // Prepend new photos to the existing virtualized list and update indices
       setVirtualizedPhotos(prev => {
         // Create a fresh array with updated indices
@@ -278,6 +291,20 @@ const PhotoGrid: React.FC = () => {
     setSortOrder(newSortOrder);
   };
 
+  // เพิ่มคำสั่งติดตามภาพใหม่
+  const [newPhotoIds, setNewPhotoIds] = useState<Set<string>>(new Set());
+  
+  // เพิ่ม interval สำหรับลบรายการภาพใหม่หลังจากแสดงผลเรียบร้อยแล้ว
+  useEffect(() => {
+    if (newPhotoIds.size > 0) {
+      const timer = setTimeout(() => {
+        setNewPhotoIds(new Set());
+      }, 5000); // ล้างรายการภาพใหม่หลังจาก 5 วินาที
+      
+      return () => clearTimeout(timer);
+    }
+  }, [newPhotoIds]);
+
   if (error) {
     return <GridError error={error} onRetry={refreshPhotos} />;
   }
@@ -318,6 +345,7 @@ const PhotoGrid: React.FC = () => {
                   gridLayout={settings.gridLayout}
                   gridRows={settings.gridRows}
                   index={idx}
+                  isNewPhoto={newPhotoIds.has(vPhoto.id)} // เพิ่มคุณสมบัติสำหรับภาพใหม่
                 />
               ) : null;
             })}
@@ -382,6 +410,53 @@ const PhotoGrid: React.FC = () => {
           animation: fadeIn 0.5s ease-out forwards;
         }
 
+        /* โค้ดใหม่: เอฟเฟกต์ push สำหรับภาพใหม่ */
+        .new-photo {
+          position: relative;
+          z-index: 2;
+          animation: pushInEffect 0.8s ease-out forwards;
+        }
+        
+        .new-photo-content {
+          box-shadow: 0 0 15px rgba(255, 255, 100, 0.5);
+          transform: scale(1.02);
+          z-index: 10;
+        }
+        
+        .new-photo-push {
+          animation: pushInEffect 0.8s ease-out forwards;
+          position: relative;
+          z-index: 5;
+          transform-origin: center top;
+        }
+        
+        .photo-settled {
+          position: relative;
+          z-index: 1;
+          transition: all 0.5s ease-in-out;
+        }
+        
+        @keyframes pushInEffect {
+          0% {
+            opacity: 0;
+            transform: translateY(-30px) scale(0.95);
+            box-shadow: 0 0 0 rgba(255, 255, 100, 0);
+          }
+          20% {
+            opacity: 1;
+            transform: translateY(0) scale(1.02);
+            box-shadow: 0 0 20px rgba(255, 255, 100, 0.7);
+          }
+          70% {
+            transform: translateY(0) scale(1.02);
+            box-shadow: 0 0 15px rgba(255, 255, 100, 0.5);
+          }
+          100% {
+            transform: translateY(0) scale(1);
+            box-shadow: 0 0 0 rgba(255, 255, 100, 0);
+          }
+        }
+
         /* Responsive grid for different screen sizes */
         @media (max-width: 640px) {
           .masonry-grid {
@@ -432,6 +507,9 @@ const PhotoGrid: React.FC = () => {
         /* New animation for fresh images */
         .fresh-image {
           animation: pulseIn 0.8s ease-out;
+          box-shadow: 0 0 20px rgba(255, 255, 100, 0.7);
+          position: relative;
+          z-index: 10;
         }
         
         @keyframes pulseIn {

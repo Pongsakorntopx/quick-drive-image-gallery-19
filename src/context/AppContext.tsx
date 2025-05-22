@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from "react";
 import { ApiConfig, Photo, AppSettings } from "../types";
 import { useToast } from "@/components/ui/use-toast";
@@ -381,6 +380,83 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   // Apply theme mode
   useEffect(() => {
+    const htmlElement = document.querySelector('html');
+    if (htmlElement) {
+      if (settings.themeMode === 'dark') {
+        htmlElement.classList.add('dark');
+      } else {
+        htmlElement.classList.remove('dark');
+      }
+    }
+  }, [settings.themeMode]);
+
+  // เพิ่มตัวแปรสำหรับควบคุม polling interval
+  const pollingIntervalRef = useRef<number | null>(null);
+  
+  // ปรับปรุงฟังก์ชันเพื่อตรวจสอบภาพใหม่โดยใช้ JavaScript Fetch Polling
+  const setupPhotoPollInterval = useCallback(() => {
+    // ล้าง interval เก่าก่อนสร้าง interval ใหม่ (ถ้ามี)
+    if (pollingIntervalRef.current !== null) {
+      clearInterval(pollingIntervalRef.current);
+      pollingIntervalRef.current = null;
+    }
+    
+    // ตรวจสอบว่ามีค่า API config หรือไม่
+    if (!apiConfig.apiKey || !apiConfig.folderId) {
+      return;
+    }
+    
+    // กำหนด polling interval จากการตั้งค่า (หน่วยเป็นวินาที แปลงเป็นมิลลิวินาที)
+    const pollingInterval = settings.refreshInterval * 1000 || 5000; // ค่าเริ่มต้นคือ 5 วินาที
+    
+    console.log(`Setting up photo polling interval: ${pollingInterval}ms`);
+    
+    // สร้าง interval ใหม่สำหรับการตรวจสอบภาพใหม่
+    pollingIntervalRef.current = window.setInterval(async () => {
+      try {
+        console.log("Polling for new photos at:", new Date().toISOString());
+        
+        // ตรวจสอบภาพใหม่
+        const hasNewPhotos = await quickCheckNewPhotos();
+        
+        // ถ้ามีภาพใหม่ อัปเดต UI ทันที (โค้ดนี้มีอยู่ใน quickCheckNewPhotos แล้ว)
+        if (hasNewPhotos) {
+          console.log("New photos detected in polling");
+          // การอัปเดต UI จะเกิดขึ้นอัตโนมัติผ่าน setPhotos ใน quickCheckNewPhotos
+        }
+      } catch (err) {
+        console.error("Error during photo polling:", err);
+      }
+    }, pollingInterval);
+    
+    // คืนค่าฟังก์ชันสำหรับล้าง interval
+    return () => {
+      if (pollingIntervalRef.current !== null) {
+        clearInterval(pollingIntervalRef.current);
+        pollingIntervalRef.current = null;
+      }
+    };
+  }, [apiConfig.apiKey, apiConfig.folderId, settings.refreshInterval, quickCheckNewPhotos]);
+
+  // ใช้ useEffect เพื่อตั้งค่า polling interval
+  useEffect(() => {
+    // ตั้งค่า polling interval เมื่อ component ถูกโหลดหรือเมื่อค่าที่เกี่ยวข้องเปลี่ยนแปลง
+    const cleanup = setupPhotoPollInterval();
+    
+    // ดึงรูปภาพครั้งแรกเมื่อ component ถูกโหลด
+    if (apiConfig.apiKey && apiConfig.folderId) {
+      refreshPhotos();
+    }
+    
+    // ล้าง interval เมื่อ component ถูกทำลาย
+    return () => {
+      if (cleanup) cleanup();
+    };
+  }, [apiConfig.apiKey, apiConfig.folderId, settings.refreshInterval, setupPhotoPollInterval, refreshPhotos]);
+  
+  // ปรับเปลี่ยน useEffect ที่เดิมทำหน้าที่นี้ เพื่อไม่ให้ทำงานซ้ำซ้อน
+  useEffect(() => {
+    // Apply theme mode only
     const htmlElement = document.querySelector('html');
     if (htmlElement) {
       if (settings.themeMode === 'dark') {
