@@ -32,6 +32,8 @@ const PhotoGrid: React.FC = () => {
 
   const gridRef = useRef<HTMLDivElement>(null);
   const [virtualizedPhotos, setVirtualizedPhotos] = useState<VirtualizedPhoto[]>([]);
+  // Track new photo IDs for animation effects
+  const [newPhotoIds, setNewPhotoIds] = useState<Set<string>>(new Set());
   const { ref: loadMoreRef, inView } = useInView({
     threshold: 0.1,
     triggerOnce: false,
@@ -51,17 +53,20 @@ const PhotoGrid: React.FC = () => {
   // Sorted photos using the context sort function
   const sortedPhotos = useMemo(() => sortPhotos(photos), [photos, sortOrder]);
   
-  // New function with improved real-time updates for adding new photos
+  // Function to update virtualized photos list with new ones
   const updateVirtualizedPhotosWithNewOnes = (newSortedPhotos: Photo[]) => {
     if (newSortedPhotos.length === 0) return;
     
     // Create a set of existing IDs for quick lookup
     const currentIds = new Set(virtualizedPhotos.map(vp => vp.id));
-    const newPhotoIds = new Set(newSortedPhotos.map(p => p.id));
+    const photosIdSet = new Set(newSortedPhotos.map(p => p.id));
     
     // Find truly new photos (not in current virtualized list)
     const newPhotosToAdd: VirtualizedPhoto[] = [];
     let hasNewPhotos = false;
+    
+    // Track fresh photo IDs for animation effects
+    const freshPhotoIds = new Set<string>();
     
     for (let i = 0; i < newSortedPhotos.length; i++) {
       const photo = newSortedPhotos[i];
@@ -74,12 +79,22 @@ const PhotoGrid: React.FC = () => {
         // Update our set of known photo IDs
         lastKnownPhotoIds.current.add(photo.id);
         hasNewPhotos = true;
+        // Add to fresh photo IDs for animation
+        freshPhotoIds.add(photo.id);
       }
     }
     
     // If we found new photos, add them to the virtualized list at the beginning
     if (hasNewPhotos && newPhotosToAdd.length > 0) {
       console.log(`Adding ${newPhotosToAdd.length} new photos to the virtualized list`);
+      
+      // Update new photo IDs state
+      setNewPhotoIds(prev => {
+        const updatedNewPhotoIds = new Set(prev);
+        freshPhotoIds.forEach(id => updatedNewPhotoIds.add(id));
+        return updatedNewPhotoIds;
+      });
+      
       // Prepend new photos to the existing virtualized list and update indices
       setVirtualizedPhotos(prev => {
         // Create a fresh array with updated indices
@@ -92,11 +107,11 @@ const PhotoGrid: React.FC = () => {
     }
     
     // Handle case where photos were removed
-    const deletedPhotos = Array.from(currentIds).filter(id => !newPhotoIds.has(id));
+    const deletedPhotos = Array.from(currentIds).filter(id => !photosIdSet.has(id));
     if (deletedPhotos.length > 0) {
       console.log(`Removing ${deletedPhotos.length} deleted photos from the virtualized list`);
       setVirtualizedPhotos(prev => 
-        prev.filter(vp => newPhotoIds.has(vp.id))
+        prev.filter(vp => photosIdSet.has(vp.id))
            .map((vp, idx) => ({
              ...vp,
              index: idx
@@ -104,6 +119,17 @@ const PhotoGrid: React.FC = () => {
       );
     }
   };
+  
+  // Remove new photo effect after 5 seconds
+  useEffect(() => {
+    if (newPhotoIds.size === 0) return;
+    
+    const timer = setTimeout(() => {
+      setNewPhotoIds(new Set());
+    }, 5000);
+    
+    return () => clearTimeout(timer);
+  }, [newPhotoIds]);
   
   // Improved effect to handle new photos with immediate UI updates
   useEffect(() => {
@@ -309,6 +335,7 @@ const PhotoGrid: React.FC = () => {
           >
             {virtualizedPhotos.map((vPhoto, idx) => {
               const photo = photoMap.get(vPhoto.id);
+              const isNewPhoto = newPhotoIds.has(vPhoto.id);
               
               return photo ? (
                 <GridItem 
@@ -318,6 +345,7 @@ const PhotoGrid: React.FC = () => {
                   gridLayout={settings.gridLayout}
                   gridRows={settings.gridRows}
                   index={idx}
+                  isNew={isNewPhoto}
                 />
               ) : null;
             })}

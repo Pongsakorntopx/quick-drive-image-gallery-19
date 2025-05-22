@@ -24,7 +24,7 @@ let latestPhotoCache = {
 // Fetch only the latest photo for quick check - optimized for real-time updates
 export const fetchLatestPhotoFromDrive = async (
   config: ApiConfig, 
-  forceRefresh: boolean = false // Add force refresh param
+  forceRefresh: boolean = false
 ): Promise<Photo | null> => {
   try {
     if (!config.apiKey || !config.folderId) {
@@ -124,7 +124,7 @@ export const fetchLatestPhotoFromDrive = async (
 
 export const fetchPhotosFromDrive = async (
   config: ApiConfig,
-  forceRefresh: boolean = false // Add force refresh parameter
+  forceRefresh: boolean = false
 ): Promise<Photo[]> => {
   try {
     if (!config.apiKey || !config.folderId) {

@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from "react";
 import { ApiConfig, Photo, AppSettings } from "../types";
 import { useToast } from "@/components/ui/use-toast";
@@ -189,7 +188,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }
   };
 
-  // Improved function to quickly check for new photos with instant updates
+  // Function to quickly check for new photos
   const quickCheckNewPhotos = useCallback(async (): Promise<boolean> => {
     if (!apiConfig.apiKey || !apiConfig.folderId) {
       return false;
@@ -199,7 +198,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       console.log("Quick checking for new photos at:", new Date().toISOString());
       
       // Check for new photos without fetching all, passing the latest timestamp
-      // and forcing a refresh if new photos were previously detected
       const latestPhoto = await checkForNewPhotos(
         apiConfig, 
         settings.language, 
@@ -246,7 +244,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }
   }, [apiConfig, photos, settings.language, sortOrder, notificationsEnabled, toast, toastDuration]);
 
-  // Improved refresh photos function with optimized performance
+  // Improved refresh photos function
   const refreshPhotos = useCallback(async (): Promise<boolean> => {
     if (!apiConfig.apiKey || !apiConfig.folderId) {
       setError(settings.language === "th" ? "กรุณาระบุ API Key และ Folder ID" : "Please provide API Key and Folder ID");
@@ -266,8 +264,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       const wasNewPhotosDetected = newPhotosDetectedRef.current;
       newPhotosDetectedRef.current = false;
       
-      // Fetch and sort photos with optimized background processing
-      // Use forceRefresh if new photos were detected
+      // Fetch and sort photos
       const result = await fetchAndProcessPhotos(
         apiConfig, 
         settings.language, 
@@ -337,7 +334,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }
   }, []);
 
-  // Set up the refresh interval with improved real-time updates
+  // Set up the JavaScript polling/fetch interval
   useEffect(() => {
     // Clear any existing interval
     clearIntervals();
@@ -347,15 +344,15 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       // Initial fetch when component mounts or dependencies change
       refreshPhotos();
       
-      // Set up a full refresh interval (ลดลงเหลือ 2 วินาที เพื่อการตอบสนองดีขึ้น)
-      const fullRefreshMs = Math.max(2000, settings.refreshInterval * 1000); // Minimum 2 seconds
+      // Calculate refresh intervals
+      const fullRefreshMs = Math.max(5000, settings.refreshInterval * 1000); // Min 5 seconds, default based on settings
       console.log(`Setting up full refresh interval: ${fullRefreshMs / 1000} seconds`);
       
-      // Set up a quick check interval - even more frequent (every 800ms)
-      const quickCheckMs = Math.min(800, settings.refreshInterval * 200); // 1/5 of full refresh but max 800ms
+      // Quick check runs more often for faster updates
+      const quickCheckMs = Math.min(2000, settings.refreshInterval * 200); // Max 2 seconds for quick checks
       console.log(`Setting up quick check interval: ${quickCheckMs / 1000} seconds`);
       
-      // Use more efficient setTimeout-based polling for full refresh
+      // Set up full refresh interval using setTimeout for better performance
       const setupNextFullRefresh = () => {
         refreshIntervalRef.current = window.setTimeout(async () => {
           console.log(`Full refresh triggered after ${fullRefreshMs / 1000} seconds`);
@@ -365,7 +362,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         }, fullRefreshMs);
       };
       
-      // Set up quick check interval - more aggressive for better real-time updates
+      // Set up quick check interval for more responsive updates
       quickCheckIntervalRef.current = window.setInterval(async () => {
         await quickCheckNewPhotos();
       }, quickCheckMs);
