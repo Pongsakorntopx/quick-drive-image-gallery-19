@@ -1,8 +1,8 @@
-
 import React, { useEffect, useRef, useState, useMemo } from "react";
 import { useAppContext } from "../context/AppContext";
 import { useInView } from "react-intersection-observer";
 import { Photo } from "../types";
+import { isPhotoNew } from "../context/PhotoUtils";
 
 // Import grid components
 import GridItem from "./grid/GridItem";
@@ -15,6 +15,7 @@ import SortControls from "./grid/SortControls";
 interface VirtualizedPhoto {
   id: string;
   index: number;
+  isNew?: boolean;
 }
 
 const PhotoGrid: React.FC = () => {
@@ -44,6 +45,8 @@ const PhotoGrid: React.FC = () => {
   const lastKnownPhotoIds = useRef<Set<string>>(new Set());
   // Track if initial setup has been done
   const initialSetupDone = useRef<boolean>(false);
+  // Track new photo IDs
+  const newPhotoIds = useRef<Set<string>>(new Set());
 
   // Batch size for virtualization - increased for better initial load
   const batchSize = 32; // Increased from 24 for better initial experience
@@ -57,7 +60,7 @@ const PhotoGrid: React.FC = () => {
     
     // Create a set of existing IDs for quick lookup
     const currentIds = new Set(virtualizedPhotos.map(vp => vp.id));
-    const newPhotoIds = new Set(newSortedPhotos.map(p => p.id));
+    const currentPhotoIds = new Set(newSortedPhotos.map(p => p.id));
     
     // Find truly new photos (not in current virtualized list)
     const newPhotosToAdd: VirtualizedPhoto[] = [];
@@ -69,8 +72,15 @@ const PhotoGrid: React.FC = () => {
       if (!currentIds.has(photo.id)) {
         newPhotosToAdd.push({
           id: photo.id,
-          index: i
+          index: i,
+          isNew: isPhotoNew(photo) // Use helper to check if photo is marked as new
         });
+        
+        // Keep track of new photo IDs
+        if (isPhotoNew(photo)) {
+          newPhotoIds.current.add(photo.id);
+        }
+        
         // Update our set of known photo IDs
         lastKnownPhotoIds.current.add(photo.id);
         hasNewPhotos = true;
@@ -80,23 +90,25 @@ const PhotoGrid: React.FC = () => {
     // If we found new photos, add them to the virtualized list at the beginning
     if (hasNewPhotos && newPhotosToAdd.length > 0) {
       console.log(`Adding ${newPhotosToAdd.length} new photos to the virtualized list`);
+      
       // Prepend new photos to the existing virtualized list and update indices
       setVirtualizedPhotos(prev => {
         // Create a fresh array with updated indices
         const updatedPrevPhotos = prev.map((vp, idx) => ({
           id: vp.id,
-          index: idx + newPhotosToAdd.length
+          index: idx + newPhotosToAdd.length,
+          isNew: vp.isNew
         }));
         return [...newPhotosToAdd, ...updatedPrevPhotos];
       });
     }
     
     // Handle case where photos were removed
-    const deletedPhotos = Array.from(currentIds).filter(id => !newPhotoIds.has(id));
+    const deletedPhotos = Array.from(currentIds).filter(id => !currentPhotoIds.has(id));
     if (deletedPhotos.length > 0) {
       console.log(`Removing ${deletedPhotos.length} deleted photos from the virtualized list`);
       setVirtualizedPhotos(prev => 
-        prev.filter(vp => newPhotoIds.has(vp.id))
+        prev.filter(vp => currentPhotoIds.has(vp.id))
            .map((vp, idx) => ({
              ...vp,
              index: idx
@@ -126,6 +138,7 @@ const PhotoGrid: React.FC = () => {
         const initialBatch = sortedPhotos.slice(0, batchSize).map((photo, index) => ({
           id: photo.id,
           index,
+          isNew: isPhotoNew(photo)
         }));
         setVirtualizedPhotos(initialBatch);
         initialSetupDone.current = true;
@@ -148,6 +161,7 @@ const PhotoGrid: React.FC = () => {
       const initialBatch = sortedPhotos.slice(0, batchSize).map((photo, index) => ({
         id: photo.id,
         index,
+        isNew: isPhotoNew(photo)
       }));
       setVirtualizedPhotos(initialBatch);
     }
@@ -161,6 +175,7 @@ const PhotoGrid: React.FC = () => {
         .map((photo, index) => ({
           id: photo.id,
           index: virtualizedPhotos.length + index,
+          isNew: isPhotoNew(photo)
         }));
       
       setVirtualizedPhotos(prev => [...prev, ...nextBatch]);
@@ -239,7 +254,7 @@ const PhotoGrid: React.FC = () => {
           }
         });
       }, {
-        rootMargin: '300px', // Load images further outside viewport (increased from 200px)
+        rootMargin: '300px', // Load images further outside viewport
         threshold: 0.01
       });
       
@@ -312,12 +327,13 @@ const PhotoGrid: React.FC = () => {
               
               return photo ? (
                 <GridItem 
-                  key={vPhoto.id} 
+                  key={`${vPhoto.id}-${vPhoto.isNew ? 'new' : 'existing'}-${Date.now()}`} 
                   photo={photo} 
                   onClick={setSelectedPhoto}
                   gridLayout={settings.gridLayout}
                   gridRows={settings.gridRows}
                   index={idx}
+                  isNewPhoto={vPhoto.isNew}
                 />
               ) : null;
             })}
@@ -382,6 +398,51 @@ const PhotoGrid: React.FC = () => {
           animation: fadeIn 0.5s ease-out forwards;
         }
 
+        /* New photo animation - push effect */
+        .new-photo-item {
+          animation: pushInFromTop 0.7s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+          z-index: 10;
+          position: relative;
+          transform-origin: top center;
+          opacity: 0;
+        }
+        
+        .new-photo-content {
+          box-shadow: 0 0 0 2px rgba(var(--primary-rgb), 0.7), 0 5px 20px rgba(0, 0, 0, 0.15);
+          animation: glow 2s ease-in-out;
+        }
+        
+        @keyframes pushInFromTop {
+          0% {
+            opacity: 0;
+            transform: translateY(-50px) scale(0.9);
+            box-shadow: 0 0 0 rgba(var(--primary-rgb), 0), 0 0 0 rgba(0, 0, 0, 0);
+          }
+          30% {
+            opacity: 1;
+            transform: translateY(5px) scale(1.02);
+          }
+          70% {
+            transform: translateY(-2px) scale(1.01);
+          }
+          100% {
+            opacity: 1;
+            transform: translateY(0) scale(1);
+          }
+        }
+        
+        @keyframes glow {
+          0% {
+            box-shadow: 0 0 0 2px rgba(var(--primary-rgb), 0.7), 0 5px 20px rgba(0, 0, 0, 0.15);
+          }
+          50% {
+            box-shadow: 0 0 0 3px rgba(var(--primary-rgb), 0.9), 0 5px 25px rgba(0, 0, 0, 0.18);
+          }
+          100% {
+            box-shadow: 0 0 0 2px rgba(var(--primary-rgb), 0), 0 5px 20px rgba(0, 0, 0, 0.15);
+          }
+        }
+
         /* Responsive grid for different screen sizes */
         @media (max-width: 640px) {
           .masonry-grid {
@@ -429,7 +490,7 @@ const PhotoGrid: React.FC = () => {
           }
         }
 
-        /* New animation for fresh images */
+        /* Fresh image animation with push effect */
         .fresh-image {
           animation: pulseIn 0.8s ease-out;
         }

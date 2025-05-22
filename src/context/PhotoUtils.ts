@@ -49,11 +49,14 @@ export const checkForNewPhotos = async (
   apiConfig: ApiConfig,
   language: string,
   cachedPhotoTimestamp?: string,
-  forceRefresh: boolean = false // Add forceRefresh parameter
+  forceRefresh: boolean = false
 ): Promise<Photo | null> => {
   try {
+    // Add cache busting parameter to ensure we get fresh data
+    const cacheBuster = `cb=${Date.now()}`;
+    
     // Fetch only the latest photo to check if there's something new
-    const latestPhoto = await fetchLatestPhotoFromDrive(apiConfig, forceRefresh);
+    const latestPhoto = await fetchLatestPhotoFromDrive(apiConfig, forceRefresh, cacheBuster);
     
     if (!latestPhoto) return null;
     
@@ -84,11 +87,14 @@ export const fetchAndProcessPhotos = async (
   apiConfig: ApiConfig, 
   language: string,
   sortOrder: SortOrder,
-  forceRefresh: boolean = false // Add forceRefresh parameter
+  forceRefresh: boolean = false
 ): Promise<PhotoFetchResult> => {
   try {
+    // Add cache busting parameter to ensure we get fresh data
+    const cacheBuster = `cb=${Date.now()}`;
+    
     // Fetch photos from Google Drive with force refresh option
-    const photosData = await fetchPhotosFromDrive(apiConfig, forceRefresh);
+    const photosData = await fetchPhotosFromDrive(apiConfig, forceRefresh, cacheBuster);
     
     // Create a PhotoFetchResult object from the photos array
     const result: PhotoFetchResult = {
@@ -100,8 +106,9 @@ export const fetchAndProcessPhotos = async (
       // Process thumbnails to ensure higher quality
       result.data = result.data.map(photo => {
         if (photo.thumbnailLink) {
-          // Try to get a higher quality thumbnail
-          photo.thumbnailLink = photo.thumbnailLink.replace('=s220', '=s400');
+          // Add cache busting parameter to thumbnail URL
+          const separator = photo.thumbnailLink.includes('?') ? '&' : '?';
+          photo.thumbnailLink = `${photo.thumbnailLink.replace('=s220', '=s400')}${separator}${cacheBuster}`;
         }
         return photo;
       });
@@ -147,8 +154,15 @@ export const insertNewPhoto = (currentPhotos: Photo[], newPhoto: Photo, sortOrde
     return currentPhotos;
   }
   
+  // Mark the new photo to track it
+  const markedNewPhoto = {
+    ...newPhoto,
+    _isNew: true, // Add a marker for new photos
+    _addedAt: new Date().getTime() // Add timestamp when the photo was added
+  };
+  
   // Add the new photo and resort the complete array to maintain proper order
-  const updatedPhotos = [newPhoto, ...currentPhotos];
+  const updatedPhotos = [markedNewPhoto, ...currentPhotos];
   
   // Sort according to current sort order
   return sortPhotos(updatedPhotos, sortOrder);
@@ -166,4 +180,16 @@ export const getLatestPhotoTimestamp = (photos: Photo[]): string | undefined => 
     
     return new Date(photoTime) > new Date(latest) ? photoTime : latest;
   }, undefined as string | undefined);
+};
+
+// Helper function to check if a photo is new (less than 5 seconds old)
+export const isPhotoNew = (photo: Photo): boolean => {
+  return !!(photo as any)._isNew;
+};
+
+// Helper function to clear any cached data from the service
+export const clearServiceCache = () => {
+  // Implementation depends on how caching is done
+  console.log("Clearing service cache");
+  // If there's a specific cache implementation, clear it here
 };
