@@ -55,8 +55,11 @@ export const checkForNewPhotos = async (
     // Add cache busting parameter to ensure we get fresh data
     const cacheBuster = `cb=${Date.now()}`;
     
-    // Fetch only the latest photo to check if there's something new
-    const latestPhoto = await fetchLatestPhotoFromDrive(apiConfig, forceRefresh, cacheBuster);
+    // Fixed: Removed third argument, combining parameters into options object
+    const latestPhoto = await fetchLatestPhotoFromDrive(
+      apiConfig, 
+      { forceRefresh, cacheBuster }
+    );
     
     if (!latestPhoto) return null;
     
@@ -93,8 +96,11 @@ export const fetchAndProcessPhotos = async (
     // Add cache busting parameter to ensure we get fresh data
     const cacheBuster = `cb=${Date.now()}`;
     
-    // Fetch photos from Google Drive with force refresh option
-    const photosData = await fetchPhotosFromDrive(apiConfig, forceRefresh, cacheBuster);
+    // Fixed: Removed third argument, combining parameters into options object
+    const photosData = await fetchPhotosFromDrive(
+      apiConfig, 
+      { forceRefresh, cacheBuster }
+    );
     
     // Create a PhotoFetchResult object from the photos array
     const result: PhotoFetchResult = {
