@@ -1,232 +1,208 @@
-
-import { Photo, PhotoFetchResult } from "../types";
-import { fetchPhotosFromDrive, fetchLatestPhotoFromDrive } from "../services/googleDriveService";
-import { ApiConfig } from "../types";
+import { Photo, PhotoFetchResult, Language } from "../types";
 import { SortOrder } from "./AppContextTypes";
+import { fetchPhotos } from "../services/googleDriveService";
 
-// Helper function to clear any cached data in the photo utilities
-export const clearServiceCache = () => {
-  // Clear any cached data that might be stored
-  console.log("PhotoUtils: Clearing service cache");
-  
-  // Return true to indicate successful cache clearing
-  return true;
+// Service cache for API calls
+const serviceCache = {
+  lastFetchTime: 0,
+  lastResults: null as PhotoFetchResult | null,
 };
 
-// Helper function to check if photos array has actually changed
+// Clear service cache - needed for reset functionality
+export const clearServiceCache = () => {
+  serviceCache.lastFetchTime = 0;
+  serviceCache.lastResults = null;
+};
+
+// Function to sort photos based on sort order
+export const sortPhotos = (photos: Photo[], sortOrder: SortOrder): Photo[] => {
+  if (!photos || photos.length === 0) return [];
+
+  const sortedPhotos = [...photos];
+  
+  return sortedPhotos.sort((a, b) => {
+    const fieldA = a[sortOrder.field];
+    const fieldB = b[sortOrder.field];
+    
+    // Handle undefined or null values
+    if (!fieldA && fieldA !== "") return sortOrder.direction === "asc" ? -1 : 1;
+    if (!fieldB && fieldB !== "") return sortOrder.direction === "asc" ? 1 : -1;
+    
+    // For string comparisons
+    if (typeof fieldA === 'string' && typeof fieldB === 'string') {
+      return sortOrder.direction === "asc" 
+        ? fieldA.localeCompare(fieldB)
+        : fieldB.localeCompare(fieldA);
+    }
+    
+    // For date strings
+    if (sortOrder.field === "modifiedTime" || sortOrder.field === "createdTime") {
+      const dateA = fieldA ? new Date(fieldA as string).getTime() : 0;
+      const dateB = fieldB ? new Date(fieldB as string).getTime() : 0;
+      return sortOrder.direction === "asc" ? dateA - dateB : dateB - dateA;
+    }
+    
+    // Default comparison
+    return 0;
+  });
+};
+
+// Function to check if photos have changed
 export const checkIfPhotosChanged = (oldPhotos: Photo[], newPhotos: Photo[]): boolean => {
   if (oldPhotos.length !== newPhotos.length) {
     return true;
   }
   
-  // Check if any IDs are different
-  const oldIds = new Set(oldPhotos.map(p => p.id));
-  return newPhotos.some(p => !oldIds.has(p.id));
+  // Create maps for faster lookups
+  const oldPhotoMap = new Map(oldPhotos.map(photo => [photo.id, photo]));
+  const newPhotoMap = new Map(newPhotos.map(photo => [photo.id, photo]));
+  
+  // Check if any photos are missing from either array
+  for (const photo of oldPhotos) {
+    if (!newPhotoMap.has(photo.id)) {
+      return true;
+    }
+  }
+  
+  for (const photo of newPhotos) {
+    if (!oldPhotoMap.has(photo.id)) {
+      return true;
+    }
+  }
+  
+  // Check if any photos have different modified times
+  for (const photo of newPhotos) {
+    const oldPhoto = oldPhotoMap.get(photo.id);
+    if (oldPhoto?.modifiedTime !== photo.modifiedTime) {
+      return true;
+    }
+  }
+  
+  return false;
 };
 
-// Modified function to sort photos
-export const sortPhotos = (photos: Photo[], sortOrder: SortOrder): Photo[] => {
-  return [...photos].sort((a, b) => {
-    const fieldA = a[sortOrder.field];
-    const fieldB = b[sortOrder.field];
-    
-    // Handle cases where the field might not exist
-    if (!fieldA && !fieldB) return 0;
-    if (!fieldA) return sortOrder.direction === "asc" ? 1 : -1;
-    if (!fieldB) return sortOrder.direction === "asc" ? -1 : 1;
-    
-    // For string comparison
-    if (typeof fieldA === "string" && typeof fieldB === "string") {
-      return sortOrder.direction === "asc" 
-        ? fieldA.localeCompare(fieldB) 
-        : fieldB.localeCompare(fieldA);
-    }
-    
-    // For date comparison
-    if (fieldA && fieldB) {
-      const dateA = new Date(fieldA as string).getTime();
-      const dateB = new Date(fieldB as string).getTime();
-      return sortOrder.direction === "asc" ? dateA - dateB : dateB - dateA;
-    }
-    
-    return 0;
-  });
+// Function to find new photos that were not in the old list
+export const findNewPhotos = (oldPhotos: Photo[], newPhotos: Photo[]): Photo[] => {
+  const oldPhotoIds = new Set(oldPhotos.map(photo => photo.id));
+  return newPhotos.filter(photo => !oldPhotoIds.has(photo.id));
 };
 
-// Enhanced check for new photos with immediate detection
+// Function to get the latest photo timestamp
+export const getLatestPhotoTimestamp = (photos: Photo[]): string | undefined => {
+  if (!photos || photos.length === 0) return undefined;
+  
+  // Find the photo with the most recent timestamp
+  return photos.reduce((latest, photo) => {
+    const photoTime = photo.modifiedTime || photo.createdTime;
+    if (!photoTime) return latest;
+    
+    if (!latest) return photoTime;
+    
+    // Compare dates
+    return new Date(photoTime) > new Date(latest) ? photoTime : latest;
+  }, undefined as string | undefined);
+};
+
+// Function to insert a new photo while preserving sort order
+export const insertNewPhoto = (
+  existingPhotos: Photo[], 
+  newPhoto: Photo, 
+  sortOrder: SortOrder
+): Photo[] => {
+  const updatedPhotos = [...existingPhotos];
+  updatedPhotos.push(newPhoto);
+  return sortPhotos(updatedPhotos, sortOrder);
+};
+
+// Async function to check for new photos with minimal API usage
 export const checkForNewPhotos = async (
-  apiConfig: ApiConfig,
-  language: string,
-  cachedPhotoTimestamp?: string,
-  forceRefresh: boolean = false // Add forceRefresh parameter
+  apiConfig: { apiKey: string; folderId: string },
+  language: Language,
+  latestTimestamp?: string,
+  forceRefresh: boolean = false
 ): Promise<Photo | null> => {
   try {
-    // Fetch only the latest photo to check if there's something new
-    const latestPhoto = await fetchLatestPhotoFromDrive(apiConfig, forceRefresh);
-    
-    if (!latestPhoto) return null;
-    
-    // If we have a cached timestamp, compare with the latest photo's timestamp
-    if (cachedPhotoTimestamp) {
-      const latestTimestamp = latestPhoto.modifiedTime || latestPhoto.createdTime;
+    // If we don't have a latest timestamp or force refresh is enabled, we can't do an optimized check
+    if (!latestTimestamp || forceRefresh) {
+      const result = await fetchPhotos(apiConfig);
       
-      if (latestTimestamp) {
-        // Always return the photo for immediate update if it's newer
-        if (new Date(latestTimestamp) > new Date(cachedPhotoTimestamp)) {
-          // Make sure we generate a unique thumbnail URL with cache-breaking timestamp
-          if (latestPhoto.thumbnailLink) {
-            const timestamp = Date.now();
-            latestPhoto.thumbnailLink = `${latestPhoto.thumbnailLink.split('&t=')[0]}&t=${timestamp}`;
-            latestPhoto.url = latestPhoto.url.split('&t=')[0] + `&t=${timestamp}`;
-            
-            if (latestPhoto.fullSizeUrl) {
-              latestPhoto.fullSizeUrl = latestPhoto.fullSizeUrl.split('?t=')[0] + `?t=${timestamp}`;
-            }
-          }
-          return latestPhoto;
-        }
-      }
-    } else {
-      // If we don't have a cached timestamp, return the latest photo
-      // Make sure URL has a fresh timestamp
-      if (latestPhoto.thumbnailLink) {
-        const timestamp = Date.now();
-        latestPhoto.thumbnailLink = `${latestPhoto.thumbnailLink.split('&t=')[0]}&t=${timestamp}`;
-        latestPhoto.url = latestPhoto.url.split('&t=')[0] + `&t=${timestamp}`;
+      if (result.success && result.data && result.data.length > 0) {
+        // Return the most recent photo
+        const sortedPhotos = sortPhotos(result.data, {
+          field: "modifiedTime",
+          direction: "desc"
+        });
         
-        if (latestPhoto.fullSizeUrl) {
-          latestPhoto.fullSizeUrl = latestPhoto.fullSizeUrl.split('?t=')[0] + `?t=${timestamp}`;
-        }
+        return sortedPhotos[0];
       }
-      return latestPhoto;
+      return null;
+    }
+    
+    // Otherwise, do an optimized API call to check only for photos newer than the latest timestamp
+    const result = await fetchPhotos(apiConfig, 1, latestTimestamp);
+    
+    if (result.success && result.data && result.data.length > 0) {
+      // Return the newly found photo
+      return result.data[0];
     }
     
     return null;
-  } catch (err) {
-    console.error("Error checking for new photos:", err);
+  } catch (error) {
+    console.error("Error checking for new photos:", error);
     return null;
   }
 };
 
-// Function to fetch photos from Google Drive with improved real-time capabilities
+// Main function to fetch and process photos with optimizations
 export const fetchAndProcessPhotos = async (
-  apiConfig: ApiConfig, 
-  language: string,
+  apiConfig: { apiKey: string; folderId: string },
+  language: Language,
   sortOrder: SortOrder,
-  forceRefresh: boolean = false // Add forceRefresh parameter
+  forceRefresh: boolean = false
 ): Promise<PhotoFetchResult> => {
   try {
-    // Fetch photos from Google Drive with force refresh option
-    const photosData = await fetchPhotosFromDrive(apiConfig, forceRefresh);
+    // Check if we need to use the cache
+    const now = Date.now();
+    const cacheTime = 1000; // 1 second cache
     
-    // Create a PhotoFetchResult object from the photos array
-    const result: PhotoFetchResult = {
-      success: true,
-      data: photosData as Photo[]
-    };
+    if (!forceRefresh && 
+        serviceCache.lastResults && 
+        now - serviceCache.lastFetchTime < cacheTime) {
+      console.log("Using cached photos result");
+      return serviceCache.lastResults;
+    }
+    
+    // Fetch photos from API
+    const result = await fetchPhotos(apiConfig);
+    
+    // Update cache
+    serviceCache.lastFetchTime = now;
+    serviceCache.lastResults = result;
     
     if (result.success && result.data) {
-      // Process thumbnails to ensure higher quality and add fresh timestamps
-      result.data = result.data.map(photo => {
-        // Create a fresh timestamp for each photo to prevent caching issues
-        const timestamp = Date.now() + Math.floor(Math.random() * 1000);
-        
-        if (photo.thumbnailLink) {
-          // Try to get a higher quality thumbnail with cache-breaking
-          photo.thumbnailLink = `${photo.thumbnailLink.split('&t=')[0].replace('=s220', '=s400')}&t=${timestamp}`;
-          
-          // Update other URLs too
-          if (photo.url) {
-            photo.url = photo.url.split('&t=')[0] + `&t=${timestamp}`;
-          }
-          
-          if (photo.fullSizeUrl) {
-            photo.fullSizeUrl = photo.fullSizeUrl.split('?t=')[0] + `?t=${timestamp}`;
-          }
-        }
-        return photo;
-      });
-      
-      // Sort photos based on current sort order
+      // Sort the photos according to the sort order
       const sortedPhotos = sortPhotos(result.data, sortOrder);
       
       return {
         success: true,
-        data: sortedPhotos
+        data: sortedPhotos,
+      };
+    } else {
+      return {
+        success: false,
+        error: result.error || (language === "th" ? 
+          "ไม่สามารถดึงข้อมูลรูปภาพ" : 
+          "Failed to fetch photos"
+        ),
       };
     }
-    
-    return {
-      success: false,
-      error: language === "th" ? 
-        "ไม่สามารถดึงข้อมูลรูปภาพได้" : 
-        "Could not fetch images"
-    };
-  } catch (err) {
-    console.error("Error fetching photos:", err);
+  } catch (error) {
+    console.error("Error in fetchAndProcessPhotos:", error);
     return {
       success: false,
       error: language === "th" ? 
         "เกิดข้อผิดพลาดในการดึงข้อมูลรูปภาพ" : 
-        "Error fetching images"
+        "Error fetching photos",
     };
   }
-};
-
-// Function to find new photos that aren't in the current list - improved for better detection
-export const findNewPhotos = (currentPhotos: Photo[], newPhotos: Photo[]): Photo[] => {
-  if (currentPhotos.length === 0) return newPhotos;
-  
-  const currentIds = new Set(currentPhotos.map(p => p.id));
-  return newPhotos.filter(photo => !currentIds.has(photo.id));
-};
-
-// Insert a new photo at the beginning of the current photos array and maintain sorting - optimized
-export const insertNewPhoto = (currentPhotos: Photo[], newPhoto: Photo, sortOrder: SortOrder): Photo[] => {
-  // Check if the photo already exists by ID
-  if (currentPhotos.some(p => p.id === newPhoto.id)) {
-    // If it exists, we should update it with fresh URLs
-    return currentPhotos.map(p => {
-      if (p.id === newPhoto.id) {
-        // Generate a fresh timestamp to ensure browser doesn't use cached version
-        const timestamp = Date.now() + Math.floor(Math.random() * 1000);
-        
-        // Create a merged photo with fresh URLs
-        return {
-          ...p,
-          ...newPhoto,
-          thumbnailLink: newPhoto.thumbnailLink 
-            ? `${newPhoto.thumbnailLink.split('&t=')[0]}&t=${timestamp}` 
-            : p.thumbnailLink,
-          url: newPhoto.url 
-            ? `${newPhoto.url.split('&t=')[0]}&t=${timestamp}` 
-            : p.url,
-          fullSizeUrl: newPhoto.fullSizeUrl 
-            ? `${newPhoto.fullSizeUrl.split('?t=')[0]}?t=${timestamp}` 
-            : p.fullSizeUrl
-        };
-      }
-      return p;
-    });
-  }
-  
-  // Add the new photo and resort the complete array to maintain proper order
-  const updatedPhotos = [newPhoto, ...currentPhotos];
-  
-  // Sort according to current sort order
-  return sortPhotos(updatedPhotos, sortOrder);
-};
-
-// Get the latest timestamp from a photos array
-export const getLatestPhotoTimestamp = (photos: Photo[]): string | undefined => {
-  if (photos.length === 0) return undefined;
-  
-  // Find the photo with the most recent modification time
-  return photos.reduce((latest, photo) => {
-    const photoTime = photo.modifiedTime || photo.createdTime;
-    if (!latest) return photoTime;
-    if (!photoTime) return latest;
-    
-    return new Date(photoTime) > new Date(latest) ? photoTime : latest;
-  }, undefined as string | undefined);
 };

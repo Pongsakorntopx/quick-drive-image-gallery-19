@@ -55,28 +55,28 @@ const SettingsDialog: React.FC = () => {
       const logoReader = new FileReader();
       logoReader.onloadend = () => {
         const base64Logo = logoReader.result as string;
-        setSettings({
+        const updatedSettings = {
           ...tempSettings,
           logoUrl: base64Logo
-        });
+        };
+        setSettings(updatedSettings);
       };
       logoReader.readAsDataURL(logoFile);
-    } else {
+    } else if (bannerFile) {
       // Process banner upload if available
-      if (bannerFile) {
-        const bannerReader = new FileReader();
-        bannerReader.onloadend = () => {
-          const base64Banner = bannerReader.result as string;
-          setSettings({
-            ...tempSettings,
-            bannerUrl: base64Banner
-          });
+      const bannerReader = new FileReader();
+      bannerReader.onloadend = () => {
+        const base64Banner = bannerReader.result as string;
+        const updatedSettings = {
+          ...tempSettings,
+          bannerUrl: base64Banner
         };
-        bannerReader.readAsDataURL(bannerFile);
-      } else {
-        // No files to process, just save settings
-        setSettings(tempSettings);
-      }
+        setSettings(updatedSettings);
+      };
+      bannerReader.readAsDataURL(bannerFile);
+    } else {
+      // No files to process, just save settings
+      setSettings(tempSettings);
     }
     setIsSettingsOpen(false);
   };

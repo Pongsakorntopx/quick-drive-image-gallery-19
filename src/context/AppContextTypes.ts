@@ -1,3 +1,4 @@
+
 import { Photo, Theme, Font } from "../types";
 
 export interface SortOrder {
@@ -39,7 +40,7 @@ export interface AppSettings {
   gridLayout: "googlePhotos" | "fixed" | "custom" | "auto";
   gridColumns: number;
   gridRows: number;
-  autoRefreshOnNewPhotos: boolean; // New setting for auto-refresh on new photos
+  autoRefreshOnNewPhotos: boolean; // Setting for auto-refresh on new photos
 }
 
 export interface AppContextType {

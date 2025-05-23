@@ -1,3 +1,4 @@
+
 import { AppSettings, Language, ThemeMode, Theme, Font } from "../types";
 import { allFonts } from "../config/fonts";
 
