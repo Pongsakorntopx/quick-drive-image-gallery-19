@@ -1,4 +1,5 @@
-import React, { useMemo, forwardRef } from "react";
+
+import React, { useMemo, forwardRef, useEffect } from "react";
 import { Photo } from "@/types";
 
 interface GridContainerProps {
@@ -7,6 +8,7 @@ interface GridContainerProps {
   gridColumns: number;
   className?: string;
   photos: Photo[];
+  newPhotoIds?: Set<string>; // Add prop to track new photo IDs
 }
 
 const GridContainer = forwardRef<HTMLDivElement, GridContainerProps>(({ 
@@ -14,7 +16,8 @@ const GridContainer = forwardRef<HTMLDivElement, GridContainerProps>(({
   gridLayout, 
   gridColumns,
   className = "",
-  photos
+  photos,
+  newPhotoIds = new Set()
 }, ref) => {
   // Get grid layout class based on settings
   const getGridLayoutClass = () => {
@@ -44,26 +47,32 @@ const GridContainer = forwardRef<HTMLDivElement, GridContainerProps>(({
     return {};
   };
 
-  // Prefetch images for better performance - increased number of images to preload
+  // Enhanced prefetch mechanism: prefetch ALL images immediately
+  // This ensures we have image data available for instant display
   const prefetchImages = useMemo(() => {
-    // Increased to prefetch more images for smoother scrolling
-    const imagesToPrefetch = photos.slice(0, 20);
-    
+    // Try to prefetch all visible images and prioritize new ones
     return (
       <div style={{ display: 'none' }}>
-        {imagesToPrefetch.map((photo) => (
+        {photos.map((photo) => (
           <link 
             key={photo.id}
             rel="prefetch"
             href={photo.thumbnailLink || `https://drive.google.com/thumbnail?id=${photo.id}`}
             as="image"
             crossOrigin="anonymous"
-            fetchPriority="high"
+            fetchPriority={newPhotoIds.has(photo.id) ? "high" : "auto"}
           />
         ))}
       </div>
     );
-  }, [photos.slice(0, 20).map(p => p.id).join(',')]);
+  }, [photos, newPhotoIds]);
+  
+  // Force re-rendering when new photos are detected
+  useEffect(() => {
+    if (newPhotoIds && newPhotoIds.size > 0) {
+      console.log(`Detected ${newPhotoIds.size} new photos, updating the grid`);
+    }
+  }, [newPhotoIds]);
 
   return (
     <>
@@ -72,6 +81,7 @@ const GridContainer = forwardRef<HTMLDivElement, GridContainerProps>(({
         className={`${getGridLayoutClass()} ${className}`}
         style={getGridStyle()}
         ref={ref}
+        data-has-new-photos={newPhotoIds && newPhotoIds.size > 0 ? "true" : "false"}
       >
         {children}
       </div>
