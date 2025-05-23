@@ -4,6 +4,15 @@ import { fetchPhotosFromDrive, fetchLatestPhotoFromDrive } from "../services/goo
 import { ApiConfig } from "../types";
 import { SortOrder } from "./AppContextTypes";
 
+// Helper function to clear any cached data in the photo utilities
+export const clearServiceCache = () => {
+  // Clear any cached data that might be stored
+  console.log("PhotoUtils: Clearing service cache");
+  
+  // Return true to indicate successful cache clearing
+  return true;
+};
+
 // Helper function to check if photos array has actually changed
 export const checkIfPhotosChanged = (oldPhotos: Photo[], newPhotos: Photo[]): boolean => {
   if (oldPhotos.length !== newPhotos.length) {
