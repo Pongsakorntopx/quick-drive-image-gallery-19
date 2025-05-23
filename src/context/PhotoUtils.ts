@@ -1,6 +1,5 @@
-
 import { Photo, PhotoFetchResult } from "../types";
-import { fetchPhotosFromDrive, fetchLatestPhotoFromDrive, clearServiceCache as clearDriveCache } from "../services/googleDriveService";
+import { fetchPhotosFromDrive, fetchLatestPhotoFromDrive } from "../services/googleDriveService";
 import { ApiConfig } from "../types";
 import { SortOrder } from "./AppContextTypes";
 
@@ -166,9 +165,4 @@ export const getLatestPhotoTimestamp = (photos: Photo[]): string | undefined => 
     
     return new Date(photoTime) > new Date(latest) ? photoTime : latest;
   }, undefined as string | undefined);
-};
-
-// Export the clearServiceCache function from googleDriveService
-export const clearServiceCache = (): void => {
-  clearDriveCache();
 };
