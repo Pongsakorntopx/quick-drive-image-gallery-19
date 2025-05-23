@@ -1,3 +1,4 @@
+
 import React, { useMemo, forwardRef } from "react";
 import { Photo } from "@/types";
 
@@ -69,7 +70,7 @@ const GridContainer = forwardRef<HTMLDivElement, GridContainerProps>(({
     <>
       {prefetchImages}
       <div 
-        className={`${getGridLayoutClass()} ${className}`}
+        className={`${getGridLayoutClass()} ${className} bg-card/20 backdrop-blur-sm rounded-xl p-4 sm:p-6`}
         style={getGridStyle()}
         ref={ref}
       >

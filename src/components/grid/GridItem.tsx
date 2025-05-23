@@ -1,5 +1,5 @@
 
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { Photo } from "@/types";
 import ImageCard from "../ImageCard";
 
@@ -9,6 +9,7 @@ interface GridItemProps {
   gridLayout: string;
   gridRows: number;
   index: number;
+  isNewPhoto?: boolean; // Add prop to identify new photos
 }
 
 const GridItem: React.FC<GridItemProps> = ({ 
@@ -16,8 +17,21 @@ const GridItem: React.FC<GridItemProps> = ({
   onClick, 
   gridLayout,
   gridRows,
-  index
+  index,
+  isNewPhoto = false
 }) => {
+  const [isVisible, setIsVisible] = useState(false);
+  
+  // Animation effect when component mounts
+  useEffect(() => {
+    // Staggered animation based on index
+    const timeout = setTimeout(() => {
+      setIsVisible(true);
+    }, Math.min(index * 50, 500)); // Cap the delay at 500ms
+    
+    return () => clearTimeout(timeout);
+  }, [index]);
+  
   // Get grid item class based on settings
   const getGridItemClass = () => {
     if (gridLayout === "fixed" || gridLayout === "custom") {
@@ -33,11 +47,9 @@ const GridItem: React.FC<GridItemProps> = ({
     return { 
       className: "masonry-item", 
       style: { 
-        opacity: 0, 
-        transform: "translateY(20px)", 
-        transition: "opacity 0.4s ease-out, transform 0.4s ease-out",
-        // Add staggered animation delay based on index
-        animationDelay: `${Math.min(index * 0.05, 1)}s`,
+        opacity: isVisible ? 1 : 0, 
+        transform: isVisible ? "translateY(0)" : "translateY(20px)", 
+        transition: "opacity 0.5s ease-out, transform 0.5s ease-out",
         transitionDelay: `${Math.min(index * 0.05, 1)}s`
       } 
     };
@@ -53,34 +65,37 @@ const GridItem: React.FC<GridItemProps> = ({
 
   // Calculate aspect ratio for fixed grid
   const getImageContainerStyle = () => {
-    if ((gridLayout === "fixed" || gridLayout === "custom") && 
-        gridRows && gridRows > 0) {
-      // Use index for staggered animation
-      const animationDelay = `${Math.min(index * 0.05, 1)}s`;
-      return { 
-        height: '100%',
-        objectFit: 'cover' as const,
-        animationDelay
-      };
-    }
-    return {
+    const baseStyle = {
+      height: '100%',
+      objectFit: 'cover' as const,
       animationDelay: `${Math.min(index * 0.05, 1)}s`
     };
+    
+    // Add special styles for new photos
+    if (isNewPhoto) {
+      return {
+        ...baseStyle,
+        animation: 'pulseIn 0.8s ease-out',
+      };
+    }
+    
+    return baseStyle;
   };
 
   const gridItemProps = getGridItemClass();
   
   return (
     <div 
-      className={`${gridItemProps.className} animate-fade-in`}
+      className={`${gridItemProps.className} ${isNewPhoto ? 'fresh-image' : 'animate-fade-in'}`}
       style={{
         ...gridItemProps.style,
         animationDelay: `${Math.min(index * 0.05, 1)}s`
       }}
       data-index={index}
+      data-new={isNewPhoto ? "true" : "false"}
     >
       <div 
-        className={getContentClass()}
+        className={`${getContentClass()} ${isNewPhoto ? 'shadow-lg ring-2 ring-primary ring-offset-2' : ''}`}
         style={getImageContainerStyle()}
       >
         <ImageCard 
