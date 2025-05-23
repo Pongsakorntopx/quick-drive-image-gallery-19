@@ -1,4 +1,3 @@
-
 import { Photo, PhotoFetchResult } from "../types";
 import { fetchPhotosFromDrive, fetchLatestPhotoFromDrive } from "../services/googleDriveService";
 import { ApiConfig } from "../types";
@@ -49,7 +48,7 @@ export const checkForNewPhotos = async (
   apiConfig: ApiConfig,
   language: string,
   cachedPhotoTimestamp?: string,
-  forceRefresh: boolean = false // Add forceRefresh parameter
+  forceRefresh: boolean = false
 ): Promise<Photo | null> => {
   try {
     // Fetch only the latest photo to check if there's something new
@@ -84,7 +83,7 @@ export const fetchAndProcessPhotos = async (
   apiConfig: ApiConfig, 
   language: string,
   sortOrder: SortOrder,
-  forceRefresh: boolean = false // Add forceRefresh parameter
+  forceRefresh: boolean = false
 ): Promise<PhotoFetchResult> => {
   try {
     // Fetch photos from Google Drive with force refresh option

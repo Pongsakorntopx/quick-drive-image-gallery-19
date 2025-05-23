@@ -1,4 +1,3 @@
-
 import React, { useEffect, useRef, useState, useMemo } from "react";
 import { useAppContext } from "../context/AppContext";
 import { useInView } from "react-intersection-observer";
@@ -35,18 +34,13 @@ const PhotoGrid: React.FC = () => {
   const { ref: loadMoreRef, inView } = useInView({
     threshold: 0.1,
     triggerOnce: false,
-    rootMargin: '300px', // Increased to preload more images
+    rootMargin: '300px',
   });
 
-  // Previous photos ref to prevent unnecessary updates
   const prevPhotosLength = useRef<number>(0);
-  // Keep track of the last known photo IDs for quick comparison
   const lastKnownPhotoIds = useRef<Set<string>>(new Set());
-  // Track if initial setup has been done
   const initialSetupDone = useRef<boolean>(false);
-
-  // Batch size for virtualization - increased for better initial load
-  const batchSize = 32; // Increased from 24 for better initial experience
+  const batchSize = 32;
   
   // Sorted photos using the context sort function
   const sortedPhotos = useMemo(() => sortPhotos(photos), [photos, sortOrder]);
