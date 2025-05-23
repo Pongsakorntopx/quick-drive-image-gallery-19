@@ -130,7 +130,7 @@ const ImageCard: React.FC<ImageCardProps> = ({ photo, onClick }) => {
           <img
             src={highQualityUrl}
             alt={photo.name}
-            className="absolute inset-0 w-full h-auto object-contain transition-opacity duration-300 opacity-0"
+            className="absolute inset-0 w-full h-auto object-contain transition-opacity duration-300"
             style={{
               opacity: highQualityLoaded ? 1 : 0,
               transform: `scale(${isHovering || isMobile ? '1.05' : '1'})`,
@@ -192,4 +192,3 @@ const getDirectImageUrl = (photoId: string): string => {
 };
 
 export default ImageCard;
-
