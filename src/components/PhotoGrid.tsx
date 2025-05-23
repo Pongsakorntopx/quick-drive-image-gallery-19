@@ -15,7 +15,6 @@ import SortControls from "./grid/SortControls";
 interface VirtualizedPhoto {
   id: string;
   index: number;
-  isNew?: boolean;
 }
 
 const PhotoGrid: React.FC = () => {
@@ -39,12 +38,6 @@ const PhotoGrid: React.FC = () => {
     rootMargin: '300px', // Increased to preload more images
   });
 
-  // New state to track new photo IDs
-  const [newPhotoIds, setNewPhotoIds] = useState(new Set<string>());
-  
-  // Reference to track photo IDs that have already been processed
-  const processedPhotoIds = useRef(new Set<string>());
-  
   // Previous photos ref to prevent unnecessary updates
   const prevPhotosLength = useRef<number>(0);
   // Keep track of the last known photo IDs for quick comparison
@@ -58,117 +51,95 @@ const PhotoGrid: React.FC = () => {
   // Sorted photos using the context sort function
   const sortedPhotos = useMemo(() => sortPhotos(photos), [photos, sortOrder]);
   
-  // New function to reset new photo indicators after a delay
-  useEffect(() => {
-    if (newPhotoIds.size > 0) {
-      // Reset the highlight after 5 seconds
-      const timer = setTimeout(() => {
-        setNewPhotoIds(new Set());
-      }, 5000);
-      
-      return () => clearTimeout(timer);
-    }
-  }, [newPhotoIds]);
-  
-  // Completely new approach for handling photo updates - more reliable
-  useEffect(() => {
-    // Skip if no photos or initial load not done
-    if (sortedPhotos.length === 0) {
-      return;
-    }
+  // New function with improved real-time updates for adding new photos
+  const updateVirtualizedPhotosWithNewOnes = (newSortedPhotos: Photo[]) => {
+    if (newSortedPhotos.length === 0) return;
     
-    // On first load, initialize everything
-    if (!initialSetupDone.current) {
-      // Set up initial state
-      const initialBatch = sortedPhotos.slice(0, batchSize).map((photo, index) => ({
-        id: photo.id,
-        index,
-        isNew: false
-      }));
-      
-      setVirtualizedPhotos(initialBatch);
-      
-      // Mark all current photos as processed
-      sortedPhotos.forEach(photo => {
-        processedPhotoIds.current.add(photo.id);
+    // Create a set of existing IDs for quick lookup
+    const currentIds = new Set(virtualizedPhotos.map(vp => vp.id));
+    const newPhotoIds = new Set(newSortedPhotos.map(p => p.id));
+    
+    // Find truly new photos (not in current virtualized list)
+    const newPhotosToAdd: VirtualizedPhoto[] = [];
+    let hasNewPhotos = false;
+    
+    for (let i = 0; i < newSortedPhotos.length; i++) {
+      const photo = newSortedPhotos[i];
+      // Check if this is a new photo to add to virtualized list
+      if (!currentIds.has(photo.id)) {
+        newPhotosToAdd.push({
+          id: photo.id,
+          index: i
+        });
+        // Update our set of known photo IDs
         lastKnownPhotoIds.current.add(photo.id);
-      });
-      
-      initialSetupDone.current = true;
-      prevPhotosLength.current = sortedPhotos.length;
-      return;
-    }
-    
-    // Check for new photos by comparing with our processed set
-    const currentPhotoIds = new Set(sortedPhotos.map(p => p.id));
-    const newPhotoIdsDetected = new Set<string>();
-    
-    // Find truly new photos (not in processed set)
-    sortedPhotos.forEach(photo => {
-      if (!processedPhotoIds.current.has(photo.id)) {
-        newPhotoIdsDetected.add(photo.id);
-        // Add to processed set to avoid duplicate processing
-        processedPhotoIds.current.add(photo.id);
+        hasNewPhotos = true;
       }
-    });
-    
-    // Handle new photos if any were detected
-    if (newPhotoIdsDetected.size > 0) {
-      console.log(`Found ${newPhotoIdsDetected.size} truly new photos to display`);
-      
-      // Update our new photo IDs state
-      setNewPhotoIds(newPhotoIdsDetected);
-      
-      // Create updated virtualized photos with new photos at the top
-      // and mark them as new
-      const updatedVirtualized: VirtualizedPhoto[] = [];
-      
-      // First add new photos at the beginning
-      let index = 0;
-      sortedPhotos.forEach(photo => {
-        if (newPhotoIdsDetected.has(photo.id)) {
-          updatedVirtualized.push({
-            id: photo.id,
-            index: index++,
-            isNew: true
-          });
-        }
-      });
-      
-      // Then add the rest of the photos in current order
-      sortedPhotos.forEach(photo => {
-        if (!newPhotoIdsDetected.has(photo.id)) {
-          // Only add if within our batch limit
-          if (index < batchSize) {
-            updatedVirtualized.push({
-              id: photo.id,
-              index: index++,
-              isNew: false
-            });
-          }
-        }
-      });
-      
-      // Update virtualized photos state with new arrangement
-      setVirtualizedPhotos(updatedVirtualized);
-    }
-    // Handle case where total photo count has changed but no new IDs
-    // This covers deletions or re-ordering
-    else if (sortedPhotos.length !== prevPhotosLength.current) {
-      // Reset virtual photos based on current sorted order
-      const resetBatch = sortedPhotos.slice(0, batchSize).map((photo, index) => ({
-        id: photo.id,
-        index,
-        isNew: false
-      }));
-      
-      setVirtualizedPhotos(resetBatch);
     }
     
-    // Update previous length reference
-    prevPhotosLength.current = sortedPhotos.length;
+    // If we found new photos, add them to the virtualized list at the beginning
+    if (hasNewPhotos && newPhotosToAdd.length > 0) {
+      console.log(`Adding ${newPhotosToAdd.length} new photos to the virtualized list`);
+      // Prepend new photos to the existing virtualized list and update indices
+      setVirtualizedPhotos(prev => {
+        // Create a fresh array with updated indices
+        const updatedPrevPhotos = prev.map((vp, idx) => ({
+          id: vp.id,
+          index: idx + newPhotosToAdd.length
+        }));
+        return [...newPhotosToAdd, ...updatedPrevPhotos];
+      });
+    }
     
-  }, [sortedPhotos, batchSize]);
+    // Handle case where photos were removed
+    const deletedPhotos = Array.from(currentIds).filter(id => !newPhotoIds.has(id));
+    if (deletedPhotos.length > 0) {
+      console.log(`Removing ${deletedPhotos.length} deleted photos from the virtualized list`);
+      setVirtualizedPhotos(prev => 
+        prev.filter(vp => newPhotoIds.has(vp.id))
+           .map((vp, idx) => ({
+             ...vp,
+             index: idx
+           }))
+      );
+    }
+  };
+  
+  // Improved effect to handle new photos with immediate UI updates
+  useEffect(() => {
+    if (sortedPhotos.length > 0) {
+      const currentIds = new Set(sortedPhotos.map(p => p.id));
+      const previousIds = new Set(lastKnownPhotoIds.current);
+      
+      // Check if there are new photos by comparing IDs
+      let hasNewPhotos = false;
+      for (const id of currentIds) {
+        if (!previousIds.has(id)) {
+          hasNewPhotos = true;
+          break;
+        }
+      }
+      
+      // Handle different scenarios based on virtualized photos state
+      if (!initialSetupDone.current || virtualizedPhotos.length === 0) {
+        // Initial batch of photos - load more initially
+        const initialBatch = sortedPhotos.slice(0, batchSize).map((photo, index) => ({
+          id: photo.id,
+          index,
+        }));
+        setVirtualizedPhotos(initialBatch);
+        initialSetupDone.current = true;
+        
+        // Set up the initial known photo IDs
+        lastKnownPhotoIds.current = currentIds;
+      } else if (hasNewPhotos || sortedPhotos.length !== prevPhotosLength.current) {
+        // New photos detected - update virtualized list immediately
+        updateVirtualizedPhotosWithNewOnes(sortedPhotos);
+      }
+      
+      prevPhotosLength.current = sortedPhotos.length;
+    }
+  }, [sortedPhotos]);
 
   // Handle sort order changes
   useEffect(() => {
@@ -177,12 +148,8 @@ const PhotoGrid: React.FC = () => {
       const initialBatch = sortedPhotos.slice(0, batchSize).map((photo, index) => ({
         id: photo.id,
         index,
-        isNew: false
       }));
       setVirtualizedPhotos(initialBatch);
-      
-      // Clear new photo indicators on sort change
-      setNewPhotoIds(new Set());
     }
   }, [sortOrder]);
 
@@ -194,7 +161,6 @@ const PhotoGrid: React.FC = () => {
         .map((photo, index) => ({
           id: photo.id,
           index: virtualizedPhotos.length + index,
-          isNew: false
         }));
       
       setVirtualizedPhotos(prev => [...prev, ...nextBatch]);
@@ -340,20 +306,18 @@ const PhotoGrid: React.FC = () => {
             gridColumns={settings.gridColumns} 
             ref={gridRef} 
             photos={photos}
-            newPhotoIds={newPhotoIds}
           >
-            {virtualizedPhotos.map((vPhoto) => {
+            {virtualizedPhotos.map((vPhoto, idx) => {
               const photo = photoMap.get(vPhoto.id);
               
               return photo ? (
                 <GridItem 
-                  key={`${vPhoto.id}-${vPhoto.isNew}`} 
+                  key={vPhoto.id} 
                   photo={photo} 
                   onClick={setSelectedPhoto}
                   gridLayout={settings.gridLayout}
                   gridRows={settings.gridRows}
-                  index={vPhoto.index}
-                  isNewPhoto={vPhoto.isNew || newPhotoIds.has(vPhoto.id)}
+                  index={idx}
                 />
               ) : null;
             })}
@@ -454,29 +418,6 @@ const PhotoGrid: React.FC = () => {
           will-change: opacity, transform; /* Performance hint */
         }
         
-        /* Special animation for new photos */
-        .animate-pulse-highlight {
-          animation: pulseHighlight 2s ease-out;
-          will-change: opacity, transform, box-shadow;
-        }
-        
-        /* New photo highlight styling */
-        .new-photo-highlight {
-          position: relative;
-          z-index: 10;
-        }
-        
-        .new-photo-highlight::after {
-          content: '';
-          position: absolute;
-          inset: -3px;
-          border-radius: 10px;
-          background: linear-gradient(45deg, var(--primary) 0%, transparent 50%, var(--primary) 100%);
-          background-size: 400% 400%;
-          animation: gradientBorder 3s ease infinite;
-          z-index: -1;
-        }
-        
         @keyframes fadeIn {
           from {
             opacity: 0;
@@ -487,34 +428,23 @@ const PhotoGrid: React.FC = () => {
             transform: translateY(0);
           }
         }
+
+        /* New animation for fresh images */
+        .fresh-image {
+          animation: pulseIn 0.8s ease-out;
+        }
         
-        @keyframes pulseHighlight {
+        @keyframes pulseIn {
           0% {
             opacity: 0;
             transform: scale(0.95);
-            box-shadow: 0 0 0 0 rgba(var(--primary-rgb), 0.7);
-          }
-          20% {
-            opacity: 1;
-            transform: scale(1.02);
-            box-shadow: 0 0 0 10px rgba(var(--primary-rgb), 0);
-          }
-          100% {
-            opacity: 1;
-            transform: scale(1);
-            box-shadow: 0 0 0 0 rgba(var(--primary-rgb), 0);
-          }
-        }
-        
-        @keyframes gradientBorder {
-          0% {
-            background-position: 0% 50%;
           }
           50% {
-            background-position: 100% 50%;
+            opacity: 1;
+            transform: scale(1.05);
           }
           100% {
-            background-position: 0% 50%;
+            transform: scale(1);
           }
         }
         `}
