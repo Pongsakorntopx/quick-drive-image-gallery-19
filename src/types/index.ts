@@ -66,8 +66,6 @@ export interface AppSettings {
   gridLayout: "googlePhotos" | "auto" | "fixed" | "custom";
   gridColumns: number;
   gridRows: number;
-  // Auto refresh on new photos
-  autoRefreshOnNewPhotos: boolean; // New setting
 }
 
 // Add interface for photo fetch result to fix the context errors
