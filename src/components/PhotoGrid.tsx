@@ -3,7 +3,6 @@ import React, { useEffect, useRef, useState, useMemo } from "react";
 import { useAppContext } from "../context/AppContext";
 import { useInView } from "react-intersection-observer";
 import { Photo } from "../types";
-import { useToast } from "@/hooks/use-toast";
 
 // Import grid components
 import GridItem from "./grid/GridItem";
@@ -16,7 +15,6 @@ import SortControls from "./grid/SortControls";
 interface VirtualizedPhoto {
   id: string;
   index: number;
-  isNew?: boolean; // Track if this is a newly added photo
 }
 
 const PhotoGrid: React.FC = () => {
@@ -32,11 +30,8 @@ const PhotoGrid: React.FC = () => {
     sortPhotos
   } = useAppContext();
 
-  const { toast } = useToast();
   const gridRef = useRef<HTMLDivElement>(null);
   const [virtualizedPhotos, setVirtualizedPhotos] = useState<VirtualizedPhoto[]>([]);
-  const [newPhotoIds, setNewPhotoIds] = useState<Set<string>>(new Set());
-  
   const { ref: loadMoreRef, inView } = useInView({
     threshold: 0.1,
     triggerOnce: false,
@@ -62,11 +57,10 @@ const PhotoGrid: React.FC = () => {
     
     // Create a set of existing IDs for quick lookup
     const currentIds = new Set(virtualizedPhotos.map(vp => vp.id));
-    const incomingPhotoIds = new Set(newSortedPhotos.map(p => p.id));
+    const newPhotoIds = new Set(newSortedPhotos.map(p => p.id));
     
     // Find truly new photos (not in current virtualized list)
     const newPhotosToAdd: VirtualizedPhoto[] = [];
-    const freshPhotoIds = new Set<string>();
     let hasNewPhotos = false;
     
     for (let i = 0; i < newSortedPhotos.length; i++) {
@@ -75,57 +69,34 @@ const PhotoGrid: React.FC = () => {
       if (!currentIds.has(photo.id)) {
         newPhotosToAdd.push({
           id: photo.id,
-          index: i,
-          isNew: true // Mark as new photo
+          index: i
         });
         // Update our set of known photo IDs
         lastKnownPhotoIds.current.add(photo.id);
         hasNewPhotos = true;
-        // Track this as a fresh photo
-        freshPhotoIds.add(photo.id);
       }
     }
     
     // If we found new photos, add them to the virtualized list at the beginning
     if (hasNewPhotos && newPhotosToAdd.length > 0) {
       console.log(`Adding ${newPhotosToAdd.length} new photos to the virtualized list`);
-      
-      // Update new photo IDs for highlighting
-      setNewPhotoIds(prev => {
-        const updatedNewPhotoIds = new Set(prev);
-        freshPhotoIds.forEach(id => updatedNewPhotoIds.add(id));
-        return updatedNewPhotoIds;
-      });
-      
-      // Show toast notification for new photos
-      toast({
-        title: settings.language === "th" ? 
-          `พบรูปภาพใหม่ ${newPhotosToAdd.length} รูป` : 
-          `${newPhotosToAdd.length} new photo${newPhotosToAdd.length > 1 ? 's' : ''} added`,
-        description: settings.language === "th" ? 
-          "รูปภาพใหม่ถูกเพิ่มแล้ว" : 
-          "New photos have been added to the gallery",
-        duration: 3000,
-      });
-      
       // Prepend new photos to the existing virtualized list and update indices
       setVirtualizedPhotos(prev => {
         // Create a fresh array with updated indices
         const updatedPrevPhotos = prev.map((vp, idx) => ({
-          ...vp,
-          index: idx + newPhotosToAdd.length,
-          isNew: freshPhotoIds.has(vp.id) || vp.isNew // Keep isNew flag if it was already new
+          id: vp.id,
+          index: idx + newPhotosToAdd.length
         }));
         return [...newPhotosToAdd, ...updatedPrevPhotos];
       });
     }
     
     // Handle case where photos were removed
-    const deletedPhotos = Array.from(currentIds).filter(id => !incomingPhotoIds.has(id));
+    const deletedPhotos = Array.from(currentIds).filter(id => !newPhotoIds.has(id));
     if (deletedPhotos.length > 0) {
       console.log(`Removing ${deletedPhotos.length} deleted photos from the virtualized list`);
       setVirtualizedPhotos(prev => 
-        prev.filter(vp => incomingPhotoIds.has(vp.id))
+        prev.filter(vp => newPhotoIds.has(vp.id))
            .map((vp, idx) => ({
              ...vp,
              index: idx
@@ -133,25 +104,6 @@ const PhotoGrid: React.FC = () => {
       );
     }
   };
-  
-  // Clear new photo highlight after a delay
-  useEffect(() => {
-    if (newPhotoIds.size > 0) {
-      const timer = setTimeout(() => {
-        setNewPhotoIds(new Set());
-        
-        // Also update virtualizedPhotos to remove isNew flag
-        setVirtualizedPhotos(prev => 
-          prev.map(vp => ({
-            ...vp,
-            isNew: false
-          }))
-        );
-      }, 5000); // Clear new photo highlight after 5 seconds
-      
-      return () => clearTimeout(timer);
-    }
-  }, [newPhotoIds]);
   
   // Improved effect to handle new photos with immediate UI updates
   useEffect(() => {
@@ -187,7 +139,7 @@ const PhotoGrid: React.FC = () => {
       
       prevPhotosLength.current = sortedPhotos.length;
     }
-  }, [sortedPhotos, settings.language]);
+  }, [sortedPhotos]);
 
   // Handle sort order changes
   useEffect(() => {
@@ -366,7 +318,6 @@ const PhotoGrid: React.FC = () => {
                   gridLayout={settings.gridLayout}
                   gridRows={settings.gridRows}
                   index={idx}
-                  isNewPhoto={newPhotoIds.has(vPhoto.id) || vPhoto.isNew}
                 />
               ) : null;
             })}

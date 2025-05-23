@@ -44,19 +44,12 @@ export const sortPhotos = (photos: Photo[], sortOrder: SortOrder): Photo[] => {
   });
 };
 
-// Clear service cache for better real-time updates
-export const clearServiceCache = (): void => {
-  console.log("Clearing service cache for fresh data");
-  // This function would clear any cached data that might prevent real-time updates
-  // Currently a placeholder for future cache control implementations
-};
-
 // Enhanced check for new photos with immediate detection
 export const checkForNewPhotos = async (
   apiConfig: ApiConfig,
   language: string,
   cachedPhotoTimestamp?: string,
-  forceRefresh: boolean = false
+  forceRefresh: boolean = false // Add forceRefresh parameter
 ): Promise<Photo | null> => {
   try {
     // Fetch only the latest photo to check if there's something new
@@ -91,7 +84,7 @@ export const fetchAndProcessPhotos = async (
   apiConfig: ApiConfig, 
   language: string,
   sortOrder: SortOrder,
-  forceRefresh: boolean = false
+  forceRefresh: boolean = false // Add forceRefresh parameter
 ): Promise<PhotoFetchResult> => {
   try {
     // Fetch photos from Google Drive with force refresh option

@@ -10,7 +10,6 @@ import QRCode from "../components/QRCode";
 import AutoScroll from "../components/AutoScroll";
 import { createGoogleFontUrl } from "../config/fonts";
 import { getFolderUrl } from "../services/googleDriveService";
-import { motion } from "framer-motion";
 
 const Index = () => {
   const { apiConfig, refreshPhotos, settings } = useAppContext();
@@ -73,18 +72,12 @@ const Index = () => {
   const folderUrl = apiConfig.folderId ? getFolderUrl(apiConfig.folderId) : "";
 
   return (
-    <div className={`min-h-screen flex flex-col bg-background/95 bg-gradient-to-b from-background to-background/80 ${settings.font.class}`}>
+    <div className={`min-h-screen flex flex-col bg-background ${settings.font.class}`}>
       <Header />
       
-      <main className="flex-1 w-full pt-2 pb-8">
+      <main className="flex-1 w-full">
         {apiConfig.apiKey && apiConfig.folderId ? (
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5 }}
-          >
-            <PhotoGrid />
-          </motion.div>
+          <PhotoGrid />
         ) : (
           <ApiSetup />
         )}
@@ -92,11 +85,8 @@ const Index = () => {
       
       {/* Banner */}
       {settings.bannerUrl && (
-        <motion.div 
+        <div 
           className={`fixed ${getBannerPosition()} z-10`}
-          initial={{ opacity: 0, scale: 0.8 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ duration: 0.5, delay: 0.2 }}
           style={{ 
             maxWidth: `${settings.bannerSize}px`, 
             maxHeight: `${settings.bannerSize}px` 
@@ -105,25 +95,20 @@ const Index = () => {
           <img 
             src={settings.bannerUrl} 
             alt="Banner" 
-            className="max-w-full max-h-full object-contain drop-shadow-lg"
+            className="max-w-full max-h-full object-contain"
           />
-        </motion.div>
+        </div>
       )}
       
-      {/* Header QR code if enabled */}
+      {/* Header QR code if enabled - ปรับตำแหน่งให้อยู่ชิดขวามากขึ้น */}
       {settings.showHeaderQR && (!settings.bannerUrl || settings.bannerPosition !== "topRight") && (
-        <motion.div 
-          className="fixed top-24 right-8 z-40"
-          initial={{ opacity: 0, x: 20 }}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ duration: 0.5, delay: 0.3 }}
-        >
+        <div className="fixed top-24 right-8 z-40">
           <QRCode 
             url={folderUrl} 
             size={settings.headerQRCodeSize} 
-            className="shadow-lg bg-white/90 backdrop-blur-sm rounded-lg"
+            className="shadow-lg bg-white/90 backdrop-blur-sm"
           />
-        </motion.div>
+        </div>
       )}
       
       <ImageViewer />
