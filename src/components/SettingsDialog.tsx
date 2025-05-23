@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { useAppContext } from "../context/AppContext";
 import {
@@ -248,6 +247,18 @@ const SettingsDialog: React.FC = () => {
                 <Label htmlFor="notifications-enabled" className="flex items-center gap-2">
                   <Bell className="h-4 w-4" />
                   {settings.language === "th" ? "แสดงการแจ้งเตือน" : "Show Notifications"}
+                </Label>
+              </div>
+              
+              <div className="flex items-center space-x-2">
+                <Switch
+                  id="auto-refresh-enabled"
+                  checked={tempSettings.autoRefreshOnNewPhotos}
+                  onCheckedChange={(checked) => updateSettings("autoRefreshOnNewPhotos", checked)}
+                />
+                <Label htmlFor="auto-refresh-enabled" className="flex items-center gap-2">
+                  <RotateCw className="h-4 w-4" />
+                  {settings.language === "th" ? "รีเฟรชหน้าเว็บอัตโนมัติเมื่อมีรูปใหม่" : "Auto refresh page when new photos arrive"}
                 </Label>
               </div>
               
