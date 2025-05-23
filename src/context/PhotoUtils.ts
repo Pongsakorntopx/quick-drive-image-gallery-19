@@ -1,4 +1,3 @@
-
 import { Photo, PhotoFetchResult } from "../types";
 import { fetchPhotosFromDrive, fetchLatestPhotoFromDrive } from "../services/googleDriveService";
 import { ApiConfig } from "../types";
@@ -166,4 +165,19 @@ export const getLatestPhotoTimestamp = (photos: Photo[]): string | undefined => 
     
     return new Date(photoTime) > new Date(latest) ? photoTime : latest;
   }, undefined as string | undefined);
+};
+
+// Add the missing clearServiceCache function
+export const clearServiceCache = (): void => {
+  // Clear any cached data related to photo services
+  console.log("Clearing service cache");
+  
+  // We can use localStorage to clear any cached data if needed
+  // This is a placeholder implementation since the original function is missing
+  const cacheKeys = Object.keys(localStorage).filter(key => 
+    key.startsWith('gdrive-app-cache-') || key.startsWith('photo-service-')
+  );
+  
+  // Remove all matching cache entries
+  cacheKeys.forEach(key => localStorage.removeItem(key));
 };
