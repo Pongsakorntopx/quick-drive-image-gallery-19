@@ -1,5 +1,5 @@
 
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { Photo } from "@/types";
 import ImageCard from "../ImageCard";
 
@@ -9,6 +9,7 @@ interface GridItemProps {
   gridLayout: string;
   gridRows: number;
   index: number;
+  isNewPhoto?: boolean;
 }
 
 const GridItem: React.FC<GridItemProps> = ({ 
@@ -16,8 +17,32 @@ const GridItem: React.FC<GridItemProps> = ({
   onClick, 
   gridLayout,
   gridRows,
-  index
+  index,
+  isNewPhoto = false
 }) => {
+  const [isVisible, setIsVisible] = useState(!isNewPhoto);
+  const [isNew, setIsNew] = useState(isNewPhoto);
+  
+  // Apply animation for new photos
+  useEffect(() => {
+    if (isNewPhoto) {
+      // Short delay to allow DOM to update before animation
+      const timer = setTimeout(() => {
+        setIsVisible(true);
+      }, 50);
+      
+      // Reset the "new" status after animation completes
+      const resetTimer = setTimeout(() => {
+        setIsNew(false);
+      }, 2000); // Match this with the animation duration in CSS
+      
+      return () => {
+        clearTimeout(timer);
+        clearTimeout(resetTimer);
+      };
+    }
+  }, [isNewPhoto]);
+
   // Get grid item class based on settings
   const getGridItemClass = () => {
     if (gridLayout === "fixed" || gridLayout === "custom") {
@@ -33,8 +58,8 @@ const GridItem: React.FC<GridItemProps> = ({
     return { 
       className: "masonry-item", 
       style: { 
-        opacity: 0, 
-        transform: "translateY(20px)", 
+        opacity: isVisible ? 1 : 0, 
+        transform: isVisible ? "translateY(0)" : "translateY(-20px)", 
         transition: "opacity 0.4s ease-out, transform 0.4s ease-out",
         // Add staggered animation delay based on index
         animationDelay: `${Math.min(index * 0.05, 1)}s`,
@@ -72,15 +97,16 @@ const GridItem: React.FC<GridItemProps> = ({
   
   return (
     <div 
-      className={`${gridItemProps.className} animate-fade-in`}
+      className={`${gridItemProps.className} ${isNew ? 'new-photo-item' : 'animate-fade-in'}`}
       style={{
         ...gridItemProps.style,
         animationDelay: `${Math.min(index * 0.05, 1)}s`
       }}
       data-index={index}
+      data-new={isNew ? "true" : "false"}
     >
       <div 
-        className={getContentClass()}
+        className={`${getContentClass()} ${isNew ? 'new-photo-content' : ''}`}
         style={getImageContainerStyle()}
       >
         <ImageCard 
