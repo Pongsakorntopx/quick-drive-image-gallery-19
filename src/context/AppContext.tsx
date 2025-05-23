@@ -1,3 +1,4 @@
+
 import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from "react";
 import { ApiConfig, Photo, AppSettings } from "../types";
 import { useToast } from "@/components/ui/use-toast";
@@ -128,9 +129,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   // Flag to track if new photos have been detected during auto-check
   const newPhotosDetectedRef = useRef<boolean>(false);
   
-  // Flag to prevent duplicate refreshes
-  const hasAutoRefreshedRef = useRef<boolean>(false);
-  
   // Save API config to local storage
   useEffect(() => {
     localStorage.setItem("gdrive-app-config", JSON.stringify(apiConfig));
@@ -227,29 +225,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         // Update the photos state immediately
         setPhotos(updatedPhotos);
         
-        // Auto-refresh the page when a new photo is detected (if enabled)
-        if (settings.autoRefreshOnNewPhotos && !hasAutoRefreshedRef.current) {
-          console.log("Auto-refreshing page due to new photo detection");
-          hasAutoRefreshedRef.current = true; // Set flag to prevent multiple refreshes
-          
-          // Show notification before refresh if enabled
-          if (notificationsEnabled) {
-            toast({
-              title: settings.language === "th" ? "กำลังรีเฟรชหน้าเว็บ" : "Refreshing page",
-              description: settings.language === "th" 
-                ? "พบรูปภาพใหม่ กำลังรีเฟรชหน้าเว็บ" 
-                : "New photo detected, refreshing page",
-              duration: 2000
-            });
-          }
-          
-          // Add a small delay before refreshing to allow notification to be seen
-          setTimeout(() => {
-            window.location.reload();
-          }, 2000);
-        }
-        // Show notification if enabled (without refresh)
-        else if (notificationsEnabled) {
+        // Show notification if enabled
+        if (notificationsEnabled) {
           toast({
             title: settings.language === "th" ? "พบรูปภาพใหม่" : "New photo detected",
             description: settings.language === "th" 
@@ -267,7 +244,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       console.error("Error during quick check for new photos:", err);
       return false;
     }
-  }, [apiConfig, photos, settings.language, settings.autoRefreshOnNewPhotos, sortOrder, notificationsEnabled, toast, toastDuration]);
+  }, [apiConfig, photos, settings.language, sortOrder, notificationsEnabled, toast, toastDuration]);
 
   // Improved refresh photos function with optimized performance
   const refreshPhotos = useCallback(async (): Promise<boolean> => {

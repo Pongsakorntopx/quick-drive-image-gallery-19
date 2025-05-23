@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from "react";
 import { useAppContext } from "../context/AppContext";
 import Header from "../components/Header";
@@ -13,7 +14,6 @@ import { getFolderUrl } from "../services/googleDriveService";
 const Index = () => {
   const { apiConfig, refreshPhotos, settings } = useAppContext();
   const [isInitialLoad, setIsInitialLoad] = useState(true);
-  const [pageLoaded, setPageLoaded] = useState(false); // Track if page has fully loaded
 
   useEffect(() => {
     if (apiConfig.apiKey && apiConfig.folderId) {
@@ -21,11 +21,8 @@ const Index = () => {
       if (isInitialLoad) {
         refreshPhotos().finally(() => {
           setIsInitialLoad(false);
-          setPageLoaded(true); // Mark page as loaded after initial photos fetch
         });
       }
-    } else {
-      setPageLoaded(true); // Mark page as loaded even if no API config
     }
     
     // Load Google Fonts

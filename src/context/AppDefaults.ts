@@ -44,5 +44,4 @@ export const defaultSettings: AppSettings = {
   gridLayout: "googlePhotos", // Set to googlePhotos as the default layout
   gridColumns: 4,
   gridRows: 0,
-  autoRefreshOnNewPhotos: false, // Default to off for auto-refresh on new photos
 };
