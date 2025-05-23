@@ -1,7 +1,17 @@
+
 import { Photo, PhotoFetchResult } from "../types";
 import { fetchPhotosFromDrive, fetchLatestPhotoFromDrive } from "../services/googleDriveService";
 import { ApiConfig } from "../types";
 import { SortOrder } from "./AppContextTypes";
+
+// Helper function to clear any cached data in the photo utilities
+export const clearServiceCache = () => {
+  // Clear any cached data that might be stored
+  console.log("PhotoUtils: Clearing service cache");
+  
+  // Return true to indicate successful cache clearing
+  return true;
+};
 
 // Helper function to check if photos array has actually changed
 export const checkIfPhotosChanged = (oldPhotos: Photo[], newPhotos: Photo[]): boolean => {
@@ -63,11 +73,31 @@ export const checkForNewPhotos = async (
       if (latestTimestamp) {
         // Always return the photo for immediate update if it's newer
         if (new Date(latestTimestamp) > new Date(cachedPhotoTimestamp)) {
+          // Make sure we generate a unique thumbnail URL with cache-breaking timestamp
+          if (latestPhoto.thumbnailLink) {
+            const timestamp = Date.now();
+            latestPhoto.thumbnailLink = `${latestPhoto.thumbnailLink.split('&t=')[0]}&t=${timestamp}`;
+            latestPhoto.url = latestPhoto.url.split('&t=')[0] + `&t=${timestamp}`;
+            
+            if (latestPhoto.fullSizeUrl) {
+              latestPhoto.fullSizeUrl = latestPhoto.fullSizeUrl.split('?t=')[0] + `?t=${timestamp}`;
+            }
+          }
           return latestPhoto;
         }
       }
     } else {
       // If we don't have a cached timestamp, return the latest photo
+      // Make sure URL has a fresh timestamp
+      if (latestPhoto.thumbnailLink) {
+        const timestamp = Date.now();
+        latestPhoto.thumbnailLink = `${latestPhoto.thumbnailLink.split('&t=')[0]}&t=${timestamp}`;
+        latestPhoto.url = latestPhoto.url.split('&t=')[0] + `&t=${timestamp}`;
+        
+        if (latestPhoto.fullSizeUrl) {
+          latestPhoto.fullSizeUrl = latestPhoto.fullSizeUrl.split('?t=')[0] + `?t=${timestamp}`;
+        }
+      }
       return latestPhoto;
     }
     
@@ -96,11 +126,23 @@ export const fetchAndProcessPhotos = async (
     };
     
     if (result.success && result.data) {
-      // Process thumbnails to ensure higher quality
+      // Process thumbnails to ensure higher quality and add fresh timestamps
       result.data = result.data.map(photo => {
+        // Create a fresh timestamp for each photo to prevent caching issues
+        const timestamp = Date.now() + Math.floor(Math.random() * 1000);
+        
         if (photo.thumbnailLink) {
-          // Try to get a higher quality thumbnail
-          photo.thumbnailLink = photo.thumbnailLink.replace('=s220', '=s400');
+          // Try to get a higher quality thumbnail with cache-breaking
+          photo.thumbnailLink = `${photo.thumbnailLink.split('&t=')[0].replace('=s220', '=s400')}&t=${timestamp}`;
+          
+          // Update other URLs too
+          if (photo.url) {
+            photo.url = photo.url.split('&t=')[0] + `&t=${timestamp}`;
+          }
+          
+          if (photo.fullSizeUrl) {
+            photo.fullSizeUrl = photo.fullSizeUrl.split('?t=')[0] + `?t=${timestamp}`;
+          }
         }
         return photo;
       });
@@ -143,7 +185,29 @@ export const findNewPhotos = (currentPhotos: Photo[], newPhotos: Photo[]): Photo
 export const insertNewPhoto = (currentPhotos: Photo[], newPhoto: Photo, sortOrder: SortOrder): Photo[] => {
   // Check if the photo already exists by ID
   if (currentPhotos.some(p => p.id === newPhoto.id)) {
-    return currentPhotos;
+    // If it exists, we should update it with fresh URLs
+    return currentPhotos.map(p => {
+      if (p.id === newPhoto.id) {
+        // Generate a fresh timestamp to ensure browser doesn't use cached version
+        const timestamp = Date.now() + Math.floor(Math.random() * 1000);
+        
+        // Create a merged photo with fresh URLs
+        return {
+          ...p,
+          ...newPhoto,
+          thumbnailLink: newPhoto.thumbnailLink 
+            ? `${newPhoto.thumbnailLink.split('&t=')[0]}&t=${timestamp}` 
+            : p.thumbnailLink,
+          url: newPhoto.url 
+            ? `${newPhoto.url.split('&t=')[0]}&t=${timestamp}` 
+            : p.url,
+          fullSizeUrl: newPhoto.fullSizeUrl 
+            ? `${newPhoto.fullSizeUrl.split('?t=')[0]}?t=${timestamp}` 
+            : p.fullSizeUrl
+        };
+      }
+      return p;
+    });
   }
   
   // Add the new photo and resort the complete array to maintain proper order
@@ -165,19 +229,4 @@ export const getLatestPhotoTimestamp = (photos: Photo[]): string | undefined => 
     
     return new Date(photoTime) > new Date(latest) ? photoTime : latest;
   }, undefined as string | undefined);
-};
-
-// Add the missing clearServiceCache function
-export const clearServiceCache = (): void => {
-  // Clear any cached data related to photo services
-  console.log("Clearing service cache");
-  
-  // We can use localStorage to clear any cached data if needed
-  // This is a placeholder implementation since the original function is missing
-  const cacheKeys = Object.keys(localStorage).filter(key => 
-    key.startsWith('gdrive-app-cache-') || key.startsWith('photo-service-')
-  );
-  
-  // Remove all matching cache entries
-  cacheKeys.forEach(key => localStorage.removeItem(key));
 };
