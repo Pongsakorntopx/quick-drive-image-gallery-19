@@ -1,6 +1,6 @@
 import { Photo, PhotoFetchResult, Language } from "../types";
 import { SortOrder } from "./AppContextTypes";
-import { fetchPhotos } from "../services/googleDriveService";
+import { fetchPhotosFromDrive, fetchLatestPhotoFromDrive } from "../services/googleDriveService";
 
 // Service cache for API calls
 const serviceCache = {
@@ -124,29 +124,21 @@ export const checkForNewPhotos = async (
   try {
     // If we don't have a latest timestamp or force refresh is enabled, we can't do an optimized check
     if (!latestTimestamp || forceRefresh) {
-      const result = await fetchPhotos(apiConfig);
+      const result = await fetchAndProcessPhotos(apiConfig, language, {
+        field: "modifiedTime",
+        direction: "desc"
+      }, true);
       
       if (result.success && result.data && result.data.length > 0) {
         // Return the most recent photo
-        const sortedPhotos = sortPhotos(result.data, {
-          field: "modifiedTime",
-          direction: "desc"
-        });
-        
-        return sortedPhotos[0];
+        return result.data[0];
       }
       return null;
     }
     
     // Otherwise, do an optimized API call to check only for photos newer than the latest timestamp
-    const result = await fetchPhotos(apiConfig, 1, latestTimestamp);
-    
-    if (result.success && result.data && result.data.length > 0) {
-      // Return the newly found photo
-      return result.data[0];
-    }
-    
-    return null;
+    const newPhoto = await fetchLatestPhotoFromDrive(apiConfig, true);
+    return newPhoto;
   } catch (error) {
     console.error("Error checking for new photos:", error);
     return null;
@@ -173,27 +165,28 @@ export const fetchAndProcessPhotos = async (
     }
     
     // Fetch photos from API
-    const result = await fetchPhotos(apiConfig);
+    const photos = await fetchPhotosFromDrive(apiConfig, forceRefresh);
     
-    // Update cache
-    serviceCache.lastFetchTime = now;
-    serviceCache.lastResults = result;
-    
-    if (result.success && result.data) {
-      // Sort the photos according to the sort order
-      const sortedPhotos = sortPhotos(result.data, sortOrder);
+    if (photos && photos.length > 0) {
+      // Update cache
+      serviceCache.lastFetchTime = now;
       
-      return {
+      // Sort the photos according to the sort order
+      const sortedPhotos = sortPhotos(photos, sortOrder);
+      
+      const result = {
         success: true,
         data: sortedPhotos,
       };
+      
+      serviceCache.lastResults = result;
+      return result;
     } else {
       return {
         success: false,
-        error: result.error || (language === "th" ? 
+        error: language === "th" ? 
           "ไม่สามารถดึงข้อมูลรูปภาพ" : 
           "Failed to fetch photos"
-        ),
       };
     }
   } catch (error) {
