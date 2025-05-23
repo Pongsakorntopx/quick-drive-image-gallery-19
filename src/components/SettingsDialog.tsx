@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { useAppContext } from "../context/AppContext";
 import {
@@ -56,28 +55,28 @@ const SettingsDialog: React.FC = () => {
       const logoReader = new FileReader();
       logoReader.onloadend = () => {
         const base64Logo = logoReader.result as string;
-        setSettings({
+        const updatedSettings = {
           ...tempSettings,
           logoUrl: base64Logo
-        });
+        };
+        setSettings(updatedSettings);
       };
       logoReader.readAsDataURL(logoFile);
-    } else {
+    } else if (bannerFile) {
       // Process banner upload if available
-      if (bannerFile) {
-        const bannerReader = new FileReader();
-        bannerReader.onloadend = () => {
-          const base64Banner = bannerReader.result as string;
-          setSettings({
-            ...tempSettings,
-            bannerUrl: base64Banner
-          });
+      const bannerReader = new FileReader();
+      bannerReader.onloadend = () => {
+        const base64Banner = bannerReader.result as string;
+        const updatedSettings = {
+          ...tempSettings,
+          bannerUrl: base64Banner
         };
-        bannerReader.readAsDataURL(bannerFile);
-      } else {
-        // No files to process, just save settings
-        setSettings(tempSettings);
-      }
+        setSettings(updatedSettings);
+      };
+      bannerReader.readAsDataURL(bannerFile);
+    } else {
+      // No files to process, just save settings
+      setSettings(tempSettings);
     }
     setIsSettingsOpen(false);
   };
@@ -248,6 +247,18 @@ const SettingsDialog: React.FC = () => {
                 <Label htmlFor="notifications-enabled" className="flex items-center gap-2">
                   <Bell className="h-4 w-4" />
                   {settings.language === "th" ? "แสดงการแจ้งเตือน" : "Show Notifications"}
+                </Label>
+              </div>
+              
+              <div className="flex items-center space-x-2">
+                <Switch
+                  id="auto-refresh-enabled"
+                  checked={tempSettings.autoRefreshOnNewPhotos}
+                  onCheckedChange={(checked) => updateSettings("autoRefreshOnNewPhotos", checked)}
+                />
+                <Label htmlFor="auto-refresh-enabled" className="flex items-center gap-2">
+                  <RotateCw className="h-4 w-4" />
+                  {settings.language === "th" ? "รีเฟรชหน้าเว็บอัตโนมัติเมื่อมีรูปใหม่" : "Auto refresh page when new photos arrive"}
                 </Label>
               </div>
               

@@ -83,33 +83,44 @@ export const fetchLatestPhotoFromDrive = async (
       folderId: config.folderId
     };
     
-    // Check if this photo already exists in main cache
-    const existsInCache = photosCache.photos.some(p => p.id === latestFile.id);
+    // Generate a unique timestamp for this specific photo to prevent browser caching
+    const photoTimestamp = Date.now();
     
-    // Process the latest photo
-    const timestamp = Date.now();
+    // Process the latest photo with guaranteed cache-breaking timestamp
     const latestPhoto = {
       id: latestFile.id,
       name: latestFile.name,
-      url: latestFile.thumbnailLink ? latestFile.thumbnailLink.replace('=s220', '=s1000') + `&t=${timestamp}` : getPhotoUrl(latestFile.id, timestamp),
-      thumbnailLink: latestFile.thumbnailLink ? latestFile.thumbnailLink + `&t=${timestamp}` : `https://drive.google.com/thumbnail?id=${latestFile.id}&t=${timestamp}`,
-      iconLink: latestFile.iconLink || `https://drive.google.com/icon?id=${latestFile.id}&t=${timestamp}`,
+      url: latestFile.thumbnailLink ? 
+        `${latestFile.thumbnailLink.replace('=s220', '=s1000')}&t=${photoTimestamp}` : 
+        getPhotoUrl(latestFile.id, photoTimestamp),
+      thumbnailLink: latestFile.thumbnailLink ? 
+        `${latestFile.thumbnailLink}&t=${photoTimestamp}` : 
+        `https://drive.google.com/thumbnail?id=${latestFile.id}&t=${photoTimestamp}`,
+      iconLink: latestFile.iconLink || `https://drive.google.com/icon?id=${latestFile.id}&t=${photoTimestamp}`,
       mimeType: latestFile.mimeType,
       createdTime: latestFile.createdTime,
       modifiedTime: latestFile.modifiedTime,
       size: latestFile.size || "Unknown",
-      webContentLink: latestFile.webContentLink || getPhotoDownloadUrl(latestFile.id, timestamp),
-      fullSizeUrl: getDirectImageUrl(latestFile.id, timestamp),
-      directDownloadUrl: getDirectDownloadUrl(latestFile.id, timestamp)
+      webContentLink: latestFile.webContentLink || getPhotoDownloadUrl(latestFile.id, photoTimestamp),
+      fullSizeUrl: getDirectImageUrl(latestFile.id, photoTimestamp),
+      directDownloadUrl: getDirectDownloadUrl(latestFile.id, photoTimestamp)
     };
+    
+    // Check if this photo already exists in main cache
+    const existsInCache = photosCache.photos.some(p => p.id === latestFile.id);
     
     // If the photo is new or force refresh is true, return it for immediate update
     if (!existsInCache || forceRefresh) {
       console.log("New photo detected or force refresh requested:", latestFile.name);
       
-      // Add to cache if it's a new photo
+      // If it's a new photo, add it to the beginning of the cache
       if (!existsInCache) {
         photosCache.photos = [latestPhoto, ...photosCache.photos];
+      } else {
+        // If it's an existing photo but forced refresh, update the cache
+        photosCache.photos = photosCache.photos.map(p => 
+          p.id === latestPhoto.id ? latestPhoto : p
+        );
       }
       
       return latestPhoto;
@@ -189,24 +200,30 @@ export const fetchPhotosFromDrive = async (
       }
     } while (pageToken);
     
-    // Generate a timestamp for all URLs to prevent browser caching
-    const timestamp = Date.now();
-    
-    // Transform API response into Photo objects with multiple URL options
-    const processedPhotos = allPhotos.map((file: any) => ({
-      id: file.id,
-      name: file.name,
-      url: file.thumbnailLink ? file.thumbnailLink.replace('=s220', '=s1000') + `&t=${timestamp}` : getPhotoUrl(file.id, timestamp),
-      thumbnailLink: file.thumbnailLink ? file.thumbnailLink + `&t=${timestamp}` : `https://drive.google.com/thumbnail?id=${file.id}&t=${timestamp}`,
-      iconLink: file.iconLink || `https://drive.google.com/icon?id=${file.id}&t=${timestamp}`,
-      mimeType: file.mimeType,
-      createdTime: file.createdTime,
-      modifiedTime: file.modifiedTime,
-      size: file.size || "Unknown",
-      webContentLink: file.webContentLink || getPhotoDownloadUrl(file.id, timestamp),
-      fullSizeUrl: getDirectImageUrl(file.id, timestamp),
-      directDownloadUrl: getDirectDownloadUrl(file.id, timestamp)
-    }));
+    // Generate individual timestamps for each photo to prevent browser caching
+    const processedPhotos = allPhotos.map((file: any) => {
+      // Each photo gets its own unique timestamp to prevent caching issues
+      const photoTimestamp = Date.now() + Math.floor(Math.random() * 1000);
+      
+      return {
+        id: file.id,
+        name: file.name,
+        url: file.thumbnailLink ? 
+          `${file.thumbnailLink.replace('=s220', '=s1000')}&t=${photoTimestamp}` : 
+          getPhotoUrl(file.id, photoTimestamp),
+        thumbnailLink: file.thumbnailLink ? 
+          `${file.thumbnailLink}&t=${photoTimestamp}` : 
+          `https://drive.google.com/thumbnail?id=${file.id}&t=${photoTimestamp}`,
+        iconLink: file.iconLink || `https://drive.google.com/icon?id=${file.id}&t=${photoTimestamp}`,
+        mimeType: file.mimeType,
+        createdTime: file.createdTime,
+        modifiedTime: file.modifiedTime,
+        size: file.size || "Unknown",
+        webContentLink: file.webContentLink || getPhotoDownloadUrl(file.id, photoTimestamp),
+        fullSizeUrl: getDirectImageUrl(file.id, photoTimestamp),
+        directDownloadUrl: getDirectDownloadUrl(file.id, photoTimestamp)
+      };
+    });
     
     console.log(`Fetched ${processedPhotos.length} photos from Google Drive`);
     

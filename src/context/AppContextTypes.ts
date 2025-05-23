@@ -1,10 +1,51 @@
 
-import { ApiConfig, Photo, AppSettings, Theme, Font, PhotoFetchResult, Language, ThemeMode } from "../types";
+import { Photo, Theme, Font } from "../types";
 
-// Context interface
+export interface SortOrder {
+  field: keyof Photo;
+  direction: "asc" | "desc";
+}
+
+export const defaultSortOrder: SortOrder = {
+  field: "modifiedTime",
+  direction: "desc",
+};
+
+export interface AppSettings {
+  themeMode: "light" | "dark";
+  language: "en" | "th";
+  title: string;
+  showTitle: boolean;
+  titleSize: number;
+  refreshInterval: number;
+  qrCodeSize: number;
+  qrCodePosition: "bottomRight" | "bottomLeft" | "topRight" | "topLeft" | "center";
+  showHeaderQR: boolean;
+  logoUrl: string | null;
+  logoSize: number;
+  bannerUrl: string | null;
+  bannerSize: number;
+  bannerPosition: "bottomLeft" | "bottomRight" | "topLeft" | "topRight";
+  autoScrollEnabled: boolean;
+  autoScrollSpeed: number;
+  autoScrollDirection: "up" | "down";
+  font: Font;
+  fontSize: {
+    subtitle: number;
+    body: number;
+  };
+  theme: Theme;
+  headerQRCodeSize: number;
+  viewerQRCodeSize: number;
+  gridLayout: "googlePhotos" | "fixed" | "custom" | "auto";
+  gridColumns: number;
+  gridRows: number;
+  autoRefreshOnNewPhotos: boolean; // Setting for auto-refresh on new photos
+}
+
 export interface AppContextType {
-  apiConfig: ApiConfig;
-  setApiConfig: React.Dispatch<React.SetStateAction<ApiConfig>>;
+  apiConfig: { apiKey: string; folderId: string };
+  setApiConfig: React.Dispatch<React.SetStateAction<{ apiKey: string; folderId: string }>>;
   photos: Photo[];
   setPhotos: React.Dispatch<React.SetStateAction<Photo[]>>;
   isLoading: boolean;
@@ -25,17 +66,5 @@ export interface AppContextType {
   setNotificationsEnabled: React.Dispatch<React.SetStateAction<boolean>>;
   toastDuration: number;
   setToastDuration: React.Dispatch<React.SetStateAction<number>>;
-  sortPhotos: (photos: Photo[]) => Photo[];
+  sortPhotos: (photosToSort: Photo[]) => Photo[];
 }
-
-// Sort order type
-export type SortOrder = {
-  field: "name" | "modifiedTime" | "createdTime";
-  direction: "asc" | "desc";
-};
-
-// Default sort order
-export const defaultSortOrder: SortOrder = {
-  field: "modifiedTime",
-  direction: "desc",
-};

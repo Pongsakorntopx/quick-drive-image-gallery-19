@@ -1,5 +1,5 @@
 
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { Photo } from "@/types";
 import ImageCard from "../ImageCard";
 
@@ -9,6 +9,7 @@ interface GridItemProps {
   gridLayout: string;
   gridRows: number;
   index: number;
+  isNewPhoto?: boolean;  // Add flag to indicate new photos
 }
 
 const GridItem: React.FC<GridItemProps> = ({ 
@@ -16,8 +17,16 @@ const GridItem: React.FC<GridItemProps> = ({
   onClick, 
   gridLayout,
   gridRows,
-  index
+  index,
+  isNewPhoto = false
 }) => {
+  const [isLoaded, setIsLoaded] = useState(false);
+  
+  // Track when this component is freshly rendered
+  useEffect(() => {
+    setIsLoaded(true);
+  }, []);
+
   // Get grid item class based on settings
   const getGridItemClass = () => {
     if (gridLayout === "fixed" || gridLayout === "custom") {
@@ -70,14 +79,21 @@ const GridItem: React.FC<GridItemProps> = ({
 
   const gridItemProps = getGridItemClass();
   
+  // Determine additional classes based on whether this is a new photo
+  const newPhotoClass = isNewPhoto ? "new-photo-highlight" : "";
+  const animationClass = isNewPhoto 
+    ? "animate-pulse-highlight" 
+    : (isLoaded ? "animate-fade-in" : "");
+  
   return (
     <div 
-      className={`${gridItemProps.className} animate-fade-in`}
+      className={`${gridItemProps.className} ${animationClass} ${newPhotoClass}`}
       style={{
         ...gridItemProps.style,
         animationDelay: `${Math.min(index * 0.05, 1)}s`
       }}
       data-index={index}
+      data-is-new={isNewPhoto ? "true" : "false"}
     >
       <div 
         className={getContentClass()}
@@ -88,6 +104,11 @@ const GridItem: React.FC<GridItemProps> = ({
           onClick={() => onClick(photo)} 
         />
       </div>
+      
+      {/* Add special indicator for new photos */}
+      {isNewPhoto && (
+        <div className="absolute top-2 right-2 w-3 h-3 bg-primary rounded-full animate-ping" />
+      )}
     </div>
   );
 };
