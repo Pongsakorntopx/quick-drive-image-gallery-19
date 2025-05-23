@@ -21,7 +21,7 @@ import { Switch } from "@/components/ui/switch";
 import { Slider } from "@/components/ui/slider";
 import { Separator } from "@/components/ui/separator";
 import { AppSettings } from "../types";
-import { Bell, Upload, RotateCw, Trash2 } from "lucide-react";
+import { Bell, Upload, RotateCw, Trash2, RefreshCw } from "lucide-react";
 import { useTranslation } from "../hooks/useTranslation";
 import { fontCategories } from "../config/fonts";
 import { defaultSettings } from "../context/AppDefaults";
@@ -248,6 +248,21 @@ const SettingsDialog: React.FC = () => {
                 <Label htmlFor="notifications-enabled" className="flex items-center gap-2">
                   <Bell className="h-4 w-4" />
                   {settings.language === "th" ? "แสดงการแจ้งเตือน" : "Show Notifications"}
+                </Label>
+              </div>
+              
+              {/* New Auto Refresh on New Photos Toggle */}
+              <div className="flex items-center space-x-2">
+                <Switch
+                  id="auto-refresh-on-new"
+                  checked={tempSettings.autoRefreshOnNewPhotos}
+                  onCheckedChange={(checked) => updateSettings("autoRefreshOnNewPhotos", checked)}
+                />
+                <Label htmlFor="auto-refresh-on-new" className="flex items-center gap-2">
+                  <RefreshCw className="h-4 w-4" />
+                  {settings.language === "th" 
+                    ? "รีเฟรชหน้าเว็บเมื่อพบรูปภาพใหม่" 
+                    : "Refresh page when new photos detected"}
                 </Label>
               </div>
               

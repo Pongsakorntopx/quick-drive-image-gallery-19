@@ -12,12 +12,20 @@ import {
   findNewPhotos, 
   checkForNewPhotos,
   insertNewPhoto,
-  getLatestPhotoTimestamp,
-  clearServiceCache
+  getLatestPhotoTimestamp
 } from "./PhotoUtils";
 
 // Create the context
 const AppContext = createContext<AppContextType | undefined>(undefined);
+
+// Function to clear any potential service cache
+export const clearServiceCache = () => {
+  // Clear any cache if needed
+  console.log("Clearing service cache");
+  
+  // Here we would clear any caches
+  // For now this is a placeholder
+};
 
 // Hook to use the app context
 export const useAppContext = () => {
@@ -102,6 +110,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           gridLayout: parsed.gridLayout || defaultSettings.gridLayout,
           gridColumns: parsed.gridColumns || defaultSettings.gridColumns,
           gridRows: parsed.gridRows || defaultSettings.gridRows,
+          // New setting for auto refresh on new photos
+          autoRefreshOnNewPhotos: parsed.autoRefreshOnNewPhotos !== undefined ? 
+            parsed.autoRefreshOnNewPhotos : 
+            defaultSettings.autoRefreshOnNewPhotos,
         };
       } catch (e) {
         console.error("Error parsing saved settings:", e);
@@ -128,6 +140,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   
   // Flag to track if new photos have been detected during auto-check
   const newPhotosDetectedRef = useRef<boolean>(false);
+  
+  // Flag to prevent multiple page refreshes
+  const hasRefreshedForNewPhotos = useRef<boolean>(false);
   
   // Save API config to local storage
   useEffect(() => {
@@ -189,6 +204,34 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }
   };
 
+  // Function to refresh the page once when new photos are detected
+  const refreshPageForNewPhotos = useCallback(() => {
+    if (settings.autoRefreshOnNewPhotos && !hasRefreshedForNewPhotos.current) {
+      console.log("Refreshing page due to new photos detection");
+      
+      // Show notification before refresh
+      if (notificationsEnabled) {
+        toast({
+          title: settings.language === "th" 
+            ? "พบรูปภาพใหม่ กำลังรีเฟรชหน้าเว็บ" 
+            : "New photos detected, refreshing page",
+          description: settings.language === "th"
+            ? "หน้าเว็บไซต์จะรีเฟรชโดยอัตโนมัติในอีก 2 วินาที" 
+            : "Page will automatically refresh in 2 seconds",
+          duration: 2000
+        });
+      }
+      
+      // Set refreshed flag to prevent multiple refreshes
+      hasRefreshedForNewPhotos.current = true;
+      
+      // Wait 2 seconds before refreshing to show the notification
+      setTimeout(() => {
+        window.location.reload();
+      }, 2000);
+    }
+  }, [settings.autoRefreshOnNewPhotos, notificationsEnabled, toast, settings.language]);
+
   // Improved function to quickly check for new photos with instant updates
   const quickCheckNewPhotos = useCallback(async (): Promise<boolean> => {
     if (!apiConfig.apiKey || !apiConfig.folderId) {
@@ -236,6 +279,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           });
         }
         
+        // Trigger page refresh if auto refresh setting is enabled
+        refreshPageForNewPhotos();
+        
         return true;
       }
       
@@ -244,7 +290,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       console.error("Error during quick check for new photos:", err);
       return false;
     }
-  }, [apiConfig, photos, settings.language, sortOrder, notificationsEnabled, toast, toastDuration]);
+  }, [apiConfig, photos, settings.language, sortOrder, notificationsEnabled, toast, toastDuration, refreshPageForNewPhotos]);
 
   // Improved refresh photos function with optimized performance
   const refreshPhotos = useCallback(async (): Promise<boolean> => {
@@ -288,12 +334,17 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
             const newPhotos = findNewPhotos(photos, result.data);
             
             // Notify if there are new photos
-            if (newPhotos.length > 0 && notificationsEnabled) {
-              toast({
-                title: settings.language === "th" ? `พบรูปภาพใหม่ ${newPhotos.length} รูป` : `Found ${newPhotos.length} new photos`,
-                description: settings.language === "th" ? "รูปภาพใหม่ถูกเพิ่มแล้ว" : "New photos have been added",
-                duration: toastDuration * 1000
-              });
+            if (newPhotos.length > 0) {
+              if (notificationsEnabled) {
+                toast({
+                  title: settings.language === "th" ? `พบรูปภาพใหม่ ${newPhotos.length} รูป` : `Found ${newPhotos.length} new photos`,
+                  description: settings.language === "th" ? "รูปภาพใหม่ถูกเพิ่มแล้ว" : "New photos have been added",
+                  duration: toastDuration * 1000
+                });
+              }
+              
+              // Trigger page refresh if auto refresh setting is enabled
+              refreshPageForNewPhotos();
             }
             
             // Update photos with the latest data
@@ -323,7 +374,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     } finally {
       setIsLoading(false);
     }
-  }, [apiConfig, photos, settings.language, sortOrder, notificationsEnabled, toast, toastDuration]);
+  }, [apiConfig, photos, settings.language, sortOrder, notificationsEnabled, toast, toastDuration, refreshPageForNewPhotos]);
 
   // Helper function to clear existing intervals
   const clearIntervals = useCallback(() => {
@@ -336,6 +387,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       quickCheckIntervalRef.current = null;
     }
   }, []);
+
+  // Reset the page refresh flag when settings change
+  useEffect(() => {
+    hasRefreshedForNewPhotos.current = false;
+  }, [settings.autoRefreshOnNewPhotos]);
 
   // Set up the refresh interval with improved real-time updates
   useEffect(() => {
