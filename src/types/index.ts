@@ -1,4 +1,3 @@
-
 export interface ApiConfig {
   apiKey: string;
   folderId: string;
@@ -66,6 +65,8 @@ export interface AppSettings {
   gridLayout: "googlePhotos" | "auto" | "fixed" | "custom";
   gridColumns: number;
   gridRows: number;
+  // Auto refresh on new photos
+  autoRefreshOnNewPhotos: boolean;
 }
 
 // Add interface for photo fetch result to fix the context errors

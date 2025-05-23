@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from "react";
 import { ApiConfig, Photo, AppSettings } from "../types";
 import { useToast } from "@/components/ui/use-toast";
@@ -129,6 +128,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   // Flag to track if new photos have been detected during auto-check
   const newPhotosDetectedRef = useRef<boolean>(false);
   
+  // Flag to track if a page refresh is needed
+  const [pageRefreshNeeded, setPageRefreshNeeded] = useState<boolean>(false);
+  
   // Save API config to local storage
   useEffect(() => {
     localStorage.setItem("gdrive-app-config", JSON.stringify(apiConfig));
@@ -225,6 +227,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         // Update the photos state immediately
         setPhotos(updatedPhotos);
         
+        // Set page refresh flag if auto-refresh is enabled
+        if (settings.autoRefreshOnNewPhotos) {
+          setPageRefreshNeeded(true);
+        }
+        
         // Show notification if enabled
         if (notificationsEnabled) {
           toast({
@@ -244,7 +251,16 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       console.error("Error during quick check for new photos:", err);
       return false;
     }
-  }, [apiConfig, photos, settings.language, sortOrder, notificationsEnabled, toast, toastDuration]);
+  }, [apiConfig, photos, settings.language, settings.autoRefreshOnNewPhotos, sortOrder, notificationsEnabled, toast, toastDuration]);
+
+  // Handle page refresh when new photos are detected
+  useEffect(() => {
+    if (pageRefreshNeeded && settings.autoRefreshOnNewPhotos) {
+      console.log("Auto-refreshing page due to new photos");
+      setPageRefreshNeeded(false); // Reset the flag
+      window.location.reload(); // Refresh the page once
+    }
+  }, [pageRefreshNeeded, settings.autoRefreshOnNewPhotos]);
 
   // Improved refresh photos function with optimized performance
   const refreshPhotos = useCallback(async (): Promise<boolean> => {
@@ -287,13 +303,20 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
             // Find new photos 
             const newPhotos = findNewPhotos(photos, result.data);
             
-            // Notify if there are new photos
-            if (newPhotos.length > 0 && notificationsEnabled) {
-              toast({
-                title: settings.language === "th" ? `พบรูปภาพใหม่ ${newPhotos.length} รูป` : `Found ${newPhotos.length} new photos`,
-                description: settings.language === "th" ? "รูปภาพใหม่ถูกเพิ่มแล้ว" : "New photos have been added",
-                duration: toastDuration * 1000
-              });
+            // Check if we need to refresh the page
+            if (newPhotos.length > 0) {
+              if (settings.autoRefreshOnNewPhotos) {
+                setPageRefreshNeeded(true);
+              }
+              
+              // Notify if there are new photos
+              if (notificationsEnabled) {
+                toast({
+                  title: settings.language === "th" ? `พบรูปภาพใหม่ ${newPhotos.length} รูป` : `Found ${newPhotos.length} new photos`,
+                  description: settings.language === "th" ? "รูปภาพใหม่ถูกเพิ่มแล้ว" : "New photos have been added",
+                  duration: toastDuration * 1000
+                });
+              }
             }
             
             // Update photos with the latest data
@@ -323,7 +346,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     } finally {
       setIsLoading(false);
     }
-  }, [apiConfig, photos, settings.language, sortOrder, notificationsEnabled, toast, toastDuration]);
+  }, [apiConfig, photos, settings.language, settings.autoRefreshOnNewPhotos, sortOrder, notificationsEnabled, toast, toastDuration]);
 
   // Helper function to clear existing intervals
   const clearIntervals = useCallback(() => {
